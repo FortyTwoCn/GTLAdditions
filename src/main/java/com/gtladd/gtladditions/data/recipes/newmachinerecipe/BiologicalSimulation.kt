@@ -1,5 +1,8 @@
 package com.gtladd.gtladditions.data.recipes.newmachinerecipe
 
+import com.gtladd.gtladditions.utils.tierChancedOutput
+import com.gtladd.gtladditions.utils.tierChancedInput
+
 import com.gregtechceu.gtceu.api.GTValues.UV
 import com.gregtechceu.gtceu.api.GTValues.VA
 import com.gregtechceu.gtceu.common.data.GTMaterials.Biomass
@@ -7,14 +10,14 @@ import com.gregtechceu.gtceu.common.data.GTMaterials.Milk
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder
 import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLMaterials.BiohmediumSterilized
 import org.gtlcore.gtlcore.common.data.GTLRecipeTypes.INCUBATOR_RECIPES
 import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object BiologicalSimulation {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         val swords = listOf(
             Sword("minecraft:diamond_sword", 15, 1),
             Sword("minecraft:netherite_sword", 5, 5),
@@ -57,7 +60,7 @@ object BiologicalSimulation {
         generateSpecialRecipes(provider)
     }
 
-    private fun generateRecipe(item: Biological, sword: Sword, provider: Consumer<FinishedRecipe?>) {
+    private fun generateRecipe(item: Biological, sword: Sword, provider: RecipeOutput) {
         val builder = GTLAddRecipesTypes.BIOLOGICAL_SIMULATION.recipeBuilder(
             id(item.name + (if (sword.damage > 10) "_1" else (if (sword.damage > 0) "_2" else "_3")))
         ).notConsumable(getItemStack("minecraft:" + item.name + "_spawn_egg"))
@@ -65,14 +68,14 @@ object BiologicalSimulation {
         if (sword.name == "avaritia:infinity_sword") {
             builder.notConsumable(getItemStack(sword.name))
         } else {
-            builder.chancedInput(getItemStack(sword.name), sword.damage, 0)
+            builder.tierChancedInput(getItemStack(sword.name), sword.damage, 0)
         }
-        builder.inputFluids(Biomass.getFluid((1000 / sword.factor).toLong()))
+        builder.inputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Biomass, (1000 / sword.factor).toLong()))
         addOutputItems(builder, item, sword)
         builder.EUt(VA[item.eut].toLong()).duration(400 / sword.factor).save(provider)
     }
 
-    private fun setSpawnEggRecipes(item: Biological, provider: Consumer<FinishedRecipe?>) {
+    private fun setSpawnEggRecipes(item: Biological, provider: RecipeOutput) {
         if (item.name == "cow") return
         val builder = INCUBATOR_RECIPES.recipeBuilder(id(item.name + "_spawn_egg"))
             .inputItems(getItemStack("minecraft:bone", 4))
@@ -83,7 +86,7 @@ object BiologicalSimulation {
             .EUt(VA[3].toLong()).duration(1200).save(provider)
     }
 
-    private fun generateSpecialSpawnEggRecipe(provider: Consumer<FinishedRecipe?>) {
+    private fun generateSpecialSpawnEggRecipe(provider: RecipeOutput) {
         INCUBATOR_RECIPES.recipeBuilder(id("wandering_trader_spawn_egg"))
             .inputItems(getItemStack("minecraft:bone", 4))
             .inputItems(getItemStack("minecraft:rotten_flesh", 4))
@@ -112,7 +115,7 @@ object BiologicalSimulation {
 
         for ((outputItem, chance, shouldAdd) in outputs) {
             if (shouldAdd && outputItem != null) {
-                builder.chancedOutput(getItemStack(outputItem, sword.factor * 2), chance, 0)
+                builder.tierChancedOutput(getItemStack(outputItem, sword.factor * 2), chance, 0)
             }
         }
     }
@@ -144,14 +147,14 @@ object BiologicalSimulation {
         }
     }
 
-    private fun generateSpecialRecipes(provider: Consumer<FinishedRecipe?>) {
+    private fun generateSpecialRecipes(provider: RecipeOutput) {
         GTLAddRecipesTypes.BIOLOGICAL_SIMULATION.recipeBuilder(id("nether_star"))
             .notConsumable(getItemStack("gtceu:nether_star_block"))
             .notConsumable(getItemStack("kubejs:nether_data", 64))
             .notConsumable(getItemStack("avaritia:infinity_sword"))
             .inputFluids(Biomass.getFluid(50))
             .inputFluids(BiohmediumSterilized.getFluid(50))
-            .chancedOutput(getItemStack("minecraft:nether_star"), 1500, 0)
+            .tierChancedOutput(getItemStack("minecraft:nether_star"), 1500, 0)
             .duration(100)
             .EUt(VA[UV].toLong())
             .save(provider)

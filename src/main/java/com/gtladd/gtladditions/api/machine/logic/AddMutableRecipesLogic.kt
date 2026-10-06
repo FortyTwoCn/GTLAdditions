@@ -9,7 +9,7 @@ import com.gtladd.gtladditions.utils.RecipeCalculationHelper
 import it.unimi.dsi.fastutil.longs.LongBooleanPair
 import org.gtlcore.gtlcore.api.machine.multiblock.ParallelMachine
 
-open class AddMutableRecipesLogic<T>(machine: T) : MutableRecipesLogic<T>(machine)
+open class AddMutableRecipesLogic<T> : MutableRecipesLogic<T>()
     where T : WorkableElectricMultiblockMachine,
           T : IRecipeLogicMachine,
           T : IWirelessElectricMultiblockMachine,

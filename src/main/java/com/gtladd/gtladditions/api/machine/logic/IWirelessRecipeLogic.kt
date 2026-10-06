@@ -11,5 +11,5 @@ interface IWirelessRecipeLogic {
         return trait != null && trait.isOnline && trait.consumeEnergy(euTickInputs)
     }
 
-    fun getWirelessMachine(): IWirelessElectricMultiblockMachine = object : IWirelessElectricMultiblockMachine {}
+    fun getWirelessMachine(): IWirelessElectricMultiblockMachine
 }

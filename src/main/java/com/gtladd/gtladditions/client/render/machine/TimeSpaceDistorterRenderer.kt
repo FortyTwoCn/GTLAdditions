@@ -1,12 +1,14 @@
 package com.gtladd.gtladditions.client.render.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.client.renderer.machine.WorkableCasingMachineRenderer
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.client.render.withPose
 import com.gtladd.gtladditions.common.machine.multiblock.controller.TimeSpaceDistorter
 import com.gtladd.gtladditions.utils.CommonUtils.getRotatedRenderPosition
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType
+import com.mojang.serialization.MapCodec
+import net.minecraft.world.phys.AABB
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.math.Axis
@@ -18,32 +20,26 @@ import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.gtlcore.gtlcore.GTLCore
 import org.gtlcore.gtlcore.utils.RenderUtil
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import kotlin.math.roundToInt
 
-class TimeSpaceDistorterRenderer :
-    WorkableCasingMachineRenderer(
-        GTLCore.id("block/casings/dimension_injection_casing"),
-        GTCEu.id("block/multiblock/fusion_reactor")
-    ) {
+class TimeSpaceDistorterRenderer : DynamicRender<TimeSpaceDistorter, TimeSpaceDistorterRenderer>() {
 
     @OnlyIn(Dist.CLIENT)
     override fun render(
-        blockEntity: BlockEntity,
+        machine: TimeSpaceDistorter,
         partialTicks: Float,
         poseStack: PoseStack,
         buffer: MultiBufferSource,
         combinedLight: Int,
         combinedOverlay: Int
     ) {
-        if (blockEntity !is IMachineBlockEntity) return
-
-        val machine = blockEntity.metaMachine as? TimeSpaceDistorter ?: return
+        val blockEntity = machine
         if (!machine.shouldRenderMagicCircleEffect()) return
 
         val tick = RenderUtil.getSmoothTick(machine, partialTicks)
@@ -53,16 +49,23 @@ class TimeSpaceDistorterRenderer :
     }
 
     @OnlyIn(Dist.CLIENT)
-    override fun hasTESR(blockEntity: BlockEntity): Boolean = true
+    override fun isBlockEntityRenderer(): Boolean = true
 
     @OnlyIn(Dist.CLIENT)
-    override fun isGlobalRenderer(blockEntity: BlockEntity): Boolean = true
+    override fun shouldRenderOffScreen(machine: TimeSpaceDistorter): Boolean = true
+
+    override fun getRenderBoundingBox(machine: TimeSpaceDistorter): AABB = AABB(machine.blockPos).inflate(viewDistance.toDouble())
 
     @OnlyIn(Dist.CLIENT)
     override fun getViewDistance(): Int = 384
 
     @OnlyIn(Dist.CLIENT)
+    override fun getType(): DynamicRenderType<TimeSpaceDistorter, TimeSpaceDistorterRenderer> = TYPE
+
     companion object {
+        @JvmField val CODEC: MapCodec<TimeSpaceDistorterRenderer> = MapCodec.unit { TimeSpaceDistorterRenderer() }
+        @JvmField val TYPE = DynamicRenderType(CODEC)
+
         private const val MAGIC_CIRCLE_RADIUS = 22.0f
 
         private val LEVEL_TEXTURES = Array(4) { index -> magicCircleTexture("magic_circle_level_${index + 1}") }
@@ -90,8 +93,7 @@ class TimeSpaceDistorterRenderer :
                 val pose = last()
                 addQuad(
                     buffer.getBuffer(LEVEL_RENDER_TYPES[levelIndex]),
-                    pose.pose(),
-                    pose.normal(),
+                    pose,
                     LEVEL_RED[levelIndex],
                     LEVEL_GREEN[levelIndex],
                     LEVEL_BLUE[levelIndex],
@@ -103,24 +105,22 @@ class TimeSpaceDistorterRenderer :
         @Suppress("SameParameterValue")
         private fun addQuad(
             consumer: VertexConsumer,
-            matrix: Matrix4f,
-            normal: Matrix3f,
+            pose: PoseStack.Pose,
             red: Int,
             green: Int,
             blue: Int,
             alpha: Int
         ) {
-            addVertex(consumer, matrix, normal, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, red, green, blue, alpha)
-            addVertex(consumer, matrix, normal, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, red, green, blue, alpha)
-            addVertex(consumer, matrix, normal, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, red, green, blue, alpha)
-            addVertex(consumer, matrix, normal, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, red, green, blue, alpha)
+            addVertex(consumer, pose, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, red, green, blue, alpha)
+            addVertex(consumer, pose, 1.0f, 0.0f, -1.0f, 1.0f, 0.0f, red, green, blue, alpha)
+            addVertex(consumer, pose, 1.0f, 0.0f, 1.0f, 1.0f, 1.0f, red, green, blue, alpha)
+            addVertex(consumer, pose, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, red, green, blue, alpha)
         }
 
         @Suppress("SameParameterValue")
         private fun addVertex(
             consumer: VertexConsumer,
-            matrix: Matrix4f,
-            normal: Matrix3f,
+            pose: PoseStack.Pose,
             x: Float,
             y: Float,
             z: Float,
@@ -131,13 +131,12 @@ class TimeSpaceDistorterRenderer :
             blue: Int,
             alpha: Int
         ) {
-            consumer.vertex(matrix, x, y, z)
-                .color(red, green, blue, alpha)
-                .uv(u, v)
-                .overlayCoords(OverlayTexture.NO_OVERLAY)
-                .uv2(LightTexture.FULL_BRIGHT)
-                .normal(normal, 0.0f, 1.0f, 0.0f)
-                .endVertex()
+            consumer.addVertex(pose.pose(), x, y, z)
+                .setColor(red, green, blue, alpha)
+                .setUv(u, v)
+                .setOverlay(OverlayTexture.NO_OVERLAY)
+                .setLight(LightTexture.FULL_BRIGHT)
+                .setNormal(pose, 0.0f, 1.0f, 0.0f)
         }
 
         private fun levelColorComponent(levelIndex: Int, base: Float, boostScale: Float): Int {

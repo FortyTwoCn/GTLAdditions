@@ -1,12 +1,14 @@
 package com.gtladd.gtladditions.client.render.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.client.renderer.machine.IControllerRenderer
 import com.gregtechceu.gtceu.common.data.GTBlocks.HIGH_POWER_CASING
 import com.gtladd.gtladditions.client.render.withPose
 import com.gtladd.gtladditions.common.machine.multiblock.controller.ArcanicAstrograph
 import com.gtladd.gtladditions.utils.Constants.ORBIT_OBJECTS
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType
+import com.mojang.serialization.MapCodec
+import net.minecraft.world.phys.AABB
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
@@ -17,9 +19,9 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.model.data.ModelData
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.model.data.ModelData
 import org.gtlcore.gtlcore.GTLCore
 import org.gtlcore.gtlcore.client.ClientUtil
 import org.gtlcore.gtlcore.utils.RenderUtil
@@ -32,11 +34,14 @@ import kotlin.math.log2
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-class ArcanicAstrographRender :
-    PartWorkableCasingMachineRenderer(GTLCore.id("block/create_casing"), GTCEu.id("block/multiblock/cosmos_simulation"), HIGH_POWER_CASING, GTCEu.id("block/casings/hpca/high_power_casing")),
-    IControllerRenderer {
+class ArcanicAstrographRender : DynamicRender<ArcanicAstrograph, ArcanicAstrographRender>() {
+
+    override fun getType(): DynamicRenderType<ArcanicAstrograph, ArcanicAstrographRender> = TYPE
 
     companion object {
+        @JvmField val CODEC: MapCodec<ArcanicAstrographRender> = MapCodec.unit { ArcanicAstrographRender() }
+        @JvmField val TYPE = DynamicRenderType(CODEC)
+
         private const val CENTER = 0.5
         private const val FRONT_OFFSET = 16.5
         private const val BACK_OFFSET = -15.5
@@ -147,16 +152,14 @@ class ArcanicAstrographRender :
 
     @OnlyIn(Dist.CLIENT)
     override fun render(
-        blockEntity: BlockEntity,
+        machine: ArcanicAstrograph,
         partialTicks: Float,
         poseStack: PoseStack,
         buffer: MultiBufferSource,
         combinedLight: Int,
         combinedOverlay: Int
     ) {
-        if (blockEntity !is IMachineBlockEntity) return
-
-        val machine = blockEntity.metaMachine as? ArcanicAstrograph ?: return
+        val blockEntity = machine
         if (!machine.isActive) return
 
         val tick = RenderUtil.getSmoothTick(machine, partialTicks)
@@ -283,18 +286,19 @@ class ArcanicAstrographRender :
         }
     }
 
-    override fun onAdditionalModel(registry: Consumer<ResourceLocation>) {
-        super.onAdditionalModel(registry)
+    fun onAdditionalModel(registry: Consumer<ResourceLocation>) {
         registry.accept(SPACE_MODEL)
         registry.accept(STAR_MODEL)
         ORBIT_OBJECTS.forEach(registry)
     }
 
     @OnlyIn(Dist.CLIENT)
-    override fun hasTESR(blockEntity: BlockEntity): Boolean = true
+    override fun isBlockEntityRenderer(): Boolean = true
 
     @OnlyIn(Dist.CLIENT)
-    override fun isGlobalRenderer(blockEntity: BlockEntity): Boolean = true
+    override fun shouldRenderOffScreen(machine: ArcanicAstrograph): Boolean = true
+
+    override fun getRenderBoundingBox(machine: ArcanicAstrograph): AABB = AABB(machine.blockPos).inflate(viewDistance.toDouble())
 
     @OnlyIn(Dist.CLIENT)
     override fun getViewDistance(): Int = 128

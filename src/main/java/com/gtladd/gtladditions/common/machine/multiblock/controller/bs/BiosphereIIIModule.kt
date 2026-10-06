@@ -2,9 +2,8 @@ package com.gtladd.gtladditions.common.machine.multiblock.controller.bs
 
 import com.google.common.primitives.Ints
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper
 import com.gtladd.gtladditions.api.machine.IWirelessElectricMultiblockMachine
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleTypeRecipesLogic
@@ -13,19 +12,17 @@ import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMult
 import com.gtladd.gtladditions.api.machine.trait.IWirelessNetworkEnergyHandler
 import com.gtladd.gtladditions.api.recipe.IWirelessGTRecipe
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
 import java.util.function.Predicate
 
-class BiosphereIIIModule(holder: IMachineBlockEntity) :
-    GTLAddWorkableElectricMultipleRecipesMachine(holder),
-    IModularMachineModule<BiosphereIIIController, BiosphereIIIModule>,
-    IMachineLife {
-    @field:Persisted
+class BiosphereIIIModule(holder: BlockEntityCreationInfo) :
+    GTLAddWorkableElectricMultipleRecipesMachine(holder, BiosphereModuleRecipeLogic()),
+    IModularMachineModule<BiosphereIIIController, BiosphereIIIModule> {
+    @field:SaveField
     private var hostPosition: BlockPos? = null
     private var host: BiosphereIIIController? = null
 
@@ -48,19 +45,21 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
 
     override fun getHostType(): Class<BiosphereIIIController> = BiosphereIIIController::class.java
 
-    override fun getHostScanPositions(): Array<BlockPos> = BiosphereIIIPosHelper.calculatePossibleHostPositions(pos)
+    override fun getHostScanPositions(): Array<BlockPos> = BiosphereIIIPosHelper.calculatePossibleHostPositions(blockPos)
 
     // ========================================
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) removeFromHost(host)
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(host)
     }
 
@@ -69,7 +68,7 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
         removeFromHost(host)
     }
 
-    override fun onMachineRemoved() = removeFromHost(host)
+    override fun onMachineDestroyed() = removeFromHost(host)
 
     // ========================================
     // Host capabilities
@@ -103,8 +102,16 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("BiosphereIIIModuleStatus", syncManager, {
+            mutableListOf<Component>().also(::collectBiosphereIIIModuleStatusText)
+        }, 130)
+    )
+
+    private fun collectBiosphereIIIModuleStatusText(textList: MutableList<Component>) {
+        
         if (isFormed) {
             textList.add(
                 if (host == null) {
@@ -120,23 +127,23 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
     // Recipe logic
     // ========================================
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = BiosphereModuleRecipeLogic(this)
 
-    private class BiosphereModuleRecipeLogic(private val module: BiosphereIIIModule) :
-        GTLAddMultipleTypeRecipesLogic(module, Predicate { module.isHostReady() }),
+    private class BiosphereModuleRecipeLogic :
+        GTLAddMultipleTypeRecipesLogic(Predicate { (it as BiosphereIIIModule).isHostReady() }),
         IWirelessRecipeLogic {
+        private val module: BiosphereIIIModule get() = machine as BiosphereIIIModule
         override fun handleRecipeWorking() {
             val recipe = lastRecipe ?: return
             if (!module.isHostReady()) {
                 setWaiting("gtladditions.recipe.fail.biosphere_host_not_working".toComponent)
-                if (status == Status.WAITING) doDamping()
+                if (status == Status.WAITING) regressRecipe()
                 return
             }
 
             val energyAvailable = if (recipe is IWirelessGTRecipe) {
                 handleWirelessTickInput(recipe)
             } else {
-                module.host?.requestEnergy(RecipeHelper.getInputEUt(recipe)) == true
+                module.host?.requestEnergy(recipe.inputEUt.totalEU) == true
             }
 
             if (energyAvailable) {
@@ -151,7 +158,7 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
                 setWaiting(RecipeResult.FAIL_NO_ENOUGH_EU_IN.reason())
             }
 
-            if (status == Status.WAITING) doDamping()
+            if (status == Status.WAITING) regressRecipe()
         }
 
         override fun handleWirelessTickInput(recipe: IWirelessGTRecipe): Boolean {
@@ -166,12 +173,7 @@ class BiosphereIIIModule(holder: IMachineBlockEntity) :
     // Metadata
     // ========================================
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER = ManagedFieldHolder(
-            BiosphereIIIModule::class.java,
-            GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-        )
+
     }
 }

@@ -12,14 +12,9 @@ import java.math.BigInteger
 import java.util.*
 import java.util.function.BiPredicate
 
-open class GTLAddMultipleTypeWirelessRecipesLogic : GTLAddMultipleWirelessRecipesLogic {
-    constructor(parallel: GTLAddWirelessWorkableElectricMultipleRecipesMachine) : super(parallel)
-
-    constructor(
-        parallel: GTLAddWirelessWorkableElectricMultipleRecipesMachine,
-        beforeWorking: BiPredicate<GTRecipe, IRecipeLogicMachine>?
-    ) : super(parallel, beforeWorking)
-
+open class GTLAddMultipleTypeWirelessRecipesLogic(
+    recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>? = null
+) : GTLAddMultipleWirelessRecipesLogic(recipeCheck) {
     override fun buildWirelessRecipe(
         itemOutputs: ObjectArrayList<Content>,
         fluidOutputs: ObjectArrayList<Content>,
@@ -32,20 +27,20 @@ open class GTLAddMultipleTypeWirelessRecipesLogic : GTLAddMultipleWirelessRecipe
         getMachine().recipeType
     )
 
-    override fun lookupRecipeIterator(): Set<GTRecipe> = if (isLock) {
+    override fun lookupRecipeSet(): Set<GTRecipe> = if (isLock) {
         when {
             lockRecipe == null -> {
                 lockRecipe = machine.recipeTypes.asSequence()
-                    .mapNotNull { it.lookup.find(machine, this::checkRecipe) }
+                    .mapNotNull { it.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull() }
                     .firstOrNull()
                 lockRecipe?.let { Collections.singleton(it) } ?: emptySet()
             }
-            checkRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
+            matchesSourceRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
             else -> emptySet()
         }
     } else {
         machine.recipeTypes.asSequence()
-            .flatMap { it.lookup.getRecipeIterator(machine, this::checkRecipe).asSequence() }
+            .flatMap { it.searchRecipe(machine, this::matchesSourceRecipe).asSequence() }
             .toCollection(ObjectOpenHashSet())
     }
 }

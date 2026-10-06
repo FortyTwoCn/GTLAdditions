@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.common.data.ParallelData
@@ -17,15 +17,15 @@ import org.gtlcore.gtlcore.common.data.GTLMaterials
 import org.gtlcore.gtlcore.utils.MachineIO
 import java.util.function.Predicate
 
-class SpaceInfinityIntegratedOreProcessor(holder: IMachineBlockEntity, vararg args: Any?) :
+class SpaceInfinityIntegratedOreProcessor(holder: BlockEntityCreationInfo, vararg args: Any?) :
     GTLAddWorkableElectricMultipleRecipesMachine(
-        holder,
-        *args
-    ) {
+        holder
+    , InfinityIntegratedOreProcessorLogic(BEFORE_RECIPE)) {
     private var opHatch: OreProcessorHatch? = null
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         parts.forEach {
             if (it is OreProcessorHatch) {
                 opHatch = it
@@ -34,18 +34,18 @@ class SpaceInfinityIntegratedOreProcessor(holder: IMachineBlockEntity, vararg ar
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         opHatch = null
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = InfinityIntegratedOreProcessorLogic(this, BEFORE_RECIPE)
 
     override fun getRecipeLogic(): InfinityIntegratedOreProcessorLogic = super.getRecipeLogic() as InfinityIntegratedOreProcessorLogic
 
     override fun needConfirmMEStock(): Boolean = true
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         textList.add(
             "gtceu.multiblock.parallel".toComponent(
                 createLanguageRainbowComponentOnServer(
@@ -64,13 +64,12 @@ class SpaceInfinityIntegratedOreProcessor(holder: IMachineBlockEntity, vararg ar
 
     companion object {
         class InfinityIntegratedOreProcessorLogic(
-            parallel: SpaceInfinityIntegratedOreProcessor,
             beforeWorking: Predicate<IRecipeLogicMachine>?
-        ) : GTLAddMultipleRecipesLogic(parallel, beforeWorking) {
+        ) : GTLAddMultipleRecipesLogic(beforeWorking) {
             override fun getMachine(): SpaceInfinityIntegratedOreProcessor = super.getMachine() as SpaceInfinityIntegratedOreProcessor
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 return RecipeCalculationHelper.calculateParallelsWithProcessing(
                     recipes,
                     machine,

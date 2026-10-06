@@ -4,7 +4,7 @@ import org.gtlcore.gtlcore.data.recipe.GenerateDisassembly;
 
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeOutput;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 public abstract class GenerateDisassemblyMixin {
 
     @Inject(method = "generateDisassembly", at = @At("HEAD"), remap = false, cancellable = true)
-    private static void beforeGenerateDisassembly(GTRecipeBuilder r, Consumer<FinishedRecipe> p, CallbackInfo ci) {
+    private static void beforeGenerateDisassembly(GTRecipeBuilder r, RecipeOutput p, CallbackInfo ci) {
         if (r.id.getPath().contains("ultimate_tea")) {
             ci.cancel();
         }

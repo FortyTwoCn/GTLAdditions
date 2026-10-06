@@ -1,91 +1,83 @@
 package com.gtladd.gtladditions.common.machine.hatch
 
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.widget.ToggleButtonWidget
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import brachy.modularui.api.drawable.Text
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.BooleanSyncValue
+import brachy.modularui.value.sync.IntSyncValue
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widgets.ToggleButton
+import brachy.modularui.widgets.layout.Flow
+import brachy.modularui.widgets.textfield.TextFieldWidget
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
-import com.gregtechceu.gtceu.data.lang.LangHandler
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.common.mui.GTGuiTextures
 import com.gregtechceu.gtceu.utils.RedstoneUtil
-import com.lowdragmc.lowdraglib.gui.widget.TextBoxWidget
-import com.lowdragmc.lowdraglib.gui.widget.TextFieldWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
-import com.lowdragmc.lowdraglib.utils.LocalizationUtils
-import com.lowdragmc.lowdraglib.utils.Position
-import com.lowdragmc.lowdraglib.utils.Size
 import net.minecraft.core.Direction
-import net.minecraft.network.chat.Component
-import net.minecraft.util.Mth
 
-class VientianeTranscriptionNode(holder: IMachineBlockEntity) : MultiblockPartMachine(holder) {
-
-    @Persisted
-    @DescSynced
-    private var min = 48000
-
-    @Persisted
-    @DescSynced
-    private var max = 105000
-
-    @Persisted
+class VientianeTranscriptionNode(holder: BlockEntityCreationInfo) : MultiblockPartMachine(holder), IMuiMachine {
+    @field:SaveField
+    @field:SyncToClient
+    private var min = MIN_TEMPERATURE
+    @field:SaveField
+    @field:SyncToClient
+    private var max = MAX_TEMPERATURE
+    @field:SaveField
     private var redStoneSignal = 0
-
-    @Persisted
+    @field:SaveField
+    @field:SyncToClient
     private var isInverted = false
-
-    @DescSynced
+    @field:SyncToClient
     var controlMachine: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            syncDataHolder.markClientSyncFieldDirty("controlMachine")
+        }
 
-    override fun createUIWidget(): Widget {
-        if (!controlMachine) return super.createUIWidget()
-        val group = WidgetGroup(Position.ORIGIN, Size(176, 112))
-        group.addWidget(TextBoxWidget(8, 35, 65, listOf(LocalizationUtils.format("gui.gtceu.vientiane_transcription_node.min_temperature"))))
-        group.addWidget(TextBoxWidget(8, 80, 65, listOf(LocalizationUtils.format("gui.gtceu.vientiane_transcription_node.max_temperature"))))
-        group.addWidget(
-            TextFieldWidget(80, 35, 85, 18, { min.toString() }, { min = Mth.clamp(it.toInt(), 48000, 105000) })
-                .setNumbersOnly(48000, 105000)
-        )
-        group.addWidget(
-            TextFieldWidget(80, 80, 85, 18, { max.toString() }, { max = Mth.clamp(it.toInt(), 48000, 105000) })
-                .setNumbersOnly(48000, 105000)
-        )
-        group.addWidget(
-            object : ToggleButtonWidget(8, 8, 20, 20, GuiTextures.INVERT_REDSTONE_BUTTON, { isInverted }, { isInverted = it }) {
-                override fun updateScreen() {
-                    super.updateScreen()
-                    setHoverTooltips(
-                        LangHandler.getMultiLang("gui.gtceu.vientiane_transcription_node.invert." + if (isPressed) "enabled" else "disabled")
-                            .map { it as Component }
-                    )
-                }
-            }
-        )
-        return group
+    override fun buildMainUI(main: ParentWidget<*>, data: PosGuiData, manager: PanelSyncManager, settings: UISettings) {
+        if (!controlMachine) return
+        val minimum = IntSyncValue({ min }, { incoming: Int -> min = incoming.coerceIn(MIN_TEMPERATURE, MAX_TEMPERATURE); changed("min") }).allowC2S()
+        val maximum = IntSyncValue({ max }, { incoming: Int -> max = incoming.coerceIn(MIN_TEMPERATURE, MAX_TEMPERATURE); changed("max") }).allowC2S()
+        val inverted = BooleanSyncValue({ isInverted }, { incoming: Boolean -> isInverted = incoming; changed("isInverted") }).allowC2S()
+        main.child(Flow.column().coverChildren().center().childPadding(8)
+            .child(ToggleButton().size(20).value(inverted).overlay(GTGuiTextures.BUTTON_DETECTOR_INVERT)
+                .tooltip(false) { it.add("gui.gtceu.vientiane_transcription_node.invert.disabled") }
+                .tooltip(true) { it.add("gui.gtceu.vientiane_transcription_node.invert.enabled") })
+            .child(Flow.row().coverChildren().childPadding(5)
+                .child(Text.lang("gui.gtceu.vientiane_transcription_node.min_temperature").asWidget().width(65))
+                .child(TextFieldWidget().size(85, 18).setNumbers(MIN_TEMPERATURE, MAX_TEMPERATURE).value(minimum)))
+            .child(Flow.row().coverChildren().childPadding(5)
+                .child(Text.lang("gui.gtceu.vientiane_transcription_node.max_temperature").asWidget().width(65))
+                .child(TextFieldWidget().size(85, 18).setNumbers(MIN_TEMPERATURE, MAX_TEMPERATURE).value(maximum))))
+    }
+
+    private fun changed(field: String) {
+        setChanged()
+        syncDataHolder.markClientSyncFieldDirty(field)
     }
 
     fun update(signal: Int) {
-        val output = RedstoneUtil.computeRedstoneBetweenValues(signal.toLong(), max.toFloat(), min.toFloat(), isInverted)
+        // Temperatures are below 2^24, so the native float overload retains each integral temperature.
+        val output = RedstoneUtil.computeRedstoneBetweenValues(signal.toFloat(), max.toFloat(), min.toFloat(), isInverted)
         if (redStoneSignal != output) setRedStoneSignal(output)
     }
 
     fun setRedStoneSignal(signal: Int) {
-        redStoneSignal = signal
-        updateSignal()
+        redStoneSignal = signal.coerceIn(0, 15)
+        setChanged()
+        notifyBlockUpdate()
     }
 
     override fun getOutputSignal(side: Direction?): Int = if (side == frontFacing.opposite) redStoneSignal else 0
-
-    override fun canConnectRedstone(side: Direction): Boolean = false
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
+    override fun canConnectRedstone(side: Direction?): Boolean = false
 
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            VientianeTranscriptionNode::class.java,
-            MultiblockPartMachine.MANAGED_FIELD_HOLDER
-        )
+        private const val MIN_TEMPERATURE = 48000
+        private const val MAX_TEMPERATURE = 105000
     }
 }

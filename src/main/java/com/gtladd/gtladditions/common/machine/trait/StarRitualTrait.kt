@@ -7,10 +7,9 @@ import com.gtladd.gtladditions.client.RenderMode
 import com.gtladd.gtladditions.common.machine.multiblock.controller.ForgeOfTheAntichrist
 import com.gtladd.gtladditions.utils.CommonUtils
 import com.gtladd.gtladditions.utils.antichrist.ClientAnimationHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.annotation.UpdateListener
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.ClientFieldChangeListener
 import committee.nova.mods.avaritia.init.registry.ModItems
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import net.minecraft.core.Direction
@@ -21,31 +20,39 @@ import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.item.Item
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import net.povstalec.sgjourney.common.init.BlockInit
 
-class StarRitualTrait(
-    machine: ForgeOfTheAntichrist
-) : MachineTrait(machine) {
+class StarRitualTrait : MachineTrait() {
 
-    @field:Persisted
+    @field:SaveField
     private val collectedItems: MutableSet<Item> = ObjectOpenHashSet()
 
-    @field:Persisted
-    @field:DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var renderMode: RenderMode = RenderMode.NORMAL
-        private set
+        private set(value) {
+            if (field == value) return
+            field = value
+            machine.setChanged()
+            syncDataHolder.markClientSyncFieldDirty("renderMode")
+        }
 
-    @field:DescSynced
-    @field:UpdateListener(methodName = "onCollapseStateChanged")
+    @field:SyncToClient
     var isCollapsing: Boolean = false
-        private set
+        private set(value) {
+            if (field == value) return
+            field = value
+            machine.setChanged()
+            syncDataHolder.markClientSyncFieldDirty("isCollapsing")
+        }
+    private var lastClientCollapseState = false
 
-    @field:Persisted
+    @field:SaveField
     private var serverCollapseTick: Int = 0
 
-    @field:Persisted
+    @field:SaveField
     private var serverRecoverTick: Int = 0
 
     private var collapseSubs: TickableSubscription? = null
@@ -90,7 +97,7 @@ class StarRitualTrait(
         if (level !is ServerLevel) return
 
         val offset = CommonUtils.getRotatedRenderPosition(Direction.EAST, getMachine().frontFacing, -121.5, 0.0, 0.0)
-        val center = Vec3.atCenterOf(getMachine().pos).add(offset)
+        val center = Vec3.atCenterOf(getMachine().blockPos).add(offset)
         val radius = 13.3 * getMachine().radiusMultiplier
         val aabb = AABB(center.subtract(radius, radius, radius), center.add(radius, radius, radius))
 
@@ -100,7 +107,10 @@ class StarRitualTrait(
 
         for (itemEntity in itemEntities) {
             if (collectItem(itemEntity.item.item)) {
-                itemEntity.discard()
+                itemEntity.item.shrink(1)
+                if (itemEntity.item.isEmpty) itemEntity.discard()
+                else itemEntity.item = itemEntity.item.copy()
+                machine.setChanged()
 
                 if (hasCollectedAll()) {
                     level.playSound(
@@ -182,7 +192,7 @@ class StarRitualTrait(
         if (level !is ServerLevel) return
 
         val offset = CommonUtils.getRotatedRenderPosition(Direction.EAST, getMachine().frontFacing, -122.0, 0.0, 0.0)
-        val center = Vec3.atLowerCornerOf(getMachine().pos).add(offset)
+        val center = Vec3.atLowerCornerOf(getMachine().blockPos).add(offset)
 
         val rewardStack = GTMachines.CREATIVE_ITEM.asStack()
         val itemEntity = ItemEntity(
@@ -218,12 +228,13 @@ class StarRitualTrait(
 
     private fun hasCollectedAll(): Boolean = collectedItems.size == REQUIRED_ITEMS.size
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     @Suppress("unused")
     @OnlyIn(Dist.CLIENT)
-    fun onCollapseStateChanged(newValue: Boolean, oldValue: Boolean) {
-        ClientAnimationHelper.onCollapseStateChanged(getMachine(), newValue, oldValue)
+    @ClientFieldChangeListener(fieldName = "isCollapsing")
+    fun onCollapseStateSynced() {
+        val oldValue = lastClientCollapseState
+        lastClientCollapseState = isCollapsing
+        ClientAnimationHelper.onCollapseStateChanged(getMachine(), isCollapsing, oldValue)
     }
 
     companion object {
@@ -241,6 +252,5 @@ class StarRitualTrait(
             )
         }
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(StarRitualTrait::class.java)
     }
 }

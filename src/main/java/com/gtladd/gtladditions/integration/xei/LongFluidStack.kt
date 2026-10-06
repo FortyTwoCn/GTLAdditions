@@ -1,45 +1,30 @@
 package com.gtladd.gtladditions.integration.xei
 
-import com.google.common.primitives.Ints
-import net.minecraft.nbt.CompoundTag
+import net.minecraft.core.Holder
+import net.minecraft.core.component.DataComponentPatch
 import net.minecraft.world.level.material.Fluid
-import net.minecraftforge.fluids.FluidStack
+import net.minecraft.world.level.material.Fluids
+import net.neoforged.neoforge.fluids.FluidStack
 
-class LongFluidStack : FluidStack {
-    private var longAmount: Long
-
-    constructor(fluid: Fluid, amount: Long) : super(fluid, Ints.saturatedCast(amount)) {
-        this.longAmount = amount
+/** Native NeoForge fluid stacks with an exact, transient AE2/JEI display amount. */
+object LongFluidStack {
+    @JvmStatic
+    @JvmOverloads
+    fun create(fluid: Holder<Fluid>, amount: Long, patch: DataComponentPatch = DataComponentPatch.EMPTY): FluidStack {
+        require(amount >= 0) { "Negative fluid amount: $amount" }
+        if (amount == 0L || fluid.value() === Fluids.EMPTY) return FluidStack.EMPTY
+        val stack = FluidStack(fluid, amount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), patch)
+        (stack as ILongFluidDisplay).`gtladditions$setDisplayAmount`(amount)
+        return stack
     }
 
-    constructor(fluid: Fluid, amount: Long, nbt: CompoundTag?) : super(fluid, Ints.saturatedCast(amount), nbt) {
-        this.longAmount = amount
+    @JvmStatic
+    fun getAmount(stack: FluidStack): Long =
+        (stack as ILongFluidDisplay).`gtladditions$getDisplayAmount`()
+
+    @JvmStatic
+    fun copyWithAmount(stack: FluidStack, amount: Long): FluidStack {
+        require(amount >= 0) { "Negative fluid amount: $amount" }
+        return if (stack.isEmpty) FluidStack.EMPTY else create(stack.fluidHolder, amount, stack.componentsPatch)
     }
-
-    constructor(stack: FluidStack, amount: Long) : super(stack, Ints.saturatedCast(amount)) {
-        this.longAmount = amount
-    }
-
-    fun getLongAmount(): Long = if (isEmpty) 0 else longAmount
-
-    fun setLongAmount(longAmount: Long) {
-        this.amount = Ints.saturatedCast(longAmount)
-        this.longAmount = longAmount
-    }
-
-    override fun copy(): LongFluidStack = LongFluidStack(fluid, longAmount, tag)
-
-    override fun containsFluid(other: FluidStack): Boolean = isFluidEqual(other) &&
-        if (other is LongFluidStack) {
-            this.longAmount >= other.longAmount
-        } else {
-            this.longAmount >= other.amount
-        }
-
-    override fun isFluidStackIdentical(other: FluidStack): Boolean = isFluidEqual(other) &&
-        if (other is LongFluidStack) {
-            this.longAmount == other.longAmount
-        } else {
-            this.longAmount == other.amount.toLong()
-        }
 }

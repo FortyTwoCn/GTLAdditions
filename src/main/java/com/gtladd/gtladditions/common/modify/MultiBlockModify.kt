@@ -1,17 +1,21 @@
 package com.gtladd.gtladditions.common.modify
 
+import com.gregtechceu.gtceu.common.data.machines.GTMultiMachines
 import com.google.common.primitives.Ints
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
+import com.gregtechceu.gtceu.api.registry.registrate.entry.MachineEntry
+import com.gtladd.gtladditions.api.registry.NativeQueuedMachines
+import com.gtladd.gtladditions.api.registry.replaceQueuedFactory
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine
-import com.gregtechceu.gtceu.api.pattern.Predicates
+import com.gregtechceu.gtceu.api.multiblock.Predicates
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.OverclockingLogic
-import com.gregtechceu.gtceu.api.recipe.logic.OCParams
-import com.gregtechceu.gtceu.api.recipe.logic.OCResult
+import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction
+import org.gtlcore.gtlcore.api.recipe.CoreRecipeModifiers
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifierList
 import com.gregtechceu.gtceu.common.data.GTBlocks
 import com.gregtechceu.gtceu.common.data.GTMachines
@@ -58,13 +62,13 @@ object MultiBlockModify {
 
     private val createDimension = ResourceKey.create(
         MinecraftRegistries.DIMENSION,
-        ResourceLocation("kubejs", "create")
+        ResourceLocation.fromNamespaceAndPath("kubejs", "create")
     )
 
     private val doorOfCreateOnWorking = Predicate { machine: IRecipeLogicMachine ->
         if (machine.recipeLogic.progress == 5 && machine is DoorOfCreate) {
             (machine.level as? ServerLevel)?.let { level ->
-                val pos = machine.self().pos.offset(0, -13, 0)
+                val pos = machine.self().blockPos.offset(0, -13, 0)
 
                 level.sendParticles(
                     ParticleTypes.DRAGON_BREATH,
@@ -93,7 +97,7 @@ object MultiBlockModify {
                 for (entity in entities) {
                     if (entity is ItemEntity) {
                         when {
-                            entity.item.`kjs$getId`() == "gtceu:magnetohydrodynamicallyconstrainedstarmatter_block" -> {
+                            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(entity.item.item).toString() == "gtceu:magnetohydrodynamicallyconstrainedstarmatter_block" -> {
                                 MachineUtil.createItemEntity(
                                     level,
                                     entity.x,
@@ -104,7 +108,7 @@ object MultiBlockModify {
                                 entity.discard()
                             }
 
-                            entity.item.`kjs$getId`() == "gtceu:magmatter_ingot" && entity.item.count >= 64 -> {
+                            net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(entity.item.item).toString() == "gtceu:magmatter_ingot" && entity.item.count >= 64 -> {
                                 MachineUtil.createItemEntity(
                                     level,
                                     entity.x,
@@ -128,9 +132,7 @@ object MultiBlockModify {
                                 )
                             }
                         } else {
-                            entity.`kjs$setStatusMessage`(
-                                "message.gtlcore.equipment_incompatible_dimension".toComponent
-                            )
+                            entity.displayClientMessage("message.gtlcore.equipment_incompatible_dimension".toComponent, true)
                         }
                     }
                 }
@@ -142,8 +144,8 @@ object MultiBlockModify {
     private val createAggregationOnWorking = Predicate { machine: IRecipeLogicMachine ->
         if (machine.recipeLogic.getProgress() == 19 && machine is CreateAggregation) {
             machine.level?.let { level ->
-                val pos = machine.self().pos.offset(0, -16, 0)
-                val blockId = level.getBlockState(pos).block.`kjs$getId`()
+                val pos = machine.self().blockPos.offset(0, -16, 0)
+                val blockId = net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).block).toString()
                 when {
                     blockId == "kubejs:command_block_broken" &&
                         MachineIO.inputItem(
@@ -163,34 +165,34 @@ object MultiBlockModify {
     }
 
     private val recipeModifierList = RecipeModifierList(
-        { machine: MetaMachine?, recipe: GTRecipe?, _: OCParams?, _: OCResult? ->
-            GTRecipeModifiers.accurateParallel(
-                machine,
-                recipe!!,
-                Ints.saturatedCast(1L + (machine as IThreadModifierMachine).getAdditionalThread()),
-                false
-            ).getFirst()
+        { machine, _ ->
+            ModifierFunction { source ->
+                CoreRecipeModifiers.accurateParallel(
+                    machine, source,
+                    Ints.saturatedCast(1L + (machine as IThreadModifierMachine).getAdditionalThread()), false
+                ).first
+            }
         },
-        GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 1.0, false))
+        GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 1.0, false))
     )
 
     fun init() {
-        MultiBlockMachineA.INTEGRATED_ORE_PROCESSOR.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+        MultiBlockMachineA.INTEGRATED_ORE_PROCESSOR.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
             BasicOreProcessorMachine(blockEntity)
         }
-        MultiBlockMachineA.INTEGRATED_ORE_PROCESSOR.recipeModifier = RecipeModifierList(
+        NativeQueuedMachines.builder(MultiBlockMachineA.INTEGRATED_ORE_PROCESSOR).recipeModifier(RecipeModifierList(
             GTRecipeModifiers.PARALLEL_HATCH,
             BasicOreProcessorMachine::recipeModifier
-        )
+        ))
         MultiBlockMachineA.INTEGRATED_ORE_PROCESSOR.patchPatternPredicates(
             "ore_processor_hatch",
             patternPredicateSelector({ GTBlocks.CASING_STAINLESS_CLEAN.get() }, PartAbility.PARALLEL_HATCH, PartAbility.MAINTENANCE),
-            { Predicates.blocks(GTLAddMachines.ORE_PROCESSOR_HATCH.get()).setMaxGlobalLimited(1) }
+            { Predicates.blocks(GTLAddMachines.ORE_PROCESSOR_HATCH.block).setMaxGlobalLimited(1) }
         )
         MultiBlockMachineA.ADVANCED_INTEGRATED_ORE_PROCESSOR.patchPatternPredicates(
             "ore_processor_hatch",
             patternPredicateSelector({ GTBlocks.CASING_TUNGSTENSTEEL_ROBUST.get() }, PartAbility.INPUT_LASER),
-            { Predicates.blocks(GTLAddMachines.ORE_PROCESSOR_HATCH.get()).setMaxGlobalLimited(1) }
+            { Predicates.blocks(GTLAddMachines.ORE_PROCESSOR_HATCH.block).setMaxGlobalLimited(1) }
         )
 
         val threadModifierPredicate = { Predicates.abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1) }
@@ -204,11 +206,11 @@ object MultiBlockModify {
             ),
             threadModifierPredicate
         )
-        AdvancedMultiBlockMachineA.DOOR_OF_CREATE.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+        AdvancedMultiBlockMachineA.DOOR_OF_CREATE.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
             DoorOfCreate(blockEntity)
         }
-        AdvancedMultiBlockMachineA.DOOR_OF_CREATE.onWorking = doorOfCreateOnWorking
-        AdvancedMultiBlockMachineA.DOOR_OF_CREATE.recipeModifier = recipeModifierList
+        NativeQueuedMachines.builder(AdvancedMultiBlockMachineA.DOOR_OF_CREATE).onWorking(doorOfCreateOnWorking)
+        NativeQueuedMachines.builder(AdvancedMultiBlockMachineA.DOOR_OF_CREATE).recipeModifier(recipeModifierList)
 
         AdvancedMultiBlockMachineA.CREATE_AGGREGATION.patchPatternPredicates(
             "thread_modifier",
@@ -221,13 +223,13 @@ object MultiBlockModify {
             ),
             threadModifierPredicate
         )
-        AdvancedMultiBlockMachineA.CREATE_AGGREGATION.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+        AdvancedMultiBlockMachineA.CREATE_AGGREGATION.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
             CreateAggregation(blockEntity)
         }
-        AdvancedMultiBlockMachineA.CREATE_AGGREGATION.onWorking = createAggregationOnWorking
-        AdvancedMultiBlockMachineA.CREATE_AGGREGATION.recipeModifier = recipeModifierList
+        NativeQueuedMachines.builder(AdvancedMultiBlockMachineA.CREATE_AGGREGATION).onWorking(createAggregationOnWorking)
+        NativeQueuedMachines.builder(AdvancedMultiBlockMachineA.CREATE_AGGREGATION).recipeModifier(recipeModifierList)
 
-        GTMachines.ACTIVE_TRANSFORMER.replacePatternPredicates(
+        GTMultiMachines.ACTIVE_TRANSFORMER.replacePatternPredicates(
             "active_transformer_min_casing_limit",
             patternPredicateSelector({ GTBlocks.HIGH_POWER_CASING.get() }),
             {
@@ -236,7 +238,7 @@ object MultiBlockModify {
             }
         )
 
-        AdditionalMultiBlockMachine.MOLECULAR_ASSEMBLER_MATRIX.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+        AdditionalMultiBlockMachine.MOLECULAR_ASSEMBLER_MATRIX.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
             MolecularAssemblerMultiblockMachine(blockEntity)
         }
 
@@ -251,11 +253,11 @@ object MultiBlockModify {
             ),
             threadModifierPredicate
         )
-        AdvancedMultiBlockMachineB.ADVANCED_INFINITE_DRILLER.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+        AdvancedMultiBlockMachineB.ADVANCED_INFINITE_DRILLER.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
             AdvancedInfiniteDrillMachine(blockEntity)
         }
 
-        val networkSwitch = GTResearchMachines.NETWORK_SWITCH as MultiblockMachineDefinition
+        val networkSwitch = GTResearchMachines.NETWORK_SWITCH
         networkSwitch.replacePatternPredicates(
             "cloud_computation_hatch_exclusion",
             patternPredicateSelector({ GTBlocks.COMPUTER_CASING.get() }),
@@ -282,13 +284,16 @@ object MultiBlockModify {
             }
         )
 
-        val researchStation = GTResearchMachines.RESEARCH_STATION as MultiblockMachineDefinition
+        val researchStation = GTResearchMachines.RESEARCH_STATION
         researchStation.replacePatternPredicates(
             "research_station_internal_air_relaxation",
             PatternPredicateSelector.pureAir(),
             { Predicates.any() }
         )
-        researchStation.tooltipBuilder = researchStation.tooltipBuilder.andThen { _, components ->
+        val researchProperties = NativeQueuedMachines.builder(researchStation).properties
+        val oldResearchTooltip = researchProperties.tooltipBuilder()
+        researchProperties.tooltipBuilder { stack, components ->
+            oldResearchTooltip?.accept(stack, components)
             components.add("tooltip.gtladditions.cloud_systems".toComponent)
             components.add("tooltip.gtladditions.research_station.cloud_upload".toComponent)
             components.add(GTLAddMachines.GTLAdd_MODIFY)

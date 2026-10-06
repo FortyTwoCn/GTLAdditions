@@ -4,12 +4,8 @@ import appeng.client.render.effects.ParticleTypes
 import com.gregtechceu.gtceu.api.block.ICoilType
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IExplosionMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.sound.AutoReleasedSound
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gregtechceu.gtceu.common.data.GTSoundEntries
@@ -18,17 +14,16 @@ import com.gtladd.gtladditions.api.machine.gui.MultiblockDisplayText
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.ComponentExtensions.translatable
 import com.gtladd.gtladditions.utils.MachineUtil.input
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Blocks
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.gtlcore.gtlcore.api.machine.trait.IRecipeStatus
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
 import org.gtlcore.gtlcore.common.data.GTLMaterials.*
@@ -37,17 +32,16 @@ import org.gtlcore.gtlcore.utils.Registries
 import kotlin.enums.enumEntries
 import kotlin.math.min
 
-class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
-    StorageMachine(holder, 64),
-    IExplosionMachine {
+class PlanetaryIonisationConvergenceTower(holder: BlockEntityCreationInfo) :
+    StorageMachine(holder, 64, PICTRecipeLogic()) {
 
-    @Persisted
+    @SaveField
     private var storageEUt = 0L
 
-    @Persisted
+    @SaveField
     private var cycleAmount = 0
 
-    @Persisted
+    @SaveField
     private var startCycle = false
 
     private var coilEnergy: CoilToEnergy? = null
@@ -69,11 +63,11 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         return requiredDrone != null && itemStack.`is`(requiredDrone)
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
-        val context = multiblockState.matchContext
-        val coilType = context["CoilType"] as? ICoilType ?: return
-        stellarTier = context["SCTier"] as? Int ?: 0
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
+        val coilType = com.gtladd.gtladditions.api.machine.multiblock.NativeCoilStructure.match(this, substructureName) ?: return
+        stellarTier = org.gtlcore.gtlcore.api.pattern.PatternMatchData.of(defaultPatternState.context).tier("SCTier").orElse(0)
         coilEnergy = findCoil(coilType.material)
         maxStorageEUt = when (stellarTier) {
             1 -> 0x3297345d9a000
@@ -81,7 +75,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
             3 -> 0x15c9c2ae895d0000
             else -> 0L
         }
-        particlePos = pos.offset(
+        particlePos = blockPos.offset(
             when (frontFacing) {
                 Direction.WEST -> 7
                 Direction.EAST -> -7
@@ -96,8 +90,9 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         )
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         coilEnergy = null
         stellarTier = 0
         cycleAmount = 0
@@ -114,22 +109,17 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         particlePos = null
     }
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { isWorkingEnabled },
-                { _, pressed -> isWorkingEnabled = pressed }
-            ).setTooltipsSupplier { pressed ->
-                listOf(
-                    (if (pressed) "behaviour.soft_hammer.enabled" else "behaviour.soft_hammer.disabled").toComponent
-                )
-            }
-        )
-    }
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("PlanetaryIonisationConvergenceTowerStatus", syncManager, {
+            mutableListOf<Component>().also(::collectPlanetaryIonisationConvergenceTowerStatusText)
+        }, 130)
+    )
+
+    private fun collectPlanetaryIonisationConvergenceTowerStatusText(textList: MutableList<Component>) {
         MultiblockDisplayText.builder(textList, isFormed)
             .setWorkingStatus(recipeLogic.isWorkingEnabled, recipeLogic.isActive)
             .addEnergyUsageLine(energyContainer)
@@ -144,9 +134,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
             .addRecipeStatus(recipeLogic as IRecipeStatus)
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = PICTRecipeLogic(this)
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
+    override fun getRecipeLogic(): PICTRecipeLogic = super.getRecipeLogic() as PICTRecipeLogic
 
     private val sphereOffsetCache = mutableMapOf<Int, IntArray>()
 
@@ -167,9 +155,9 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         list.toIntArray()
     }
 
-    override fun doExplosion(pos: BlockPos, explosionPower: Float) {
+    fun doExplosion(pos: BlockPos, explosionPower: Float) {
         val currentLevel = level ?: return
-        currentLevel.removeBlock(this.pos, false)
+        currentLevel.removeBlock(this.blockPos, false)
 
         val radius = explosionPower.toInt()
         if (radius <= 0) return
@@ -198,7 +186,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         val addEUt = if (start) coilEnergy?.instantPower ?: 0 else coilEnergy?.dischargePower ?: 0
         storageEUt += addEUt
         if (storageEUt > maxStorageEUt) {
-            doExplosion(pos, 80f)
+            doExplosion(blockPos, 80f)
         }
         return addEUt
     }
@@ -235,10 +223,6 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
     }
 
     companion object {
-        private val MANAGED_FIELD_HOLDER = ManagedFieldHolder(
-            PlanetaryIonisationConvergenceTower::class.java,
-            StorageMachine.MANAGED_FIELD_HOLDER
-        )
 
         private const val DURATION = 60
 
@@ -251,14 +235,17 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
         private val PROMETHIUM = Promethium.getFluid(36_864)
         private val HELIUM = Helium.getFluid(FluidStorageKeys.LIQUID, 4_000_000)
         private val CRYSTALMATRIX = Crystalmatrix.getFluid(9_216)
-        private val CRYOTHEUM = FluidStack.create(Registries.getFluid("kubejs:gelid_cryotheum"), 1_000_000)
+        private val CRYOTHEUM = FluidStack(Registries.getFluid("kubejs:gelid_cryotheum"), 1_000_000)
 
         private fun findCoil(material: Material?): CoilToEnergy? =
             enumEntries<CoilToEnergy>().find { it.material == material }
 
-        class PICTRecipeLogic(val pictMachine: PlanetaryIonisationConvergenceTower) :
-            RecipeLogic(pictMachine),
+        class PICTRecipeLogic :
+            RecipeLogic(),
             IRecipeStatus {
+
+            override fun getMachine(): PlanetaryIonisationConvergenceTower = super.getMachine() as PlanetaryIonisationConvergenceTower
+            private val pictMachine: PlanetaryIonisationConvergenceTower get() = getMachine()
 
             init {
                 duration = DURATION
@@ -274,7 +261,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                         progress = 0
                     }
                 } else if (subscription != null) {
-                    subscription.unsubscribe()
+                    subscription?.unsubscribe()
                     subscription = null
                 }
             }
@@ -300,7 +287,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                                         if (pictMachine.startCycle) {
                                             if (nextCycle % 10000 == 0 || pictMachine.cycleAmount == 0) {
                                                 pictMachine.machineStorage.extractItemInternal(0, 1, false)
-                                                droneResult.isDrone
+                                                droneResult.isDrone = true
                                                 droneResult.tier = SPACE_DRONE_MK2.descriptionId
                                             }
                                             pictMachine.cycleAmount = nextCycle
@@ -321,7 +308,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                                         if (pictMachine.startCycle) {
                                             if (nextCycle % 20000 == 0 || pictMachine.cycleAmount == 0) {
                                                 pictMachine.machineStorage.extractItemInternal(0, 1, false)
-                                                droneResult.isDrone
+                                                droneResult.isDrone = true
                                                 droneResult.tier = SPACE_DRONE_MK4.descriptionId
                                             }
                                             pictMachine.cycleAmount = nextCycle
@@ -342,7 +329,7 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                                         if (pictMachine.startCycle) {
                                             if (nextCycle % 100000 == 0 || pictMachine.cycleAmount == 0) {
                                                 pictMachine.machineStorage.extractItemInternal(0, 1, false)
-                                                droneResult.isDrone
+                                                droneResult.isDrone = true
                                                 droneResult.tier = SPACE_DRONE_MK6.descriptionId
                                             }
                                             pictMachine.cycleAmount = nextCycle
@@ -358,10 +345,10 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                 }
                 if (pictMachine.startCycle) {
                     val actualEUt = min(
-                        pictMachine.energyContainer.energyCanBeInserted,
+                        pictMachine.energyContainer?.energyCanBeInserted ?: 0L,
                         pictMachine.addStorageEUt(progress == 0)
                     )
-                    pictMachine.energyContainer.addEnergy(actualEUt)
+                    pictMachine.energyContainer?.addEnergy(actualEUt)
                     pictMachine.storageEUt -= actualEUt
                     this.status = Status.WORKING
                     ++this.progress
@@ -369,14 +356,14 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                     this.setWaiting(null)
                 }
                 if (this.status == Status.WAITING) {
-                    this.doDamping()
+                    this.regressRecipe()
                 }
             }
 
             @OnlyIn(Dist.CLIENT)
             override fun updateSound() {
                 if (isWorking && pictMachine.shouldWorkingPlaySound()) {
-                    val sound = GTSoundEntries.ARC
+                    val sound = GTSoundEntries.ARC.get()
                     if (workingSound is AutoReleasedSound) {
                         val soundEntry = workingSound as AutoReleasedSound
                         if (soundEntry.soundEntry == sound && !soundEntry.isStopped) {
@@ -390,14 +377,14 @@ class PlanetaryIonisationConvergenceTower(holder: IMachineBlockEntity) :
                             {
                                 pictMachine.shouldWorkingPlaySound() &&
                                     isWorking &&
-                                    !pictMachine.isInValid &&
-                                    pictMachine.level!!.isLoaded(pictMachine.pos) &&
+                                    !pictMachine.isRemoved &&
+                                    pictMachine.level!!.isLoaded(pictMachine.blockPos) &&
                                     getMachine(
                                         pictMachine.level!!,
-                                        pictMachine.pos
+                                        pictMachine.blockPos
                                     ) == pictMachine
                             },
-                            pictMachine.pos,
+                            pictMachine.blockPos,
                             true,
                             0,
                             1f,

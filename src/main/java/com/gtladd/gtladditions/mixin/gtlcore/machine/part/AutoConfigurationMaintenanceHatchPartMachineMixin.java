@@ -1,195 +1,81 @@
 package com.gtladd.gtladditions.mixin.gtlcore.machine.part;
 
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
+import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler;
+import com.gregtechceu.gtceu.common.machine.multiblock.part.AutoMaintenanceHatchPartMachine;
+import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler;
+import com.gtladd.gtladditions.common.machine.GTLAddMachines;
+import brachy.modularui.factory.PosGuiData;
+import brachy.modularui.screen.UISettings;
+import brachy.modularui.value.sync.PanelSyncManager;
+import brachy.modularui.widget.ParentWidget;
+import brachy.modularui.widgets.layout.Flow;
+import brachy.modularui.widgets.slot.ItemSlot;
+import brachy.modularui.widgets.slot.ModularSlot;
+import brachy.modularui.widgets.slot.SlotGroup;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
 import org.gtlcore.gtlcore.common.machine.multiblock.part.maintenance.AutoConfigurationMaintenanceHatchPartMachine;
 import org.gtlcore.gtlcore.common.machine.multiblock.part.maintenance.IAutoConfigurationMaintenanceHatch;
-import org.gtlcore.gtlcore.utils.Registries;
-
-import com.gregtechceu.gtceu.api.capability.recipe.IO;
-import com.gregtechceu.gtceu.api.gui.GuiTextures;
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife;
-import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredPartMachine;
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler;
-
-import com.lowdragmc.lowdraglib.gui.widget.*;
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer;
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted;
-
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-
-import com.gtladd.gtladditions.common.machine.GTLAddMachines;
-import it.unimi.dsi.fastutil.objects.ObjectArrayList;
-import org.jetbrains.annotations.NotNull;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
-
-import java.util.ArrayList;
+import org.spongepowered.asm.mixin.*;
 import java.util.List;
-import java.util.function.Supplier;
 
+/** Native slot and duration controls share the authoritative multiplier and survive normal world saves. */
 @Mixin(AutoConfigurationMaintenanceHatchPartMachine.class)
-public abstract class AutoConfigurationMaintenanceHatchPartMachineMixin extends TieredPartMachine implements IMachineLife, IAutoConfigurationMaintenanceHatch {
-
-    @Unique
-    private static final ItemStack BIOWARE_MAINFRAME = Registries.getItemStack("kubejs:bioware_mainframe");
-    @Unique
-    private static final ItemStack COSMIC_MAINFRAME = Registries.getItemStack("kubejs:cosmic_mainframe");
-    @Unique
-    private static final ItemStack CREATIVE_MAINFRAME = Registries.getItemStack("kubejs:suprachronal_mainframe_complex");
-    @Unique
-    @Persisted(key = "gtladditions$max")
-    private final NotifiableItemStackHandler gtladditions$max = this.gtladditions$createMachineStorage();
-
-    @Shadow(remap = false)
-    private float durationMultiplier;
-
-    @Shadow(remap = false)
-    private static Component getTextWidgetText(Supplier<Float> multiplier) {
-        throw new AssertionError();
+public abstract class AutoConfigurationMaintenanceHatchPartMachineMixin extends AutoMaintenanceHatchPartMachine
+        implements IAutoConfigurationMaintenanceHatch {
+    @Shadow(remap = false) private float gtlDurationMultiplier;
+    @Shadow(remap = false) protected abstract Flow durationControls(PanelSyncManager sync);
+    @Unique private final NotifiableItemStackHandler gtladditions$mainframe = gtladditions$createStorage();
+    public AutoConfigurationMaintenanceHatchPartMachineMixin(BlockEntityCreationInfo holder) { super(holder); }
+    @Override public boolean canShared(com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine controller, String substructureName) { return true; }
+    /** @author Dragons @reason Clamp against the installed mainframe on the native saved multiplier. */
+    @Overwrite public void setDurationMultiplier(float value) {
+        if (!Float.isFinite(value)) return;
+        gtlDurationMultiplier = Math.clamp(value, gtladditions$minimum(), gtladditions$maximum());
+        setChanged(); syncDataHolder.markClientSyncFieldDirty("gtlDurationMultiplier");
     }
-
-    @Shadow(remap = false)
-    public float getDurationMultiplier() {
-        throw new AssertionError();
+    /** @author Dragons @reason Keep the native duration buttons and add the physical upgrade slot. */
+    @Overwrite public void buildMainUI(ParentWidget<?> main, PosGuiData data, PanelSyncManager sync, UISettings settings) {
+        main.size(170, 100).child(durationControls(sync).left(3).top(3));
+        sync.registerSlotGroup(new SlotGroup("maintenanceMainframe", 1));
+        main.child(new ItemSlot().name("maintenanceMainframe").right(3).bottom(3)
+                .slot(new ModularSlot(gtladditions$mainframe.storage, 0).slotGroup("maintenanceMainframe"))
+                .tooltip(tooltip -> gtladditions$tooltips().forEach(tooltip::addLine)));
     }
-
-    public AutoConfigurationMaintenanceHatchPartMachineMixin(IMachineBlockEntity holder) {
-        super(holder, 5);
-    }
-
-    @Override
-    public void setDurationMultiplier(float count) {
-        if (count > gtladditions$getMax()) this.durationMultiplier = gtladditions$getMax();
-        else this.durationMultiplier = Math.max(count, gtladditions$getMin());
-    }
-
-    @Override
-    public boolean canShared() {
-        return true;
-    }
-
-    @Override
-    public void onMachineRemoved() {
-        this.clearInventory(this.gtladditions$max.storage);
-    }
-
-    /**
-     * @author .
-     * @reason .
-     */
-    @Overwrite(remap = false)
-    private void incInternalMultiplier(int multiplier) {
-        durationMultiplier = Math.min(durationMultiplier + 0.01F * (float) multiplier, gtladditions$getMax());
-    }
-
-    /**
-     * @author .
-     * @reason .
-     */
-    @Overwrite(remap = false)
-    private void decInternalMultiplier(int multiplier) {
-        durationMultiplier = Math.max(durationMultiplier - 0.01F * (float) multiplier, gtladditions$getMin());
-    }
-
-    /**
-     * @author .
-     * @reason .
-     */
-    @Overwrite(remap = false)
-    public Widget createUIWidget() {
-        WidgetGroup group = new WidgetGroup(0, 0, 150, 70);
-        group.addWidget((new DraggableScrollableWidgetGroup(4, 4, 142, 62)).setBackground(GuiTextures.DISPLAY).addWidget((new ComponentPanelWidget(4, 5, (list) -> {
-            list.add(getTextWidgetText(this::getDurationMultiplier));
-            MutableComponent buttonText = Component.translatable("gtceu.maintenance.configurable_duration.modify");
-            buttonText.append(" ");
-            buttonText.append(ComponentPanelWidget.withButton(Component.literal("[-]"), "sub"));
-            buttonText.append(" ");
-            buttonText.append(ComponentPanelWidget.withButton(Component.literal("[+]"), "add"));
-            list.add(buttonText);
-        })).setMaxWidthLimit(130).clickHandler((componentData, clickData) -> {
-            if (!clickData.isRemote) {
-                int multiplier = clickData.isCtrlClick ? 100 : (clickData.isShiftClick ? 10 : 1);
-                if (componentData.equals("sub")) this.decInternalMultiplier(multiplier);
-                else if (componentData.equals("add")) this.incInternalMultiplier(multiplier);
-            }
-        }))).setBackground(GuiTextures.BACKGROUND_INVERSE);
-        var slot = new SlotWidget(gtladditions$max.storage, 0, 120, 40) {
-
-            @Override
-            public List<Component> getTooltipTexts() {
-                List<Component> tooltips = new ArrayList<>();
-                tooltips.addAll(gtladditions$setMaxTooltips());
-                return tooltips;
-            }
-
-            @Override
-            protected void drawTooltipTexts(int mouseX, int mouseY) {
-                if (isMouseOverElement(mouseX, mouseY) && getHoverElement(mouseX, mouseY) == this && gui != null &&
-                        gui.getModularUIGui() != null) {
-                    this.setHoverTooltips(gtladditions$setMaxTooltips());
-                    gui.getModularUIGui().setHoverTooltip(
-                            tooltipTexts,
-                            getRealStack(slotReference.getItem()),
-                            null,
-                            null);
-                }
-            }
-        }.setBackground(GuiTextures.SLOT);
-        group.addWidget(slot);
-        return group;
-    }
-
-    @Unique
-    private NotifiableItemStackHandler gtladditions$createMachineStorage() {
-        NotifiableItemStackHandler handler = new NotifiableItemStackHandler(this, 1, IO.NONE, IO.BOTH, (slots) -> new ItemStackTransfer(1) {
-
-            public int getSlotLimit(int slot) {
-                return 1;
-            }
-        });
-        handler.addChangedListener(() -> setDurationMultiplier(durationMultiplier));
+    @Unique private NotifiableItemStackHandler gtladditions$createStorage() {
+        var handler = attachTrait(new NotifiableItemStackHandler(1, IO.NONE, IO.BOTH,
+                size -> new CustomItemStackHandler(size) { @Override public int getSlotLimit(int slot) { return 1; } }));
+        handler.addChangedListener(() -> setDurationMultiplier(gtlDurationMultiplier));
         return handler;
     }
-
-    @Unique
-    private @NotNull List<Component> gtladditions$setMaxTooltips() {
-        List<Component> tooltips = new ObjectArrayList<>();
-        tooltips.add(Component.translatable("gtceu.universal.enabled"));
-        tooltips.add(Component.translatable("gtceu.multiblock.use_different_mainframe"));
-        tooltips.add(Component.translatable("gtceu.multiblock.use_bioware_mainframe", 3.0, 0.15));
-        tooltips.add(Component.translatable("gtceu.multiblock.use_cosmic_mainframe", 7.5, 0.1));
-        tooltips.add(Component.translatable("gtceu.multiblock.use_suprachronal_mainframe_complex", 25.0, 0.05));
-        tooltips.add(GTLAddMachines.INSTANCE.getGTLAdd_MODIFY());
-        return tooltips;
+    @Unique private String gtladditions$mainframeId() {
+        var stack = gtladditions$mainframe.getStackInSlot(0);
+        return stack.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
     }
-
-    @Unique
-    private Item gtladditions$getCurrentMainframe() {
-        return gtladditions$max.storage.getStackInSlot(0).getItem();
+    @Unique private float gtladditions$minimum() {
+        return switch (gtladditions$mainframeId()) {
+            case "kubejs:bioware_mainframe" -> .15f;
+            case "kubejs:cosmic_mainframe" -> .1f;
+            case "kubejs:suprachronal_mainframe_complex" -> .05f;
+            default -> .2f;
+        };
     }
-
-    @Unique
-    private float gtladditions$getMax() {
-        Item mainframe = gtladditions$getCurrentMainframe();
-
-        if (BIOWARE_MAINFRAME.is(mainframe)) return 3.0F;
-        if (COSMIC_MAINFRAME.is(mainframe)) return 7.5F;
-        if (CREATIVE_MAINFRAME.is(mainframe)) return 25.0F;
-        return 1.2F;
+    @Unique private float gtladditions$maximum() {
+        return switch (gtladditions$mainframeId()) {
+            case "kubejs:bioware_mainframe" -> 3f;
+            case "kubejs:cosmic_mainframe" -> 7.5f;
+            case "kubejs:suprachronal_mainframe_complex" -> 25f;
+            default -> 1.2f;
+        };
     }
-
-    @Unique
-    private float gtladditions$getMin() {
-        Item mainframe = gtladditions$getCurrentMainframe();
-
-        if (BIOWARE_MAINFRAME.is(mainframe)) return 0.15F;
-        if (COSMIC_MAINFRAME.is(mainframe)) return 0.1F;
-        if (CREATIVE_MAINFRAME.is(mainframe)) return 0.05F;
-        return 0.2F;
+    @Unique private List<Component> gtladditions$tooltips() {
+        return List.of(Component.translatable("gtceu.universal.enabled"),
+                Component.translatable("gtceu.multiblock.use_different_mainframe"),
+                Component.translatable("gtceu.multiblock.use_bioware_mainframe", 3.0, .15),
+                Component.translatable("gtceu.multiblock.use_cosmic_mainframe", 7.5, .1),
+                Component.translatable("gtceu.multiblock.use_suprachronal_mainframe_complex", 25.0, .05),
+                GTLAddMachines.INSTANCE.getGTLAdd_MODIFY());
     }
 }

@@ -1,18 +1,13 @@
-﻿package com.gtladd.gtladditions.common.machine.hatch
+package com.gtladd.gtladditions.common.machine.hatch
 
 import appeng.api.config.Actionable
 import appeng.api.networking.security.IActionSource
 import appeng.api.stacks.AEKey
 import appeng.api.storage.MEStorage
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CircuitFancyConfigurator
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyTankConfigurator
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeHandlerList
 import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDistinctPart
 import com.gregtechceu.gtceu.api.machine.multiblock.part.TieredIOPartMachine
 import com.gtladd.gtladditions.common.machine.trait.FastNotifiableInputFluidTank
@@ -20,23 +15,10 @@ import com.gtladd.gtladditions.common.machine.trait.FastNotifiableInputItemStack
 import com.gtladd.gtladditions.utils.CommonUtils.createLanguageRainbowComponentOnServer
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.TransferHelper
-import com.hepdd.gtmthings.api.machine.fancyconfigurator.ButtonConfigurator
-import com.hepdd.gtmthings.api.machine.fancyconfigurator.InventoryFancyConfigurator
 import com.hepdd.gtmthings.common.block.machine.trait.CatalystFluidStackHandler
 import com.hepdd.gtmthings.common.block.machine.trait.CatalystItemStackHandler
-import com.lowdragmc.lowdraglib.gui.texture.GuiTextureGroup
-import com.lowdragmc.lowdraglib.gui.texture.TextTexture
-import com.lowdragmc.lowdraglib.gui.util.ClickData
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper
-import com.lowdragmc.lowdraglib.side.item.ItemTransferHelper
-import com.lowdragmc.lowdraglib.syncdata.ISubscription
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.Object2LongMap
 import it.unimi.dsi.fastutil.objects.Object2LongMaps
 import it.unimi.dsi.fastutil.objects.ObjectIterator
@@ -49,43 +31,60 @@ import net.minecraft.server.TickTask
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Block
-import org.gtlcore.gtlcore.api.machine.trait.NotifiableCircuitItemStackHandler
 
-class InfinityDualHatchPartMachine(holder: IMachineBlockEntity) :
+class InfinityDualHatchPartMachine(holder: BlockEntityCreationInfo) :
     TieredIOPartMachine(holder, 14, IO.IN),
-    IMachineLife,
     IDistinctPart,
-    MEStorage {
+    MEStorage,
+    com.gregtechceu.gtceu.api.machine.feature.IMuiMachine {
 
-    @field:Persisted
-    private val shareTank: CatalystFluidStackHandler = CatalystFluidStackHandler(this, 9, 16000L, IO.IN, IO.NONE)
+    @field:SaveField
+    private val shareTank: CatalystFluidStackHandler = attachTrait(CatalystFluidStackHandler(9, 16000, IO.IN, IO.NONE))
 
-    @field:Persisted
-    private val shareInventory: CatalystItemStackHandler = CatalystItemStackHandler(this, 9, IO.IN, IO.NONE)
+    @field:SaveField
+    private val shareInventory: CatalystItemStackHandler = attachTrait(CatalystItemStackHandler(9, IO.IN, IO.NONE))
 
-    @field:Persisted
-    private val circuitInventory: NotifiableCircuitItemStackHandler = NotifiableCircuitItemStackHandler(this)
+    @field:SaveField
+    private val circuitInventory: com.gregtechceu.gtceu.common.machine.trait.ProgrammableCircuitSlotTrait = attachTrait(com.gregtechceu.gtceu.common.machine.trait.ProgrammableCircuitSlotTrait())
 
-    @field:Persisted
-    private val tank: FastNotifiableInputFluidTank = FastNotifiableInputFluidTank(this)
+    @field:SaveField
+    private val tank: FastNotifiableInputFluidTank = attachTrait(FastNotifiableInputFluidTank())
 
-    @field:Persisted
-    private val inventory: FastNotifiableInputItemStack = FastNotifiableInputItemStack(this)
+    @field:SaveField
+    private val inventory: FastNotifiableInputItemStack = attachTrait(FastNotifiableInputItemStack())
+
+    private val mainHandlers by lazy { RecipeHandlerList.of(IO.IN, paintingColor, inventory, tank, circuitInventory)
+        .also { it.setDistinct(inventory.isDistinct) } }
+    private val sharedHandlers by lazy { RecipeHandlerList.of(IO.IN, paintingColor, shareInventory, shareTank) }
+
+    override fun getHandlerList(): RecipeHandlerList = mainHandlers
+    override fun getRecipeHandlers(): List<RecipeHandlerList> = listOf(mainHandlers, sharedHandlers)
+
+    override fun onPaintingColorChanged(color: Int) {
+        super.onPaintingColorChanged(color)
+        mainHandlers.setColor(color, true)
+        sharedHandlers.setColor(color, true)
+    }
 
     private var autoIOSubs: TickableSubscription? = null
-    private var inventorySubs: ISubscription? = null
-    private var tankSubs: ISubscription? = null
+    private var inventorySubs: com.gregtechceu.gtceu.utils.ISubscription? = null
+    private var tankSubs: com.gregtechceu.gtceu.utils.ISubscription? = null
     private var hasFluidTransfer = false
     private var hasItemTransfer = false
 
     val itemIterator: ObjectIterator<Object2LongMap.Entry<ItemStack>>
         get() = Object2LongMaps.unmodifiable(inventory.getItemStorage()).object2LongEntrySet().iterator()
 
-    val fluidIterator: ObjectIterator<FluidStack>
-        get() = ObjectSets.unmodifiable(tank.getFluidStorage()).iterator()
+    val fluidIterator: ObjectIterator<Object2LongMap.Entry<FluidStack>>
+        get() = Object2LongMaps.unmodifiable(tank.getFluidStorage()).object2LongEntrySet().iterator()
 
     override fun onLoad() {
-        super.onLoad()
+        super<TieredIOPartMachine>.onLoad()
+        // Native controllers may initialize these groups before saved trait data has been read.
+        mainHandlers.setDistinct(inventory.isDistinct)
+        mainHandlers.setColor(paintingColor)
+        sharedHandlers.setDistinct(false)
+        sharedHandlers.setColor(paintingColor)
         (this.level as? ServerLevel)?.let { serverLevel ->
             serverLevel.server.tell(TickTask(0, this::updateInventorySubscription))
             inventorySubs = inventory.addChangedListener(this::updateInventorySubscription)
@@ -94,6 +93,7 @@ class InfinityDualHatchPartMachine(holder: IMachineBlockEntity) :
     }
 
     override fun onUnload() {
+        autoIOSubs?.unsubscribe().also { autoIOSubs = null }
         super.onUnload()
         this.inventorySubs?.unsubscribe().also { this.inventorySubs = null }
         this.tankSubs?.unsubscribe().also { this.tankSubs = null }
@@ -109,20 +109,16 @@ class InfinityDualHatchPartMachine(holder: IMachineBlockEntity) :
         this.updateInventorySubscription()
     }
 
-    override fun onMachineRemoved() {
-        clearInventory(this.shareInventory)
-    }
+
 
     private fun updateInventorySubscription() {
         this.level?.let { level ->
-            this.hasItemTransfer = ItemTransferHelper.getItemTransfer(
-                level,
-                this.pos.relative(this.frontFacing),
+            this.hasItemTransfer = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.ItemHandler.BLOCK,
+                this.blockPos.relative(this.frontFacing),
                 this.frontFacing.opposite
             ) != null
-            this.hasFluidTransfer = FluidTransferHelper.getFluidTransfer(
-                level,
-                this.pos.relative(this.frontFacing),
+            this.hasFluidTransfer = level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
+                this.blockPos.relative(this.frontFacing),
                 this.frontFacing.opposite
             ) != null
         } ?: run {
@@ -185,25 +181,21 @@ class InfinityDualHatchPartMachine(holder: IMachineBlockEntity) :
     // GUI
     // ========================================
 
-    override fun createUIWidget(): Widget {
-        val height = 117
-        val width = 178
-        val group = WidgetGroup(0, 0, width + 8, height + 4)
-        val componentPanel = (
-            ComponentPanelWidget(8, 5) { textList: MutableList<Component?>? ->
-                this.addDisplayText(
-                    textList!!
-                )
-            }
-            )
-            .setMaxWidthLimit(width - 16)
-        val screen = (DraggableScrollableWidgetGroup(4, 4, width, height))
-            .setBackground(GuiTextures.DISPLAY).addWidget(componentPanel)
-        group.addWidget(screen)
-        return group
+
+
+    override fun buildMainUI(main: brachy.modularui.widget.ParentWidget<*>, data: brachy.modularui.factory.PosGuiData,
+                             manager: brachy.modularui.value.sync.PanelSyncManager, settings: brachy.modularui.screen.UISettings) {
+        val column = brachy.modularui.widgets.layout.Flow.column().widthRel(1f).coverChildrenHeight().padding(5).childPadding(4)
+            .child(com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("infinityContents", manager, {
+                mutableListOf<Component>().also(::addDisplayText)
+            }, 95))
+            .child(com.gtladd.gtladditions.api.gui.NativeHatchUI.refund(::refundAll))
+            .child(com.gtladd.gtladditions.api.gui.NativeHatchUI.sharedItems("infinitySharedItems", shareInventory.storage, manager))
+            .child(com.gtladd.gtladditions.api.gui.NativeHatchUI.sharedFluids("infinitySharedFluids", shareTank))
+        main.child(com.gtladd.gtladditions.api.gui.NativeHatchUI.scroll(column))
     }
 
-    private fun addDisplayText(textList: MutableList<Component?>) {
+    private fun addDisplayText(textList: MutableList<Component>) {
         inventory.addDisplayText(textList)
         tank.addDisplayText(textList)
 
@@ -236,85 +228,22 @@ class InfinityDualHatchPartMachine(holder: IMachineBlockEntity) :
         )
     }
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        super<TieredIOPartMachine>.attachConfigurators(configuratorPanel)
 
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                GuiTextures.BUTTON_DISTINCT_BUSES.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                { this.isDistinct() },
-                { clickData: ClickData?, pressed: Boolean? -> setDistinct(pressed!!) }
-            )
-                .setTooltipsSupplier { pressed: Boolean ->
-                    listOf<Component?>(
-                        "gtceu.multiblock.universal.distinct".toComponent
-                            .setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW))
-                            .append((if (pressed) "gtceu.multiblock.universal.distinct.yes" else "gtceu.multiblock.universal.distinct.no").toComponent)
-                    )
-                }
-        )
 
-        configuratorPanel.attachConfigurators(CircuitFancyConfigurator(this.circuitInventory.storage))
+    override fun supportsDistinct(): Boolean = true
 
-        configuratorPanel.attachConfigurators(
-            (
-                ButtonConfigurator(
-                    GuiTextureGroup(
-                        GuiTextures.BUTTON,
-                        TextTexture("\ud83d\udd19")
-                    )
-                ) { clickData: ClickData ->
-                    this.refundAll()
-                }.setTooltips(listOf<Component>("gtmthings.machine.huge_item_bus.tooltip.1".toComponent))
-                )
-        )
-
-        configuratorPanel.attachConfigurators(
-            InventoryFancyConfigurator(
-                this.shareInventory.storage,
-                "gui.gtmthings.share_inventory.title".toComponent
-            ).setTooltips(
-                listOf<Component>(
-                    "gui.gtmthings.share_inventory.desc.0".toComponent,
-                    "gui.gtmthings.share_inventory.desc.1".toComponent,
-                    "gui.gtmthings.share_inventory.desc.2".toComponent
-                )
-            )
-        )
-
-        configuratorPanel.attachConfigurators(
-            (
-                FancyTankConfigurator(
-                    this.shareTank.storages,
-                    "gui.gtceu.share_tank.title".toComponent
-                )
-                )
-                .setTooltips(
-                    listOf<Component>(
-                        "gui.gtceu.share_tank.desc.0".toComponent,
-                        "gui.gtceu.share_inventory.desc.1".toComponent
-                    )
-                )
-        )
-    }
-
-    override fun isDistinct(): Boolean = inventory.isDistinct && circuitInventory.isDistinct && shareInventory.isDistinct
+    override fun isDistinct(): Boolean = mainHandlers.isDistinct
 
     override fun setDistinct(isDistinct: Boolean) {
-        inventory.isDistinct = isDistinct
-        circuitInventory.isDistinct = isDistinct
-        shareInventory.isDistinct = isDistinct
+        mainHandlers.setDistinctAndNotify(isDistinct)
+        setChanged()
     }
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     init {
         this.workingEnabled = false
     }
 
     companion object {
-        private val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(InfinityDualHatchPartMachine::class.java, TieredIOPartMachine.MANAGED_FIELD_HOLDER)
+
     }
 }

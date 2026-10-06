@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.utils
 
-import com.hepdd.gtmthings.api.capability.IBindable
+import com.gtladd.gtladditions.api.machine.ICloudTeamBindable
 import com.hepdd.gtmthings.utils.TeamUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerPlayer
@@ -21,14 +21,14 @@ object CloudTeamUtil {
         return normalizedFirst == normalize(second)
     }
 
-    fun bindOnPlacement(machine: IBindable, placer: LivingEntity?) {
+    fun bindOnPlacement(machine: ICloudTeamBindable, placer: LivingEntity?) {
         if (placer is Player && !placer.level().isClientSide) {
             machine.setUUID(placer.uuid)
         }
     }
 
     @Suppress("SameReturnValue")
-    fun bindFromDataStick(machine: IBindable, player: Player): InteractionResult {
+    fun bindFromDataStick(machine: ICloudTeamBindable, player: Player): InteractionResult {
         if (player.level().isClientSide) return InteractionResult.SUCCESS
         machine.setUUID(player.uuid)
         if (player is ServerPlayer) {
@@ -39,13 +39,13 @@ object CloudTeamUtil {
         return InteractionResult.SUCCESS
     }
 
-    fun unbindFromDataStick(machine: IBindable, player: Player): Boolean {
+    fun unbindFromDataStick(machine: ICloudTeamBindable, player: Player): InteractionResult {
         if (!player.level().isClientSide) {
-            machine.uuid = null
+            machine.setUUID(null)
             if (player is ServerPlayer) {
                 player.sendSystemMessage(Component.translatable("gui.gtladditions.cloud.unbind_success"))
             }
         }
-        return true
+        return InteractionResult.sidedSuccess(player.level().isClientSide)
     }
 }

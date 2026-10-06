@@ -2,7 +2,7 @@ package com.gtladd.gtladditions.common.machine.multiblock.controller.module
 
 import com.google.common.base.Predicate
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
@@ -18,8 +18,7 @@ import com.gtladd.gtladditions.utils.CommonUtils.createRainbowComponent
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.RecipeCalculationHelper
 import com.gtladd.gtladditions.utils.antichrist.AntichristPosHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
 import net.minecraft.ChatFormatting
@@ -30,13 +29,16 @@ import org.gtlcore.gtlcore.api.recipe.RecipeExtensionCopier
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
 import org.gtlcore.gtlcore.api.recipe.RecipeRunnerHelper
 
-abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, vararg args: Any?) :
+abstract class ForgeOfTheAntichristModuleBase(holder: BlockEntityCreationInfo, logic: ForgeOfTheAntichristModuleBaseLogic) :
     GTLAddWirelessWorkableElectricMultipleRecipesMachine(
         holder,
-        *args
+        logic
     ),
     IModularMachineModule<ForgeOfTheAntichrist, ForgeOfTheAntichristModuleBase> {
-    @field:Persisted
+    override fun getRecipeLogic(): ForgeOfTheAntichristModuleBaseLogic =
+        super<GTLAddWirelessWorkableElectricMultipleRecipesMachine>.getRecipeLogic() as ForgeOfTheAntichristModuleBaseLogic
+
+    @field:SaveField
     private var hostPosition: BlockPos? = null
     private var host: ForgeOfTheAntichrist? = null
 
@@ -49,7 +51,7 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         this.host = host
     }
     override fun getHostType(): Class<ForgeOfTheAntichrist> = ForgeOfTheAntichrist::class.java
-    override fun getHostScanPositions(): Array<BlockPos> = AntichristPosHelper.calculatePossibleHostPositions(pos, frontFacing)
+    override fun getHostScanPositions(): Array<BlockPos> = AntichristPosHelper.calculatePossibleHostPositions(blockPos, frontFacing)
 
     // ========================================
     // ForgeOfTheAntichrist connection
@@ -59,15 +61,17 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         recipeLogic.updateTickSubscription()
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) {
             removeFromHost(this.host)
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(this.host)
     }
 
@@ -76,16 +80,22 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         removeFromHost(this.host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(this.host)
     }
 
-    abstract override fun createRecipeLogic(vararg args: Any): ForgeOfTheAntichristModuleBaseLogic
 
-    abstract override fun getRecipeLogic(): ForgeOfTheAntichristModuleBaseLogic
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("ForgeOfTheAntichristModuleBaseStatus", syncManager, {
+            mutableListOf<Component>().also(::collectForgeOfTheAntichristModuleBaseStatusText)
+        }, 130)
+    )
+
+    private fun collectForgeOfTheAntichristModuleBaseStatusText(textList: MutableList<Component>) {
+        
         if (!this.isFormed) return
 
         if (isConnectedToHost && getRecipeLogic().enableModify(this.recipeType)) {
@@ -105,7 +115,7 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         )
     }
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         textList.add(
             "gtceu.multiblock.parallel".toComponent(
                 createLanguageRainbowComponentOnServer(
@@ -124,13 +134,7 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
 
     override fun needConfirmMEStock(): Boolean = true
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            ForgeOfTheAntichristModuleBase::class.java,
-            GTLAddWirelessWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-        )
 
         val FAIL_HOST_NOT_WORKING: RecipeResult = RecipeResult.fail(
             "gtladditions.recipe.fail.host_not_working".toComponent
@@ -142,23 +146,9 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         }
 
         fun copyAndModifyRecipe(recipe: GTRecipe, modifier: ContentModifier): GTRecipe {
-            val copy = GTRecipe(
-                recipe.recipeType,
-                recipe.id,
-                recipe.inputs,
-                modifyOutputContents(recipe.outputs, modifier),
-                recipe.tickInputs,
-                recipe.tickOutputs,
-                recipe.inputChanceLogics,
-                recipe.outputChanceLogics,
-                recipe.tickInputChanceLogics,
-                recipe.tickOutputChanceLogics,
-                recipe.conditions,
-                recipe.ingredientActions,
-                recipe.data,
-                recipe.duration,
-                recipe.isFuel
-            )
+            val copy = recipe.copy()
+            copy.outputs.clear()
+            copy.outputs.putAll(modifyOutputContents(recipe.outputs, modifier))
             RecipeExtensionCopier.copy(recipe, copy)
             return copy
         }
@@ -181,10 +171,9 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
         }
 
         open class ForgeOfTheAntichristModuleBaseLogic(
-            parallel: ForgeOfTheAntichristModuleBase,
             beforeWorking: Predicate<IRecipeLogicMachine>
-        ) : GTLAddMultipleWirelessRecipesLogic(parallel, beforeWorking) {
-            override fun getMachine(): ForgeOfTheAntichristModuleBase = machine as ForgeOfTheAntichristModuleBase
+        ) : GTLAddMultipleWirelessRecipesLogic(beforeWorking) {
+            override fun getMachine(): ForgeOfTheAntichristModuleBase = super.getMachine() as ForgeOfTheAntichristModuleBase
 
             override fun getReductionEUt(): Double =
                 getMachine().host?.let { ForgeOfTheAntichrist.getEuReduction(it) * super.getReductionEUt() }
@@ -195,7 +184,7 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
                     ?: super.getEuMultiplier()
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 val modifier = ContentModifier.multiplier(getMachine().host!!.recipeOutputMultiply)
 
                 return RecipeCalculationHelper.calculateParallelsWithProcessing(
@@ -209,7 +198,7 @@ abstract class ForgeOfTheAntichristModuleBase(holder: IMachineBlockEntity, varar
                 )
             }
 
-            override fun checkRecipe(recipe: GTRecipe): Boolean = RecipeRunnerHelper.matchRecipe(machine, recipe)
+            override fun matchesSourceRecipe(recipe: GTRecipe): Boolean = RecipeRunnerHelper.matchRecipe(machine, recipe)
 
             open fun enableModify(recipeType: GTRecipeType): Boolean = false
         }

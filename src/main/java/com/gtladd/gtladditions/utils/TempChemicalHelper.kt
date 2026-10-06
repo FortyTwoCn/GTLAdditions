@@ -1,38 +1,37 @@
 package com.gtladd.gtladditions.utils
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
-import com.gregtechceu.gtceu.api.GTCEuAPI
 import com.gregtechceu.gtceu.api.data.chemical.material.Material
 import com.gregtechceu.gtceu.api.data.chemical.material.properties.PropertyKey
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKey
+import com.gregtechceu.gtceu.api.registry.GTRegistries
+import com.gregtechceu.gtceu.utils.TagUtil
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.material.Fluid
-import java.util.concurrent.TimeUnit
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient
+import net.neoforged.neoforge.fluids.crafting.TagFluidIngredient
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
 
+/** Uses the native material registry without requiring tags to have loaded. */
 object TempChemicalHelper {
-    @Volatile
-    private var needBuild = true
-    private val tempCache: Cache<Fluid, Material> = Caffeine.newBuilder()
-        .expireAfterWrite(30, TimeUnit.SECONDS)
-        .build()
+    fun getMaterialFromFluid(fluid: Fluid): Material? = GTRegistries.MATERIALS.firstOrNull { material ->
+        material.getProperty(PropertyKey.FLUID)?.let { property ->
+            FluidStorageKey.allKeys().any { property.get(it) === fluid }
+        } ?: false
+    }
 
-    fun getMaterialFromFluid(fluid: Fluid): Material? {
-        if (needBuild) {
-            synchronized(this) {
-                if (needBuild) {
-                    GTCEuAPI.materialManager.registeredMaterials.forEach { material ->
-                        if (material.hasProperty(PropertyKey.FLUID)) {
-                            val fluidProperty = material.getProperty(PropertyKey.FLUID)
-                            FluidStorageKey.allKeys().forEach { key ->
-                                fluidProperty.get(key)?.let { f ->
-                                    tempCache.put(f, material)
-                                }
-                            }
-                        }
+    fun getMaterialFromIngredient(ingredient: SizedFluidIngredient): Material? {
+        val predicate = LongFluidIngredient.matchingIngredient(ingredient)
+        if (predicate is TagFluidIngredient) {
+            return GTRegistries.MATERIALS.firstOrNull { material ->
+                material.getProperty(PropertyKey.FLUID)?.let { property ->
+                    FluidStorageKey.allKeys().any { key ->
+                        property.get(key)?.let { fluid ->
+                            predicate.tag() == TagUtil.createFluidTag(BuiltInRegistries.FLUID.getKey(fluid).path)
+                        } ?: false
                     }
-                }
+                } ?: false
             }
         }
-        return tempCache.getIfPresent(fluid)
+        return predicate.stacks.firstOrNull()?.fluid?.let(::getMaterialFromFluid)
     }
 }

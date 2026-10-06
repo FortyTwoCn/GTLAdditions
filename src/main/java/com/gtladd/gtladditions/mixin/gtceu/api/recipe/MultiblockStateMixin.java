@@ -1,85 +1,26 @@
 package com.gtladd.gtladditions.mixin.gtceu.api.recipe;
 
-import com.gregtechceu.gtceu.api.block.ActiveBlock;
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiController;
-import com.gregtechceu.gtceu.api.pattern.MultiblockState;
-import com.gregtechceu.gtceu.api.pattern.MultiblockWorldSavedData;
-import com.gregtechceu.gtceu.common.machine.multiblock.part.FluidHatchPartMachine;
-import com.gregtechceu.gtceu.common.machine.multiblock.part.ItemBusPartMachine;
-
-import net.minecraft.core.BlockPos;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.state.BlockState;
-
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine;
+import com.gregtechceu.gtceu.api.multiblock.pattern.PatternState;
 import com.gtladd.gtladditions.common.machine.multiblock.controller.module.ForgeOfTheAntichristModuleBase;
-import com.hepdd.gtmthings.common.block.machine.multiblock.part.HugeBusPartMachine;
-import it.unimi.dsi.fastutil.longs.LongSet;
-import it.unimi.dsi.fastutil.longs.LongSets;
-import org.spongepowered.asm.mixin.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@SuppressWarnings("DataFlowIssue")
-@Mixin(value = MultiblockState.class, priority = 2000)
+/** Module activity updates do not detach their host; replacing or breaking the block still rechecks the structure. */
+@Mixin(PatternState.class)
 public abstract class MultiblockStateMixin {
+    @Shadow(remap = false) protected MultiblockControllerMachine controller;
+    @Shadow(remap = false) protected BlockPos controllerPos;
+    @Shadow(remap = false) protected boolean isFormed;
 
-    @Final
-    @Shadow(remap = false)
-    public Level world;
-
-    @Final
-    @Shadow(remap = false)
-    public BlockPos controllerPos;
-
-    @Shadow(remap = false)
-    public IMultiController lastController;
-
-    /**
-     * @author Dragons
-     * @reason Fix ForgeOfTheAntichrist Module <-> ForgeOfTheAntichrist
-     */
-    @Overwrite(remap = false)
-    public void onBlockStateChanged(BlockPos pos, BlockState state) {
-        if (this.world instanceof ServerLevel serverLevel) {
-            if (pos.equals(this.controllerPos)) {
-                if (this.lastController != null && !state.is(this.lastController.self().getBlockState().getBlock())) {
-                    this.lastController.onStructureInvalid();
-                    MultiblockWorldSavedData mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                    mwsd.removeMapping((MultiblockState) (Object) this);
-                }
-            } else {
-                final var tempThis = (MultiblockState) (Object) this;
-                final IMultiController controller = tempThis.getController();
-                if (controller != null) {
-                    final boolean formed = controller.isFormed();
-                    if (formed) {
-                        if (state.getBlock() instanceof ActiveBlock) {
-                            LongSet activeBlocks = tempThis.getMatchContext().getOrDefault("vaBlocks", LongSets.emptySet());
-                            if (activeBlocks.contains(pos.asLong())) {
-                                return;
-                            }
-                        } else if (serverLevel.getBlockEntity(pos) instanceof IMachineBlockEntity IMBE) {
-                            var metaMachine = IMBE.getMetaMachine();
-                            if (metaMachine instanceof ItemBusPartMachine ||
-                                    metaMachine instanceof FluidHatchPartMachine ||
-                                    metaMachine instanceof HugeBusPartMachine ||
-                                    metaMachine instanceof ForgeOfTheAntichristModuleBase)
-                                return;
-                        }
-                    }
-
-                    if (formed && controller.checkPatternWithLock()) {
-                        controller.self().setFlipped(tempThis.isNeededFlip());
-                        controller.onStructureFormed();
-                    } else {
-                        controller.self().setFlipped(false);
-                        controller.onStructureInvalid();
-                        MultiblockWorldSavedData mwsd = MultiblockWorldSavedData.getOrCreate(serverLevel);
-                        mwsd.removeMapping(tempThis);
-                        mwsd.addAsyncLogic(controller);
-                    }
-                }
-            }
-        }
+    @Inject(method = "onBlockStateChanged", at = @At("HEAD"), cancellable = true, remap = false, require = 1)
+    private void gtladditions$moduleActivity(BlockPos pos, BlockState oldState, BlockState newState, CallbackInfo ci) {
+        if (isFormed && controller != null && !pos.equals(controllerPos) && oldState.getBlock() == newState.getBlock()
+                && controller.getLevel().getBlockEntity(pos) instanceof ForgeOfTheAntichristModuleBase) ci.cancel();
     }
 }

@@ -1,10 +1,9 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.module
 
 import com.google.common.base.Predicate
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.common.data.ParallelData
@@ -13,18 +12,16 @@ import com.gtladd.gtladditions.utils.CommonUtils.createLanguageRainbowComponentO
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.LightHunterSpaceStationPosHelper
 import com.gtladd.gtladditions.utils.RecipeCalculationHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 
-class LightHunterSpaceStationModuleBase(holder: IMachineBlockEntity) :
-    GTLAddWorkableElectricMultipleRecipesMachine(holder),
-    IModularMachineModule<LightHunterSpaceStation, LightHunterSpaceStationModuleBase>,
-    IMachineLife {
-    @field:Persisted
+class LightHunterSpaceStationModuleBase(holder: BlockEntityCreationInfo) :
+    GTLAddWorkableElectricMultipleRecipesMachine(holder, LightHunterSpaceStationModuleBaseLogic()),
+    IModularMachineModule<LightHunterSpaceStation, LightHunterSpaceStationModuleBase> {
+    @field:SaveField
     private var hostPosition: BlockPos? = null
     private var host: LightHunterSpaceStation? = null
 
@@ -37,19 +34,26 @@ class LightHunterSpaceStationModuleBase(holder: IMachineBlockEntity) :
         this.host = host
     }
     override fun getHostType(): Class<LightHunterSpaceStation> = LightHunterSpaceStation::class.java
-    override fun getHostScanPositions(): Array<BlockPos> = LightHunterSpaceStationPosHelper.calculatePossibleHostPositions(pos)
+    override fun getHostScanPositions(): Array<BlockPos> = LightHunterSpaceStationPosHelper.calculatePossibleHostPositions(blockPos)
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = LightHunterSpaceStationModuleBaseLogic(this)
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("LightHunterSpaceStationModuleBaseStatus", syncManager, {
+            mutableListOf<Component>().also(::collectLightHunterSpaceStationModuleBaseStatusText)
+        }, 130)
+    )
+
+    private fun collectLightHunterSpaceStationModuleBaseStatusText(textList: MutableList<Component>) {
+        
         if (!this.isFormed) return
         textList.add(
             (if (isConnectedToHost) "tooltip.gtlcore.module_installed" else "tooltip.gtlcore.module_not_installed").toComponent
         )
     }
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         if (isConnectedToHost && host!!.unlockParadoxical()) {
             textList.add(
                 "gtceu.multiblock.parallel".toComponent(
@@ -78,15 +82,17 @@ class LightHunterSpaceStationModuleBase(holder: IMachineBlockEntity) :
         recipeLogic.updateTickSubscription()
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) {
             removeFromHost(this.host)
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(this.host)
     }
 
@@ -95,36 +101,30 @@ class LightHunterSpaceStationModuleBase(holder: IMachineBlockEntity) :
         removeFromHost(this.host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(this.host)
     }
 
     override fun needConfirmMEStock(): Boolean = true
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            LightHunterSpaceStationModuleBase::class.java,
-            GTLAddWorkableElectricMultipleRecipesMachine.Companion.MANAGED_FIELD_HOLDER
-        )
 
         val BEFORE_WORKING = Predicate { machine: IRecipeLogicMachine ->
             (machine as LightHunterSpaceStationModuleBase).host?.let { it -> return@let it.isActive } ?: false
         }
 
         open class LightHunterSpaceStationModuleBaseLogic(
-            parallel: LightHunterSpaceStationModuleBase
-        ) : GTLAddMultipleRecipesLogic(parallel, BEFORE_WORKING) {
+            
+        ) : GTLAddMultipleRecipesLogic(BEFORE_WORKING) {
 
-            override fun getMachine(): LightHunterSpaceStationModuleBase = machine as LightHunterSpaceStationModuleBase
+            override fun getMachine(): LightHunterSpaceStationModuleBase = super.getMachine() as LightHunterSpaceStationModuleBase
 
             override fun calculateParallels(): ParallelData? {
                 if (!getMachine().host!!.unlockParadoxical()) {
                     return super.calculateParallels()
                 }
 
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 return RecipeCalculationHelper.calculateParallelsWithProcessing(
                     recipes,
                     machine,

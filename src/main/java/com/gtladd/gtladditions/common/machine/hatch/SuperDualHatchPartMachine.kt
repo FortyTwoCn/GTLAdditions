@@ -1,294 +1,118 @@
 package com.gtladd.gtladditions.common.machine.hatch
 
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widgets.layout.Flow
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.MetaMachine
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.FancyTankConfigurator
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank
-import com.gtladd.gtladditions.utils.ComponentExtensions.literal
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
+import com.gregtechceu.gtceu.api.capability.recipe.IRecipeHandler
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.utils.ISubscription
+import com.gregtechceu.gtceu.utils.FormattingUtil
+import com.gtladd.gtladditions.api.gui.NativeHatchUI
 import com.hepdd.gtmthings.common.block.machine.multiblock.part.HugeBusPartMachine
 import com.hepdd.gtmthings.common.block.machine.trait.CatalystFluidStackHandler
-import com.hepdd.gtmthings.utils.FormatUtil
-import com.lowdragmc.lowdraglib.gui.util.ClickData
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.side.fluid.FluidTransferHelper
-import com.lowdragmc.lowdraglib.side.fluid.IFluidTransfer
-import com.lowdragmc.lowdraglib.side.fluid.forge.FluidHelperImpl
-import com.lowdragmc.lowdraglib.side.item.ItemTransferHelper
-import com.lowdragmc.lowdraglib.syncdata.ISubscription
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
 import net.minecraft.ChatFormatting
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Style
-import net.minecraft.world.level.Level
-import net.minecraftforge.common.capabilities.ForgeCapabilities
-import net.minecraftforge.fluids.capability.IFluidHandler
-import org.gtlcore.gtlcore.utils.NumberUtils
-import java.util.function.Predicate
+import net.neoforged.neoforge.capabilities.Capabilities
+import org.gtlcore.gtlcore.api.machine.trait.NativeLongFluidTank
 
-open class SuperDualHatchPartMachine(holder: IMachineBlockEntity, tier: Int, vararg args: Any?) : HugeBusPartMachine(holder, tier, IO.IN, 9, *args) {
-    @field:Persisted
-    protected val tank: NotifiableFluidTank
-
-    @field:Persisted
-    protected val shareTank: CatalystFluidStackHandler
+open class SuperDualHatchPartMachine(holder: BlockEntityCreationInfo, tier: Int, vararg args: Any?) : HugeBusPartMachine(holder, tier, IO.IN, 9, *args) {
+    @field:SaveField
+    protected val tank = attachTrait(createTank())
+    @field:SaveField
+    protected val shareTank = attachTrait(CatalystFluidStackHandler(9, 16000, IO.IN, IO.NONE))
     protected var tankSubs: ISubscription? = null
     private var hasFluidTransfer = false
     private var hasItemTransfer = false
 
-    protected open fun createTank(): NotifiableFluidTank = SuperNotifiableFluidTank(this@SuperDualHatchPartMachine, 24, Long.Companion.MAX_VALUE shr 12, IO.IN)
+    init { workingEnabled = false }
 
-    fun getTankInventorySize(): Int = this.tank.storages.size
-
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        super.attachConfigurators(configuratorPanel)
-        configuratorPanel.attachConfigurators(
-            (
-                FancyTankConfigurator(
-                    this.shareTank.storages,
-                    "gui.gtceu.share_tank.title".toComponent
-                )
-                )
-                .setTooltips(
-                    listOf<Component?>(
-                        "gui.gtceu.share_tank.desc.0".toComponent,
-                        "gui.gtceu.share_inventory.desc.1".toComponent
-                    )
-                )
-        )
+    protected open fun createTank(): NativeLongFluidTank = object : NativeLongFluidTank(24, Long.MAX_VALUE shr 12, IO.IN) {
+        override fun canCapOutput(): Boolean = true
     }
+
+    fun getTankInventorySize(): Int = tank.tanks
+
+    override fun mainRecipeHandlers(): MutableList<IRecipeHandler<*>> = super.mainRecipeHandlers().apply { add(tank) }
+    override fun sharedRecipeHandlers(): MutableList<IRecipeHandler<*>> = super.sharedRecipeHandlers().apply { add(shareTank) }
 
     override fun onLoad() {
         super.onLoad()
-        this.tankSubs = this.tank.addChangedListener { this.updateInventorySubscription() }
+        tankSubs = tank.addChangedListener(::updateInventorySubscription)
     }
 
     override fun onUnload() {
+        tankSubs?.unsubscribe()
+        tankSubs = null
         super.onUnload()
-        if (this.tankSubs != null) {
-            this.tankSubs!!.unsubscribe()
-            this.tankSubs = null
-        }
     }
 
-    override fun refundAll(clickData: ClickData) {
-        super.refundAll(clickData)
-        if (this.hasFluidTransfer) {
-            this.tank.exportToNearby(this.frontFacing)
+    override fun refundAll() {
+        super.refundAll()
+        if (hasFluidTransfer) {
+            setWorkingEnabled(false)
+            tank.exportToNearby(frontFacing)
         }
     }
 
     override fun updateInventorySubscription() {
-        val canOutput = this.io == IO.OUT && (!this.tank.isEmpty || !this.getInventory().isEmpty)
-        val level = this.level
-        if (level != null) {
-            this.hasItemTransfer = ItemTransferHelper.getItemTransfer(
-                level,
-                this.pos.relative(this.frontFacing),
-                this.frontFacing.opposite
-            ) != null
-            this.hasFluidTransfer = FluidTransferHelper.getFluidTransfer(
-                level,
-                this.pos.relative(this.frontFacing),
-                this.frontFacing.opposite
-            ) != null
-        } else {
-            this.hasItemTransfer = false
-            this.hasFluidTransfer = false
-        }
-        if (!this.isWorkingEnabled || !canOutput && this.io != IO.IN || !this.hasItemTransfer && !this.hasFluidTransfer) {
-            if (this.autoIOSubs != null) {
-                this.autoIOSubs!!.unsubscribe()
-                this.autoIOSubs = null
-            }
-        } else {
-            this.autoIOSubs = this.subscribeServerTick(this.autoIOSubs) { this.autoIO() }
-        }
+        val world = level
+        hasItemTransfer = world?.getCapability(Capabilities.ItemHandler.BLOCK, blockPos.relative(frontFacing), frontFacing.opposite) != null
+        hasFluidTransfer = world?.getCapability(Capabilities.FluidHandler.BLOCK, blockPos.relative(frontFacing), frontFacing.opposite) != null
+        val canOutput = io == IO.OUT && (!tank.isEmpty || !getInventory().isEmpty)
+        if (!isWorkingEnabled || (!canOutput && io != IO.IN) || (!hasItemTransfer && !hasFluidTransfer)) {
+            autoIOSubs?.unsubscribe()
+            autoIOSubs = null
+        } else autoIOSubs = subscribeServerTick(autoIOSubs, ::autoIO)
     }
 
     override fun autoIO() {
-        if (this.offsetTimer % 5L == 0L && this.isWorkingEnabled) {
-            if (this.io == IO.OUT) {
-                if (this.hasItemTransfer) {
-                    this.getInventory().exportToNearby(this.frontFacing)
-                }
-                if (this.hasFluidTransfer) {
-                    this.tank.exportToNearby(this.frontFacing)
-                }
-            } else if (this.io == IO.IN) {
-                if (this.hasItemTransfer) {
-                    this.getInventory().importFromNearby(this.frontFacing)
-                }
-                if (this.hasFluidTransfer) {
-                    this.tank.importFromNearby(this.frontFacing)
-                }
-            }
+        if (offsetTimer % 5L != 0L || !isWorkingEnabled) return
+        if (io == IO.OUT) {
+            if (hasItemTransfer) exportToNearby(getInventory(), frontFacing)
+            if (hasFluidTransfer) tank.exportToNearby(frontFacing)
+        } else if (io == IO.IN) {
+            if (hasItemTransfer) getInventory().importFromNearby(frontFacing)
+            if (hasFluidTransfer) tank.importFromNearby(frontFacing)
         }
+        updateInventorySubscription()
     }
 
-    override fun createUIWidget(): Widget {
-        val height = 117
-        val width = 178
-        val group = WidgetGroup(0, 0, width + 8, height + 4)
-        val componentPanel = (
-            ComponentPanelWidget(8, 5) { textList: MutableList<Component?>? ->
-                this.addDisplayText(
-                    textList!!
-                )
+    override fun displayText(): MutableList<Component> {
+        val lines = mutableListOf<Component>()
+        var itemKinds = 0
+        var fluidKinds = 0
+        for (i in 0 until getInventory().slots) {
+            val stack = getInventory().getStackInSlot(i)
+            if (!stack.isEmpty) {
+                lines.add(stack.hoverName.copy().withStyle(ChatFormatting.YELLOW)
+                    .append(Component.literal(" " + FormattingUtil.formatNumbers(stack.count)).withStyle(ChatFormatting.AQUA)))
+                itemKinds++
             }
-            )
-            .setMaxWidthLimit(width - 16)
-        val screen = (DraggableScrollableWidgetGroup(4, 4, width, height))
-            .setBackground(GuiTextures.DISPLAY).addWidget(componentPanel)
-        group.addWidget(screen)
-        return group
+        }
+        for (i in 0 until tank.tanks) {
+            val stack = tank.getFluidInTank(i)
+            if (!stack.isEmpty) {
+                lines.add(stack.hoverName.copy().withStyle(ChatFormatting.GOLD)
+                    .append(Component.literal(" " + FormattingUtil.formatNumbers(tank.`gtlcore$getStoredAmount`(i)) + " mB").withStyle(ChatFormatting.AQUA)))
+                fluidKinds++
+            }
+        }
+        if (lines.isEmpty()) lines.add(Component.translatable("gtmthings.machine.huge_item_bus.tooltip.3"))
+        lines.add(0, Component.translatable("gtmthings.machine.huge_item_bus.tooltip.2", itemKinds, getInventory().slots).withStyle(ChatFormatting.GREEN))
+        lines.add(1, Component.translatable("gtmthings.machine.huge_dual_hatch.tooltip.2", fluidKinds, tank.tanks).withStyle(ChatFormatting.GREEN))
+        return lines
     }
 
-    private fun addDisplayText(textList: MutableList<Component?>) {
-        var itemCount = 0
-        var tankCount = 0
-        for (i in 0..<inventorySize - 1) {
-            val `is` = super.getInventory().getStackInSlot(i)
-            if (!`is`.isEmpty) {
-                textList.add(
-                    `is`.displayName.copy().setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW))
-                        .append(
-                            (FormatUtil.formatNumber(`is`.count.toLong())).literal
-                                .setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA))
-                        )
-                )
-                ++itemCount
-            }
-        }
-        for (i in 0..getTankInventorySize() - 1) {
-            val fs = this.tank.getFluidInTank(i)
-            if (!fs.isEmpty) {
-                textList.add(
-                    fs.displayName.copy().setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD))
-                        .append(
-                            (
-                                if (fs.amount < 1000L) {
-                                    fs.amount
-                                        .toString() + "mB"
-                                } else {
-                                    NumberUtils.formatLong(fs.amount / 1000L) + "B"
-                                }
-                                ).literal
-                                .setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA))
-                        )
-                )
-                ++tankCount
-            }
-        }
-        if (textList.isEmpty()) {
-            textList.add("gtmthings.machine.huge_item_bus.tooltip.3".toComponent)
-        }
-        textList.add(
-            0,
-            "gtmthings.machine.huge_item_bus.tooltip.2".toComponent(itemCount, inventorySize)
-                .setStyle(
-                    Style.EMPTY.withColor(ChatFormatting.GREEN)
-                )
-        )
-        textList.add(
-            1,
-            "gtmthings.machine.huge_dual_hatch.tooltip.2".toComponent(tankCount, getTankInventorySize()).setStyle(
-                Style.EMPTY.withColor(ChatFormatting.GREEN)
-            )
-        )
-    }
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
-    init {
-        this.tank = this.createTank()
-        this.shareTank = CatalystFluidStackHandler(this, 9, 16000L, IO.IN, IO.NONE)
-        this.workingEnabled = false
-    }
-
-    companion object {
-        protected val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(SuperDualHatchPartMachine::class.java, HugeBusPartMachine.MANAGED_FIELD_HOLDER)
-
-        private class SuperNotifiableFluidTank(
-            machine: MetaMachine,
-            slots: Int,
-            capacity: Long,
-            io: IO
-        ) : NotifiableFluidTank(machine, slots, capacity, io) {
-
-            override fun exportToNearby(vararg facings: Direction) {
-                if (!isEmpty) {
-                    machine.level?.let { level ->
-                        for (facing in facings) {
-                            exportToTarget(
-                                this,
-                                machine.getFluidCapFilter(facing),
-                                level,
-                                machine.pos.relative(facing),
-                                facing.opposite
-                            )
-                        }
-                    }
-                }
-            }
-
-            override fun canCapOutput(): Boolean = true
-
-            companion object {
-                fun exportToTarget(
-                    source: IFluidTransfer,
-                    filter: Predicate<FluidStack>,
-                    level: Level,
-                    pos: BlockPos,
-                    direction: Direction?
-                ) {
-                    val state = level.getBlockState(pos)
-                    if (!state.hasBlockEntity()) return
-
-                    val blockEntity = level.getBlockEntity(pos) ?: return
-                    val cap = blockEntity.getCapability(ForgeCapabilities.FLUID_HANDLER, direction).resolve()
-                    if (!cap.isPresent) return
-
-                    val target = cap.get()
-                    for (srcIndex in 0 until source.tanks) {
-                        val currentFluid = source.getFluidInTank(srcIndex)
-                        if (currentFluid.isEmpty || !filter.test(currentFluid)) {
-                            continue
-                        }
-
-                        val toDrain = currentFluid.copy()
-                        var remainAmount = currentFluid.amount
-                        do {
-                            val filled = target.fill(
-                                FluidHelperImpl.toFluidStack(source.drain(toDrain, true)),
-                                IFluidHandler.FluidAction.SIMULATE
-                            )
-                            if (filled > 0) {
-                                toDrain.amount = filled.toLong()
-                                target.fill(
-                                    FluidHelperImpl.toFluidStack(source.drain(toDrain, false)),
-                                    IFluidHandler.FluidAction.EXECUTE
-                                )
-                                remainAmount -= filled
-                            } else {
-                                break
-                            }
-                            toDrain.amount = remainAmount
-                        } while (!toDrain.isEmpty)
-                    }
-                }
-            }
-        }
+    override fun buildMainUI(main: ParentWidget<*>, data: PosGuiData, manager: PanelSyncManager, settings: UISettings) {
+        val column = Flow.column().widthRel(1f).coverChildrenHeight().padding(5).childPadding(4)
+            .child(com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("dualContents", manager, ::displayText, 95))
+            .child(NativeHatchUI.refund(::refundAll))
+            .child(NativeHatchUI.sharedItems("dualSharedItems", shareInventory.storage, manager))
+            .child(NativeHatchUI.sharedFluids("dualSharedFluids", shareTank))
+        main.child(NativeHatchUI.scroll(column))
     }
 }

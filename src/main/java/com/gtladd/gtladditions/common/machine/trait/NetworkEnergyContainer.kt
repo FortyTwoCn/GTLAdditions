@@ -5,19 +5,18 @@ import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableRecipeHandlerTrait
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableRecipeHandlerTrait
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
+import com.gregtechceu.gtceu.api.recipe.ingredient.EnergyStack
 import com.gtladd.gtladditions.common.machine.multiblock.part.WirelessEnergyNetworkTerminalPartMachineBase
-import com.hepdd.gtmthings.api.misc.WirelessEnergyManager
+import com.gtladd.gtladditions.api.machine.wireless.NativeWirelessEnergyAccount
 import net.minecraft.core.Direction
 import org.gtlcore.gtlcore.api.capability.IInt128EnergyContainer
 import org.gtlcore.gtlcore.utils.NumberUtils
 import org.gtlcore.gtlcore.utils.datastructure.Int128
+import java.math.BigInteger
 
-class NetworkEnergyContainer(
-    machine: WirelessEnergyNetworkTerminalPartMachineBase,
-    private val handlerIO: IO
-) : NotifiableRecipeHandlerTrait<Long>(machine),
+class NetworkEnergyContainer(private val handlerIO: IO) : NotifiableRecipeHandlerTrait<EnergyStack>(),
     IEnergyContainer,
     IInt128EnergyContainer {
 
@@ -69,8 +68,8 @@ class NetworkEnergyContainer(
         updateSubs = machine.subscribeServerTick(updateSubs, ::updateTick)
     }
 
-    override fun onMachineUnLoad() {
-        super.onMachineUnLoad()
+    override fun onMachineUnload() {
+        super.onMachineUnload()
         updateSubs?.unsubscribe()
         updateSubs = null
     }
@@ -85,8 +84,8 @@ class NetworkEnergyContainer(
     }
 
     override fun changeEnergy(energyToAdd: Long): Long {
-        val result = if (getMachine().uuid != null) {
-            if (WirelessEnergyManager.addEUToGlobalEnergyMap(getMachine().uuid, energyToAdd, this.machine)) {
+        val result = if (getMachine().getUUID() != null) {
+            if (NativeWirelessEnergyAccount.transfer(getMachine().getUUID(), energyToAdd, getMachine())) {
                 energyToAdd
             } else {
                 0
@@ -100,32 +99,48 @@ class NetworkEnergyContainer(
 
     override fun handleRecipeInner(
         io: IO,
-        recipe: GTRecipe,
-        left: List<Long>,
-        slotName: String?,
+        recipe: GTRecipe?,
+        left: MutableList<EnergyStack>,
         simulate: Boolean
-    ): List<Long>? {
-        var sum = left.sum()
-        if (io == IO.IN) {
-            val canOutput = energyStored
-            val actualOutput = minOf(canOutput, sum)
-            if (!simulate) {
-                addEnergy(-actualOutput)
+    ): MutableList<EnergyStack> {
+        if (!handlerIO.support(io) || (io != IO.IN && io != IO.OUT)) return left
+        val account = NativeWirelessEnergyAccount.find(getMachine().getUUID()) ?: return left
+        val rate = NativeWirelessEnergyAccount.transferLimit(account)
+        var budget = if (io == IO.IN) account.storage else left.fold(BigInteger.ZERO) { sum, stack -> sum + exactEU(stack) }
+        if (rate != null) budget = budget.min(rate)
+        val remaining = ArrayList<EnergyStack>()
+        for (stack in left) {
+            val required = exactEU(stack)
+            var accepted = required.min(budget)
+            if (!simulate && accepted.signum() > 0) {
+                val signed = if (io == IO.IN) accepted.negate() else accepted
+                if (NativeWirelessEnergyAccount.transfer(getMachine().getUUID(), signed, getMachine())) {
+                    addEnergyPerSecExact(signed)
+                    notifyListeners()
+                } else accepted = BigInteger.ZERO
             }
-            sum -= canOutput
-        } else if (io == IO.OUT) {
-            val canInput = getMachine().uuid != null
-            if (!simulate && canInput) {
-                addEnergy(sum)
+            budget -= accepted
+            val rest = required - accepted
+            if (rest.signum() > 0) {
+                val parts = rest.divideAndRemainder(BigInteger.valueOf(stack.voltage()))
+                if (parts[0].signum() > 0) remaining.add(EnergyStack(stack.voltage(), parts[0].longValueExact()))
+                if (parts[1].signum() > 0) remaining.add(EnergyStack(parts[1].longValueExact()))
             }
-            sum = if (canInput) 0 else sum
         }
-        return if (sum <= 0) null else listOf(sum)
+        return remaining
+    }
+
+    private fun exactEU(stack: EnergyStack): BigInteger = BigInteger.valueOf(stack.voltage()).multiply(BigInteger.valueOf(stack.amperage()))
+
+    private fun addEnergyPerSecExact(energy: BigInteger) {
+        val target = if (energy.signum() < 0) energyInputPerSec else energyOutputPerSec
+        val value = energy.abs()
+        target.add(Int128(value.shiftRight(64).toLong(), value.toLong()))
     }
 
     override fun getEnergyStored(): Long = if (handlerIO == IO.IN) {
-        getMachine().uuid?.let { uuid ->
-            NumberUtils.getLongValue(WirelessEnergyManager.getUserEU(uuid))
+        getMachine().getUUID()?.let { uuid ->
+            NumberUtils.getLongValue(NativeWirelessEnergyAccount.balance(uuid))
         } ?: 0
     } else {
         0
@@ -141,21 +156,18 @@ class NetworkEnergyContainer(
 
     override fun getOutputVoltage(): Long = outputVoltage
 
-    override fun getContents(): List<Any> = listOf(energyStored)
+    override fun getContents(): List<Any> = listOf(EnergyStack(energyStored))
 
     override fun getTotalContentAmount(): Double = energyStored.toDouble()
 
-    override fun getCapability(): RecipeCapability<Long> = EURecipeCapability.CAP
+    override fun getCapability(): RecipeCapability<EnergyStack> = EURecipeCapability.CAP
 
     override fun getInt128InputPerSec(): Int128 = lastEnergyInputPerSec.copy()
 
     override fun getInt128OutputPerSec(): Int128 = lastEnergyOutputPerSec.copy()
 
     override fun addEnergyPerSec(energy: Long) {
-        when {
-            energy < 0 -> energyInputPerSec.add(-energy)
-            energy > 0 -> energyOutputPerSec.add(energy)
-        }
+        if (energy != 0L) addEnergyPerSecExact(BigInteger.valueOf(energy))
     }
 
     override fun getInt128EnergyStored(): Int128 = Int128(energyStored)
@@ -172,5 +184,5 @@ class NetworkEnergyContainer(
 
     override fun outputsEnergy(side: Direction): Boolean = false
 
-    override fun getHandlerIO(): IO? = handlerIO
+    override fun getHandlerIO(): IO = handlerIO
 }

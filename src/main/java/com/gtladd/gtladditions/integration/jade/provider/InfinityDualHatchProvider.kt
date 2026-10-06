@@ -1,7 +1,7 @@
 package com.gtladd.gtladditions.integration.jade.provider
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.integration.jade.GTElementHelper
 import com.gtladd.gtladditions.common.machine.hatch.InfinityDualHatchPartMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
@@ -25,15 +25,15 @@ class InfinityDualHatchProvider :
     IServerDataProvider<BlockAccessor> {
 
     override fun appendTooltip(tooltip: ITooltip, accessor: BlockAccessor, config: IPluginConfig) {
-        val blockEntity = accessor.blockEntity as? IMachineBlockEntity ?: return
-        if (blockEntity.metaMachine is InfinityDualHatchPartMachine) {
+        val blockEntity = accessor.blockEntity as? MetaMachine ?: return
+        if (blockEntity is InfinityDualHatchPartMachine) {
             readStorageContents(tooltip, accessor.serverData)
         }
     }
 
     override fun appendServerData(tag: CompoundTag, accessor: BlockAccessor) {
-        val blockEntity = accessor.blockEntity as? IMachineBlockEntity ?: return
-        val hatch = blockEntity.metaMachine as? InfinityDualHatchPartMachine ?: return
+        val blockEntity = accessor.blockEntity as? MetaMachine ?: return
+        val hatch = blockEntity as? InfinityDualHatchPartMachine ?: return
         putTag(tag, hatch)
     }
 
@@ -48,7 +48,7 @@ class InfinityDualHatchProvider :
                 val count = itemTag.getLong("count")
                 if (count > 0) {
                     val stack = ItemStack(item)
-                    tooltip.add(tooltip.elementHelper.smallItem(stack))
+                    tooltip.add(snownee.jade.api.ui.IElementHelper.get().smallItem(stack))
                     val text = " ".literal
                         .append(NumberUtils.formatLong(count).literal.withStyle(ChatFormatting.DARK_PURPLE))
                         .append(" × ".literal.withStyle(ChatFormatting.WHITE))
@@ -86,10 +86,11 @@ class InfinityDualHatchProvider :
             tag.put("items", itemTags)
 
             val fluidTags = ListTag()
-            for (fluidStack in dualHatch.fluidIterator) {
+            for (entry in dualHatch.fluidIterator) {
+                val fluidStack = entry.key
                 val fluidTag = CompoundTag()
                 fluidTag.putString("fluid", Registries.getFluidId(fluidStack))
-                fluidTag.putLong("amount", fluidStack.amount)
+                fluidTag.putLong("amount", entry.longValue)
                 fluidTags.add(fluidTag)
             }
             tag.put("fluids", fluidTags)

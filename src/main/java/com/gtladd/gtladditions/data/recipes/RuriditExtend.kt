@@ -14,7 +14,7 @@ import com.gregtechceu.gtceu.api.data.tag.TagPrefix.rod
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.rodLong
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.screw
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.wireFine
-import com.gregtechceu.gtceu.common.data.GCyMRecipeTypes.ALLOY_BLAST_RECIPES
+import com.gregtechceu.gtceu.common.data.GCYMRecipeTypes.ALLOY_BLAST_RECIPES
 import com.gregtechceu.gtceu.common.data.GTItems
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.gregtechceu.gtceu.common.data.GTMaterials.Iridium
@@ -26,11 +26,11 @@ import com.gregtechceu.gtceu.common.data.GTRecipeTypes.FLUID_SOLIDFICATION_RECIP
 import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.material.GTLAddMaterial
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import java.util.function.Consumer
 
 object RuriditExtend {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         ALLOY_BLAST_RECIPES.recipeBuilder(id("ruridit"))
             .inputItems(dust, Ruthenium, 2)
             .inputItems(dust, Iridium)

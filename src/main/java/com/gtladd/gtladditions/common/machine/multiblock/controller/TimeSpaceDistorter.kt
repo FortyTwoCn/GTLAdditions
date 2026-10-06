@@ -1,11 +1,7 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.machine.MetaMachine
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.api.machine.DataModuleBindingError
@@ -15,12 +11,9 @@ import com.gtladd.gtladditions.api.machine.IWirelessBindableTarget
 import com.gtladd.gtladditions.api.machine.gui.MultiblockDisplayText
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.MachineUtil
-import com.lowdragmc.lowdraglib.gui.util.ClickData
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget.withButton
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -35,29 +28,28 @@ import org.gtlcore.gtlcore.common.data.GTLMaterials.Infinity
 import org.gtlcore.gtlcore.common.data.GTLMaterials.SpaceTime
 import org.gtlcore.gtlcore.utils.Registries
 
-class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
-    WorkableElectricMultiblockMachine(holder, *args),
-    IMachineLife,
+class TimeSpaceDistorter(holder: BlockEntityCreationInfo, vararg args: Any?) :
+    WorkableElectricMultiblockMachine(holder),
     IWirelessBindableTarget {
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var causalityDistortionLevel = 1
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var boundMatrixPos: BlockPos? = null
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var lastConsumedDistortionLevel = 0
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var lastConsumedParallels = 0L
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var lastConsumptionSucceeded = false
 
     private var boundMatrix: ApocalypticTorsionQuantumMatrix? = null
@@ -99,10 +91,10 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
             boundMatrix?.onUnbound(this)
         }
         boundMatrix = matrix
-        boundMatrixPos = matrix.pos
+        boundMatrixPos = matrix.blockPos
 
         matrix.onBound(this)
-        return DataModuleBindingResult.BoundSuccess(source, matrix.pos, getBoundMessage(source, matrix.pos))
+        return DataModuleBindingResult.BoundSuccess(source, matrix.blockPos, getBoundMessage(source, matrix.blockPos))
     }
 
     override fun unbindSource() = disconnectATQM(clearBinding = true)
@@ -117,8 +109,7 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
     private fun reconnectATQM(): Boolean {
         if (!isFormed) return false
         val matrixPos = boundMatrixPos ?: return false
-        val machine = ((level as? ServerLevel)?.getBlockEntity(matrixPos) as? MetaMachineBlockEntity)
-            ?.metaMachine as? ApocalypticTorsionQuantumMatrix
+        val machine = (level as? ServerLevel)?.let { MetaMachine.getMachine(it, matrixPos) as? ApocalypticTorsionQuantumMatrix }
             ?: return false
         if (!machine.isFormed()) return false
         return bindResolvedSource(machine).isSuccess
@@ -128,17 +119,19 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         reconnectATQM()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         disconnectATQM(clearBinding = false)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         disconnectATQM(clearBinding = true)
     }
 
@@ -180,7 +173,7 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
     private fun forEachRequiredResource(
         distortionLevel: Int,
         parallels: Long,
-        addFluid: (FluidStack) -> Unit,
+        addFluid: (net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient) -> Unit,
         addItem: (ItemStack, Long) -> Unit
     ) {
         fun addResourceRequired(level: Int, divisor: Long, addInput: (Long) -> Unit) {
@@ -189,9 +182,9 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
             if (amount > 0L) addInput(amount)
         }
 
-        addResourceRequired(1, 17) { addFluid(Infinity.getFluid(it)) }
-        addResourceRequired(2, 28) { addFluid(Hypogen.getFluid(it)) }
-        addResourceRequired(3, 44) { addFluid(SpaceTime.getFluid(it)) }
+        addResourceRequired(1, 17) { addFluid(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Infinity, it)) }
+        addResourceRequired(2, 28) { addFluid(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Hypogen, it)) }
+        addResourceRequired(3, 44) { addFluid(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(SpaceTime, it)) }
         addResourceRequired(4, 730) { addItem(QUANTUM_ANOMALY, it) }
         addResourceRequired(4, 873) { addItem(HYPERCUBE, it) }
     }
@@ -218,7 +211,24 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> {
+        val level = brachy.modularui.value.sync.IntSyncValue({ causalityDistortionLevel }, { value: Int ->
+            causalityDistortionLevel = value.coerceIn(1, 4)
+            setChanged()
+            syncDataHolder.markClientSyncFieldDirty("causalityDistortionLevel")
+        }).allowC2S()
+        syncManager.syncValue("distortionLevel", level)
+        return definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("TimeSpaceDistorterStatus", syncManager, {
+            mutableListOf<Component>().also(::collectTimeSpaceDistorterStatusText)
+        }, 110),
+        com.gregtechceu.gtceu.common.mui.GTMuiWidgets.createIntInputWithButtons(level, { 1 }, { 4 }).width(110)
+        )
+    }
+
+    private fun collectTimeSpaceDistorterStatusText(textList: MutableList<Component>) {
         MultiblockDisplayText.builder(textList, isFormed)
             .setWorkingStatus(recipeLogic.isWorkingEnabled, recipeLogic.isActive)
             .addEnergyUsageLine(energyContainer)
@@ -231,10 +241,7 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
                 "gtladditions.machine.time_space_distorter.level".toComponent(
                     Component.literal(causalityDistortionLevel.toString()).withStyle(ChatFormatting.AQUA),
                     Component.literal(outputMultiplier.toString()).withStyle(ChatFormatting.GOLD)
-                ),
-                Component.empty()
-                    .append(withButton(Component.literal("[-] "), "levelSub"))
-                    .append(withButton(Component.literal("[+]"), "levelAdd"))
+                )
             )
             .addComponent(
                 "gtladditions.machine.time_space_distorter.bound".toComponent(
@@ -264,8 +271,8 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
                 textList.add(
                     Component.translatable(
                         "gtladditions.machine.time_space_distorter.last_consumed_fluid_entry",
-                        fluid.displayName.copy().withStyle(ChatFormatting.AQUA),
-                        FormattingUtil.formatNumbers(fluid.amount)
+                        fluid.ingredient().stacks.first().displayName.copy().withStyle(ChatFormatting.AQUA),
+                        FormattingUtil.formatNumbers(org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient.amount(fluid))
                     ).withStyle(ChatFormatting.GRAY)
                 )
             },
@@ -281,43 +288,15 @@ class TimeSpaceDistorter(holder: IMachineBlockEntity, vararg args: Any?) :
         )
     }
 
-    override fun handleDisplayClick(componentData: String, clickData: ClickData) {
-        if (clickData.isRemote) return
-        causalityDistortionLevel = when (componentData) {
-            "levelSub" -> Mth.clamp(causalityDistortionLevel - 1, 1, 4)
-            "levelAdd" -> Mth.clamp(causalityDistortionLevel + 1, 1, 4)
-            else -> causalityDistortionLevel
-        }
-    }
-
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { isWorkingEnabled },
-                { _, pressed -> isWorkingEnabled = pressed }
-            ).setTooltipsSupplier {
-                listOf((if (it) "behaviour.soft_hammer.enabled" else "behaviour.soft_hammer.disabled").toComponent)
-            }
-        )
-    }
-
     // ========================================
     // Metadata
     // ========================================
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val BINDING_TYPE: ResourceLocation = ResourceLocation("gtladditions", "time_space_distorter")
+        val BINDING_TYPE: ResourceLocation = ResourceLocation.fromNamespaceAndPath("gtladditions", "time_space_distorter")
 
         private val QUANTUM_ANOMALY = Registries.getItemStack("kubejs:quantum_anomaly")
         private val HYPERCUBE = Registries.getItemStack("kubejs:hypercube")
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            TimeSpaceDistorter::class.java,
-            WorkableElectricMultiblockMachine.MANAGED_FIELD_HOLDER
-        )
     }
 }

@@ -1,15 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.api.machine.DataModuleBindingError
@@ -20,11 +13,8 @@ import com.gtladd.gtladditions.common.data.RecursiveReverseBuffState
 import com.gtladd.gtladditions.common.machine.multiblock.MultiBlockMachine
 import com.gtladd.gtladditions.common.machine.multiblock.controller.ForgeOfTheAntichrist
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI
-import com.lowdragmc.lowdraglib.gui.widget.*
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
@@ -39,22 +29,21 @@ import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 import org.gtlcore.gtlcore.utils.datastructure.ModuleRenderInfo
 import java.util.function.Consumer
 
-class RecursiveReverseArray(holder: IMachineBlockEntity) :
+class RecursiveReverseArray(holder: BlockEntityCreationInfo) :
     MultiblockControllerMachine(holder),
     IModularMachineHost<RecursiveReverseArray>,
     IWirelessBindableTarget,
-    IFancyUIMachine,
-    IDisplayUIMachine,
-    IMachineLife {
+    com.gregtechceu.gtceu.api.machine.feature.IMuiMachine,
+    com.gregtechceu.gtceu.api.capability.IControllable {
 
-    @field:DescSynced
-    @field:Persisted
+    @field:SyncToClient
+    @field:SaveField
     private var boundForgePos: BlockPos? = null
 
-    @Persisted
+    @field:SaveField
     var enabled: Boolean = true
 
-    @Persisted
+    @field:SaveField
     private var buffRollCounter: Long = 0
 
     private var boundForge: ForgeOfTheAntichrist? = null
@@ -92,10 +81,10 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             boundForge?.onUnbound(this)
         }
         boundForge = forge
-        boundForgePos = forge.pos
+        boundForgePos = forge.blockPos
 
         forge.onBound(this)
-        return DataModuleBindingResult.BoundSuccess(source, forge.pos, getBoundMessage(source, forge.pos))
+        return DataModuleBindingResult.BoundSuccess(source, forge.blockPos, getBoundMessage(source, forge.blockPos))
     }
 
     override fun unbindSource() = unbindForge(clearBinding = true)
@@ -109,8 +98,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
 
     private fun reconnectSource(): Boolean {
         val forgePos = boundForgePos ?: return false
-        val machine = ((level as? ServerLevel)?.getBlockEntity(forgePos) as? MetaMachineBlockEntity)
-            ?.metaMachine as? ForgeOfTheAntichrist
+        val machine = (level as? ServerLevel)?.let { MetaMachine.getMachine(it, forgePos) as? ForgeOfTheAntichrist }
             ?: return false
         return bindResolvedSource(machine).isSuccess
     }
@@ -121,7 +109,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
 
     override fun getModuleSet(): Set<IModularMachineModule<RecursiveReverseArray, *>> = modules
 
-    override fun getModuleScanPositions(): Array<out BlockPos> = MODULE_OFFSETS.map { pos!!.offset(it) }.toTypedArray()
+    override fun getModuleScanPositions(): Array<out BlockPos> = MODULE_OFFSETS.map { blockPos!!.offset(it) }.toTypedArray()
 
     override fun getModulesForRendering(): List<ModuleRenderInfo> = listOf(
         ModuleRenderInfo(
@@ -130,7 +118,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             Direction.NORTH,
             Direction.EAST,
             Direction.UP,
-            MultiBlockMachine.CATALYTIC_CASCADE_ARRAY
+            MultiBlockMachine.CATALYTIC_CASCADE_ARRAY.get()
         ),
         ModuleRenderInfo(
             BlockPos(-33, 0, 7),
@@ -138,7 +126,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             Direction.NORTH,
             Direction.WEST,
             Direction.UP,
-            MultiBlockMachine.MAGNETORHEOLOGICAL_CONVERGENCE_CORE
+            MultiBlockMachine.MAGNETORHEOLOGICAL_CONVERGENCE_CORE.get()
         ),
         ModuleRenderInfo(
             BlockPos(0, 33, 7),
@@ -146,7 +134,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             Direction.NORTH,
             Direction.UP,
             Direction.NORTH,
-            MultiBlockMachine.SPACETIME_STASIS_DEVICE
+            MultiBlockMachine.SPACETIME_STASIS_DEVICE.get()
         ),
         ModuleRenderInfo(
             BlockPos(0, -33, 7),
@@ -154,7 +142,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             Direction.NORTH,
             Direction.DOWN,
             Direction.NORTH,
-            MultiBlockMachine.SUPRATEMPORAL_BOOSTING_ENGINE
+            MultiBlockMachine.SUPRATEMPORAL_BOOSTING_ENGINE.get()
         )
     )
 
@@ -254,7 +242,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
 
     private fun nextBuffRollSeed(): Long {
         val roll = buffRollCounter++
-        return (pos?.asLong() ?: 0L) xor (roll * BUFF_ROLL_COUNTER_SALT) xor BUFF_ROLL_SEED_SALT
+        return (blockPos?.asLong() ?: 0L) xor (roll * BUFF_ROLL_COUNTER_SALT) xor BUFF_ROLL_SEED_SALT
     }
 
     private fun buildDiagnostics(context: BuffContext): List<String> {
@@ -281,22 +269,24 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         safeClearModules()
         scanAndConnectModules()
         reconnectSource()
         updateTickSubscription()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         safeClearModules()
         unbindForge(clearBinding = false)
         updateTickSubscription()
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         safeClearModules()
         unbindForge(clearBinding = true)
     }
@@ -320,8 +310,16 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("RecursiveReverseArrayStatus", syncManager, {
+            mutableListOf<Component>().also(::collectRecursiveReverseArrayStatusText)
+        }, 130)
+    )
+
+    private fun collectRecursiveReverseArrayStatusText(textList: MutableList<Component>) {
+        
         val forgePos = boundForgePos
         if (forgePos == null) {
             textList.add("gtladditions.machine.recursive_reverse_array.unbound".toComponent)
@@ -367,34 +365,26 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
         return component
     }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 190, 125)
-        group.addWidget(
-            DraggableScrollableWidgetGroup(4, 4, 182, 117).setBackground(screenTexture)
-                .addWidget(LabelWidget(4, 5, self().blockState.block.descriptionId))
-                .addWidget(
-                    ComponentPanelWidget(4, 17) { addDisplayText(it) }
-                        .textSupplier(if (level!!.isClientSide) null else Consumer { addDisplayText(it) })
-                        .setMaxWidthLimit(150)
-                )
-        )
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE)
-        return group
+
+
+
+
+
+    override fun isWorkingEnabled(): Boolean = enabled
+
+    override fun setWorkingEnabled(workingEnabled: Boolean) {
+        if (enabled == workingEnabled) return
+        enabled = workingEnabled
+        setChanged()
+        updateTickSubscription()
     }
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { enabled },
-                { _, pressed -> enabled = pressed }
-            ).setTooltipsSupplier { listOf((if (it) "behaviour.soft_hammer.enabled" else "behaviour.soft_hammer.disabled").toComponent) }
-        )
+    override fun buildMainUI(main: brachy.modularui.widget.ParentWidget<*>, data: brachy.modularui.factory.PosGuiData,
+                             manager: brachy.modularui.value.sync.PanelSyncManager, settings: brachy.modularui.screen.UISettings) {
+        val column = brachy.modularui.widgets.layout.Flow.column().widthRel(1f).coverChildrenHeight()
+        getWidgetsForDisplay(manager).forEach { column.child(it) }
+        main.child(com.gtladd.gtladditions.api.gui.NativeHatchUI.scroll(column))
     }
-
-    override fun createUI(entityPlayer: Player): ModularUI = ModularUI(198, 208, this, entityPlayer)
-        .widget(FancyMachineUIWidget(this, 198, 208))
 
     // ========================================
     // Metadata
@@ -402,13 +392,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
 
     override fun isRemote(): Boolean = super<MultiblockControllerMachine>.isRemote
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            RecursiveReverseArray::class.java,
-            MultiblockControllerMachine.MANAGED_FIELD_HOLDER
-        )
 
         private val MODULE_OFFSETS = arrayOf(
             BlockPos(33, -7, 0),
@@ -417,7 +401,7 @@ class RecursiveReverseArray(holder: IMachineBlockEntity) :
             BlockPos(0, -7, -33)
         )
 
-        val BINDING_TYPE: ResourceLocation = ResourceLocation("gtladditions", "recursive_reverse_array")
+        val BINDING_TYPE: ResourceLocation = ResourceLocation.fromNamespaceAndPath("gtladditions", "recursive_reverse_array")
         private const val CATALYTIC_EU_MULTIPLIER = 0.15
         private const val BUFF_ROLL_COUNTER_SALT = -7046029254386353131L
         private const val BUFF_ROLL_SEED_SALT = 7640891576956012809L

@@ -1,13 +1,12 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.gtladd.gtladditions.common.machine.hatch.VientianeTranscriptionNode
 import com.gtladd.gtladditions.common.modify.GTLAddSoundEntries
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.chat.Component
@@ -15,24 +14,25 @@ import org.gtlcore.gtlcore.common.data.GTLMaterials
 import org.gtlcore.gtlcore.common.machine.multiblock.part.HugeFluidHatchPartMachine
 import kotlin.random.Random
 
-class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(holder) {
+class CatalyticCascadeArray(holder: BlockEntityCreationInfo) : RRFModuleMachine(holder) {
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var outputBoost = false
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var euBuff = false
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var failedCycle = false
 
-    @Persisted
+    @SaveField
     private var tick: Byte = 0
 
-    private var requestedFluid: FluidStack = FluidStack.empty()
+    @field:SaveField
+    private var requestedFluid: FluidStack = FluidStack.EMPTY
     private var redstoneNode: VientianeTranscriptionNode? = null
     private var fluidHatch: HugeFluidHatchPartMachine? = null
 
@@ -52,7 +52,7 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
     // Working sound
     // ========================================
 
-    override fun getWorkingSound(): SoundEntry = GTLAddSoundEntries.QUANTUM_OSCILLATION
+    override fun getWorkingSound(): SoundEntry = GTLAddSoundEntries.QUANTUM_OSCILLATION.get()
 
     override fun shouldPlayWorkingSound(): Boolean = super.isReadyForRecursiveReverseBuff() && (euBuff || hasOutputBoost())
 
@@ -70,7 +70,7 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
         }
 
         if (tick >= CATALYST_CHECK_SECOND) {
-            val stored = fluidHatch?.tank?.storages?.firstOrNull()?.fluid ?: FluidStack.empty()
+            val stored = fluidHatch?.tank?.storages?.firstOrNull()?.fluid ?: FluidStack.EMPTY
             when {
                 stored.isEmpty -> {
                     outputBoost = false
@@ -78,12 +78,12 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
                     failedCycle = true
                 }
                 !failedCycle && stored.fluid == requestedFluid.fluid && stored.amount >= requestedFluid.amount -> {
-                    fluidHatch?.tank?.drainInternal(requestedFluid, false)
+                    fluidHatch?.tank?.drainInternal(requestedFluid, net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE)
                     outputBoost = true
                     euBuff = true
                 }
                 else -> {
-                    fluidHatch?.tank?.drainInternal(stored, false)
+                    fluidHatch?.tank?.drainInternal(stored, net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE)
                     outputBoost = false
                     euBuff = true
                     failedCycle = true
@@ -95,12 +95,13 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
         if (tick >= CYCLE_SECONDS) {
             failedCycle = false
             tick = 0
-            requestedFluid = FluidStack.empty()
+            requestedFluid = FluidStack.EMPTY
         }
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         redstoneNode = null
         fluidHatch = null
         for (part in parts) {
@@ -111,18 +112,27 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
         }
     }
 
-    override fun onStructureInvalid() {
+    override fun invalidateStructure(substructureName: String) {
         redstoneNode = null
         fluidHatch = null
-        super.onStructureInvalid()
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
     }
 
     // ========================================
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("CatalyticCascadeArrayStatus", syncManager, {
+            mutableListOf<Component>().also(::collectCatalyticCascadeArrayStatusText)
+        }, 130)
+    )
+
+    private fun collectCatalyticCascadeArrayStatusText(textList: MutableList<Component>) {
+        
         textList.add(
             Component.translatable(
                 "gtladditions.machine.catalytic_cascade_array.boost",
@@ -137,26 +147,14 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
     // Persistence
     // ========================================
 
-    override fun saveCustomPersistedData(tag: CompoundTag, forDrop: Boolean) {
-        super.saveCustomPersistedData(tag, forDrop)
-        requestedFluid.saveToTag(tag)
-    }
-
-    override fun loadCustomPersistedData(tag: CompoundTag) {
-        super.loadCustomPersistedData(tag)
-        requestedFluid = FluidStack.loadFromTag(tag)
-    }
-
     // ========================================
     // Metadata
     // ========================================
 
     override fun getModuleDisplayNameKey(): String = "block.gtladditions.catalytic_cascade_array"
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(CatalyticCascadeArray::class.java, RRFModuleMachine.MANAGED_FIELD_HOLDER)
+
         private const val CATALYST_CHECK_SECOND = 7
         private const val CYCLE_SECONDS = 32
 
@@ -166,7 +164,7 @@ class CatalyticCascadeArray(holder: IMachineBlockEntity) : RRFModuleMachine(hold
             in 7..9 -> GTLMaterials.DimensionallyTranscendentResplendentCatalyst.getFluid(40000)
             in 10..12 -> GTLMaterials.DimensionallyTranscendentExoticCatalyst.getFluid(40000)
             in 13..15 -> GTLMaterials.DimensionallyTranscendentStellarCatalyst.getFluid(40000)
-            else -> FluidStack.empty()
+            else -> FluidStack.EMPTY
         }
     }
 }

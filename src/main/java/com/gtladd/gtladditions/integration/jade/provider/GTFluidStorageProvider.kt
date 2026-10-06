@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.integration.jade.provider
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.machine.hatch.InfinityDualHatchPartMachine
 import net.minecraft.nbt.CompoundTag
@@ -13,19 +13,14 @@ import snownee.jade.api.Accessor
 import snownee.jade.api.view.*
 
 object GTFluidStorageProvider :
-    IServerExtensionProvider<MetaMachineBlockEntity, CompoundTag>,
+    IServerExtensionProvider<CompoundTag>,
     IClientExtensionProvider<CompoundTag, FluidView> {
-    override fun getGroups(
-        serverPlayer: ServerPlayer,
-        serverLevel: ServerLevel,
-        mmbe: MetaMachineBlockEntity,
-        b: Boolean
-    ): List<ViewGroup<CompoundTag>>? {
-        val machine = mmbe.getMetaMachine()
+    override fun getGroups(accessor: Accessor<*>): List<ViewGroup<CompoundTag>>? {
+        val machine = (accessor as? snownee.jade.api.BlockAccessor)?.blockEntity as? MetaMachine
         return if (machine is InfinityDualHatchPartMachine || machine is MEPatternBufferPartMachine) {
             listOf()
         } else {
-            FluidStorageProvider.INSTANCE.getGroups(serverPlayer, serverLevel, mmbe, b)
+            FluidStorageProvider.Extension.INSTANCE.getGroups(accessor)
         }
     }
 

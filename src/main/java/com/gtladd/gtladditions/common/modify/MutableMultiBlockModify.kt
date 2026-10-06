@@ -1,15 +1,18 @@
 package com.gtladd.gtladditions.common.modify
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
+import com.gregtechceu.gtceu.api.registry.registrate.entry.MachineEntry
+import com.gtladd.gtladditions.api.registry.NativeQueuedMachines
+import com.gtladd.gtladditions.api.registry.replaceQueuedFactory
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
-import com.gregtechceu.gtceu.api.pattern.Predicates
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
+import com.gregtechceu.gtceu.api.multiblock.Predicates
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper
-import com.gregtechceu.gtceu.common.data.GCyMBlocks
+import com.gregtechceu.gtceu.common.data.GCYMBlocks
 import com.gregtechceu.gtceu.common.data.GTBlocks
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes
 import com.gtladd.gtladditions.api.machine.EBFChecks
@@ -79,7 +82,7 @@ object MutableMultiBlockModify {
             MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_MIXER,
             AdvancedMultiBlockMachineA.SUPRACHRONAL_ASSEMBLY_LINE,
             MultiBlockMachineA.NANO_CORE,
-            AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV],
+            AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV]!!,
             MultiBlockMachineA.LARGE_RECYCLER,
             MultiBlockMachineA.ADVANCED_SPS_CRAFTING,
             MultiBlockMachineA.PETROCHEMICAL_PLANT,
@@ -200,12 +203,12 @@ object MutableMultiBlockModify {
             MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_MIXER to patternPredicateSelector({ GTLBlocks.DIMENSIONALLY_TRANSCENDENT_CASING.get() }, PartAbility.PARALLEL_HATCH),
             AdvancedMultiBlockMachineA.SUPRACHRONAL_ASSEMBLY_LINE to patternPredicateSelector({ GTLBlocks.MOLECULAR_CASING.get() }, PartAbility.PARALLEL_HATCH),
             MultiBlockMachineA.NANO_CORE to patternPredicateSelector({ GTLBlocks.NAQUADAH_ALLOY_CASING.get() }, PartAbility.INPUT_LASER),
-            AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV] to patternPredicateSelector({ GTLFusionCasingBlock.getCasingState(GTValues.UEV) }, PartAbility.PARALLEL_HATCH),
+            AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV]!! to patternPredicateSelector({ GTLFusionCasingBlock.getCasingState(GTValues.UEV) }, PartAbility.PARALLEL_HATCH),
             MultiBlockMachineA.LARGE_RECYCLER to patternPredicateSelector({ GTBlocks.STEEL_HULL.get() }, PartAbility.MAINTENANCE),
             MultiBlockMachineA.ADVANCED_SPS_CRAFTING to patternPredicateSelector({ GTBlocks.FUSION_CASING_MK2.get() }, PartAbility.PARALLEL_HATCH),
             MultiBlockMachineA.PETROCHEMICAL_PLANT to patternPredicateSelector({ GTBlocks.CASING_STAINLESS_CLEAN.get() }, PartAbility.PARALLEL_HATCH),
             MultiBlockMachineB.WOOD_DISTILLATION to patternPredicateSelector({ GTBlocks.CASING_INVAR_HEATPROOF.get() }, PartAbility.PARALLEL_HATCH),
-            AdvancedMultiBlockMachineA.PCB_FACTORY to patternPredicateSelector({ GCyMBlocks.CASING_WATERTIGHT.get() }, PartAbility.PARALLEL_HATCH),
+            AdvancedMultiBlockMachineA.PCB_FACTORY to patternPredicateSelector({ GCYMBlocks.CASING_WATERTIGHT.get() }, PartAbility.PARALLEL_HATCH),
             AdditionalMultiBlockMachine.ADVANCED_RARE_EARTH_CENTRIFUGAL to patternPredicateSelector({ GTLBlocks.SPS_CASING.get() }, PartAbility.PARALLEL_HATCH),
             MultiBlockMachineB.GRAVITATION_SHOCKBURST to patternPredicateSelector({ GTLBlocks.CREATE_CASING.get() }, PartAbility.PARALLEL_HATCH),
             AdditionalMultiBlockMachine.ADVANCED_NEUTRON_ACTIVATOR to patternPredicateSelector({ GTLBlocks.SPS_CASING.get() }, PartAbility.INPUT_LASER),
@@ -224,7 +227,7 @@ object MutableMultiBlockModify {
             MultiBlockMachineA.MEGA_EXTRACTOR to patternPredicateSelector({ GTLBlocks.HYPER_MECHANICAL_CASING.get() }, PartAbility.INPUT_LASER),
             MultiBlockMachineA.MEGA_FLUID_HEATER to patternPredicateSelector({ GTLBlocks.IRIDIUM_CASING.get() }, PartAbility.INPUT_LASER),
             MultiBlockMachineA.ADVANCED_MULTI_SMELTER to patternPredicateSelector({ GTBlocks.CASING_INVAR_HEATPROOF.get() }, PartAbility.INPUT_LASER),
-            MultiBlockMachineA.SUPER_BLAST_SMELTER to patternPredicateSelector({ GCyMBlocks.CASING_HIGH_TEMPERATURE_SMELTING.get() }, PartAbility.PARALLEL_HATCH)
+            MultiBlockMachineA.SUPER_BLAST_SMELTER to patternPredicateSelector({ GCYMBlocks.CASING_HIGH_TEMPERATURE_SMELTING.get() }, PartAbility.PARALLEL_HATCH)
         )
         for ((definition, selector) in threadModifierTargets) {
             definition.patchPatternPredicates(
@@ -235,154 +238,94 @@ object MutableMultiBlockModify {
         }
     }
 
-    fun setParallelHatchMutable(vararg definitions: MultiblockMachineDefinition) {
+    fun setParallelHatchMutable(vararg definitions: MachineEntry<MultiblockMachineDefinition>) {
         for (definition in definitions) {
-            definition.setMachineSupplier { blockEntity: IMachineBlockEntity ->
+            definition.replaceQueuedFactory { blockEntity: BlockEntityCreationInfo ->
                 MutableElectricParallelHatchMultiblockMachine(blockEntity)
             }
         }
     }
 
-    fun addTooltips(definition: MultiblockMachineDefinition, vararg newTooltips: Component?) {
-        val oldBuilder = definition.tooltipBuilder
-        definition.tooltipBuilder = BiConsumer { stack: ItemStack?, components: MutableList<Component> ->
+    fun addTooltips(definition: MachineEntry<MultiblockMachineDefinition>, vararg newTooltips: Component?) {
+        val properties = NativeQueuedMachines.builder(definition).properties
+        val oldBuilder = properties.tooltipBuilder()
+        properties.tooltipBuilder(BiConsumer { stack: ItemStack?, components: MutableList<Component> ->
             oldBuilder?.accept(stack, components)
             components.addAll(
                 if (components.isNotEmpty()) components.size - 1 else 0,
                 newTooltips.filterNotNull().toList()
             )
-        }
+        })
     }
 
     fun setOtherMutable() {
-        MultiBlockMachineA.FISHING_GROUND.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            AddMutableElectricParallelHatchMultiblockMachine(blockEntity)
+        MultiBlockMachineA.FISHING_GROUND.replaceQueuedFactory { info ->
+            AddMutableElectricParallelHatchMultiblockMachine(info)
         }
-
-        MultiBlockMachineA.LARGE_GREENHOUSE.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            AddMutableElectricParallelHatchMultiblockMachine(blockEntity)
+        MultiBlockMachineA.LARGE_GREENHOUSE.replaceQueuedFactory { info ->
+            AddMutableElectricParallelHatchMultiblockMachine(info)
         }
-
-        MultiBlockMachineA.LARGE_RECYCLER.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableElectricMultiblockMachine(blockEntity) {
+        MultiBlockMachineA.LARGE_RECYCLER.replaceQueuedFactory { info ->
+            object : MutableElectricMultiblockMachine(info) {
                 override fun getMaxParallel(): Int = 4.0.pow(tier - 4).roundToInt()
             }
         }
-
-        MultiBlockMachineA.A_MASS_FABRICATOR.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableElectricParallelHatchMultiblockMachine(blockEntity) {
-                override fun createRecipeLogic(vararg args: Any?): RecipeLogic = MutableRecipesLogic(this, 0.8, 0.5)
-            }
+        MultiBlockMachineA.A_MASS_FABRICATOR.replaceQueuedFactory { info ->
+            MutableElectricParallelHatchMultiblockMachine(
+                info, MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>(0.8, 0.5)
+            )
         }
-
-        MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_MIXER.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableElectricParallelHatchMultiblockMachine(blockEntity) {
-                override fun createRecipeLogic(vararg args: Any?): RecipeLogic {
-                    val machine = this
-                    return object : MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>(machine) {
-                        override val energyReductionMultiplier: Double
-                            get() = if (machine.recipeType == GTRecipeTypes.MIXER_RECIPES) {
-                                super.energyReductionMultiplier * 0.2
-                            } else {
-                                super.energyReductionMultiplier
-                            }
-                    }
-                }
-            }
+        MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_MIXER.replaceQueuedFactory { info ->
+            MutableElectricParallelHatchMultiblockMachine(info,
+                object : MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>() {
+                    override val energyReductionMultiplier: Double
+                        get() = super.energyReductionMultiplier *
+                            if (getMachine().recipeType == GTRecipeTypes.MIXER_RECIPES.get()) 0.2 else 1.0
+                })
         }
-
-        AdvancedMultiBlockMachineA.SUPRACHRONAL_ASSEMBLY_LINE.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            MutableSuprachronalAssemblyLineMachine(blockEntity)
+        AdvancedMultiBlockMachineA.SUPRACHRONAL_ASSEMBLY_LINE.replaceQueuedFactory { info ->
+            MutableSuprachronalAssemblyLineMachine(info)
         }
-
-        MultiBlockMachineA.NANO_CORE.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableElectricParallelHatchMultiblockMachine(blockEntity) {
+        MultiBlockMachineA.NANO_CORE.replaceQueuedFactory { info ->
+            object : MutableElectricParallelHatchMultiblockMachine(
+                info, MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>(1.0, 0.05)
+            ) {
                 override fun getMaxParallel(): Int = if (getRecipeLogic().isMultipleRecipeMode()) 67108864 else 8192
-
-                override fun createRecipeLogic(vararg args: Any?): RecipeLogic = MutableRecipesLogic(this, 1.0, 0.05)
             }
         }
-
-        AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV].setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            MutableFusionReactorMachine(blockEntity, GTValues.UEV)
+        val fusion = requireNotNull(AdvancedMultiBlockMachineB.COMPRESSED_FUSION_REACTOR[GTValues.UEV])
+        fusion.replaceQueuedFactory { info -> MutableFusionReactorMachine(info, GTValues.UEV) }
+        NativeQueuedMachines.defaultRecipeLogic(fusion) { MutableFusionReactorMachine.newRecipeLogic() }
+        MultiBlockMachineA.PETROCHEMICAL_PLANT.replaceQueuedFactory { info ->
+            MutableCoilElectricParallelHatchMultiblockMachine(info)
         }
-
-        MultiBlockMachineA.PETROCHEMICAL_PLANT.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            MutableCoilElectricParallelHatchMultiblockMachine(blockEntity)
+        AdvancedMultiBlockMachineA.PCB_FACTORY.replaceQueuedFactory { info -> MutablePCBFactoryMachine(info) }
+        MultiBlockMachineA.ADVANCED_INTEGRATED_ORE_PROCESSOR.replaceQueuedFactory { info -> OreProcessorMachine(info) }
+        AdditionalMultiBlockMachine.ADVANCED_NEUTRON_ACTIVATOR.replaceQueuedFactory { info ->
+            MutableElectricParallelHatchMultiblockMachine(info,
+                object : MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>() {
+                    override fun getRecipeEut(recipe: GTRecipe): Long = recipe.data.getInt("evt") * 2000L
+                })
         }
-
-        AdvancedMultiBlockMachineA.PCB_FACTORY.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            MutablePCBFactoryMachine(blockEntity)
+        MultiBlockMachineA.COMPONENT_ASSEMBLY_LINE.replaceQueuedFactory { info ->
+            MutableTierCasingMachine(info, "CATier",
+                object : MutableRecipesLogic<MutableTierCasingMachine>(MutableTierCasingMachine.TIER_CHECK) {
+                    override fun calculateParallel(machine: IRecipeLogicMachine, match: GTRecipe, remain: Long): LongLongPair =
+                        if (match.inputEUt.totalEU <= GTValues.V[GTValues.IV]) {
+                            LongLongPair.of(IParallelLogic.getMaxParallel(machine, match, Long.MAX_VALUE), 0)
+                        } else super.calculateParallel(machine, match, remain)
+                })
         }
-
-        MultiBlockMachineA.ADVANCED_INTEGRATED_ORE_PROCESSOR.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            OreProcessorMachine(blockEntity)
-        }
-
-        AdditionalMultiBlockMachine.ADVANCED_NEUTRON_ACTIVATOR.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableElectricParallelHatchMultiblockMachine(blockEntity) {
-                override fun createRecipeLogic(vararg args: Any?): RecipeLogic {
-                    val machine = this
-                    return object : MutableRecipesLogic<MutableElectricParallelHatchMultiblockMachine>(machine) {
-                        override fun getRecipeEut(recipe: GTRecipe): Long = recipe.data.getInt("evt") * 2000L
-                    }
-                }
-            }
-        }
-
-        MultiBlockMachineA.COMPONENT_ASSEMBLY_LINE.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableTierCasingMachine(blockEntity, "CATier") {
-                override fun createRecipeLogic(vararg args: Any): RecipeLogic {
-                    val machine = this
-                    return object : MutableRecipesLogic<MutableTierCasingMachine>(machine, TIER_CHECK) {
-                        override fun calculateParallel(
-                            machine: IRecipeLogicMachine,
-                            match: GTRecipe,
-                            remain: Long
-                        ): LongLongPair = if (RecipeHelper.getInputEUt(match) <= GTValues.V[GTValues.IV]) {
-                            LongLongPair.of(
-                                IParallelLogic.getMaxParallel(
-                                    machine,
-                                    match,
-                                    Long.MAX_VALUE
-                                ),
-                                0
-                            )
-                        } else {
-                            super.calculateParallel(machine, match, remain)
-                        }
-                    }
-                }
-            }
-        }
-
-        MultiBlockMachineA.ATOMIC_ENERGY_EXCITATION_PLANT.setMachineSupplier { blockEntity: IMachineBlockEntity ->
-            object : MutableCoilElectricParallelHatchMultiblockMachine(blockEntity) {
-                override fun createRecipeLogic(vararg args: Any?): RecipeLogic {
-                    val machine = this
-                    return object : MutableRecipesLogic<MutableCoilElectricParallelHatchMultiblockMachine>(
-                        machine,
-                        EBFChecks.ATOMIC_ENERGY_EXCITATION_PLANT_CHECK
-                    ) {
-                        override fun calculateParallel(
-                            machine: IRecipeLogicMachine,
-                            match: GTRecipe,
-                            remain: Long
-                        ): LongLongPair = if (match.recipeType == GTLRecipeTypes.FUEL_REFINING_RECIPES) {
-                            LongLongPair.of(
-                                IParallelLogic.getMaxParallel(
-                                    machine,
-                                    match,
-                                    Long.MAX_VALUE
-                                ),
-                                0
-                            )
-                        } else {
-                            super.calculateParallel(machine, match, remain)
-                        }
-                    }
-                }
-            }
+        MultiBlockMachineA.ATOMIC_ENERGY_EXCITATION_PLANT.replaceQueuedFactory { info ->
+            MutableCoilElectricParallelHatchMultiblockMachine(info,
+                object : MutableRecipesLogic<MutableCoilElectricParallelHatchMultiblockMachine>(
+                    EBFChecks.ATOMIC_ENERGY_EXCITATION_PLANT_CHECK
+                ) {
+                    override fun calculateParallel(machine: IRecipeLogicMachine, match: GTRecipe, remain: Long): LongLongPair =
+                        if (match.recipeType == GTLRecipeTypes.FUEL_REFINING_RECIPES.get()) {
+                            LongLongPair.of(IParallelLogic.getMaxParallel(machine, match, Long.MAX_VALUE), 0)
+                        } else super.calculateParallel(machine, match, remain)
+                })
         }
     }
 }

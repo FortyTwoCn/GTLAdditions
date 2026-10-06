@@ -2,7 +2,7 @@ package com.gtladd.gtladditions.mixin.gtlcore.machine;
 
 import org.gtlcore.gtlcore.common.machine.multiblock.electric.WorkableElectricMultipleRecipesMachine;
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine;
 
 import com.gtladd.gtladditions.api.machine.IWirelessThreadModifierParallelMachine;
@@ -22,8 +22,13 @@ public abstract class WorkableElectricMultipleRecipesMachineMixin extends Workab
     @Unique
     protected @Nullable IThreadModifierPart gtladditions$threadPartMachine = null;
 
-    public WorkableElectricMultipleRecipesMachineMixin(IMachineBlockEntity holder, Object... args) {
-        super(holder, args);
+    public WorkableElectricMultipleRecipesMachineMixin(BlockEntityCreationInfo holder, Object... args) {
+        super(holder);
+    }
+
+    @Unique
+    public int gtladditions$getAdditionalThread() {
+        return gtladditions$threadPartMachine == null ? 0 : gtladditions$threadPartMachine.getThreadCount();
     }
 
     @Unique
@@ -37,8 +42,8 @@ public abstract class WorkableElectricMultipleRecipesMachineMixin extends Workab
     }
 
     @Override
-    public void onStructureInvalid() {
-        super.onStructureInvalid();
+    public void invalidateStructure(String name) {
+        super.invalidateStructure(name);
         this.gtladditions$threadPartMachine = null;
     }
 

@@ -1,170 +1,90 @@
 package com.gtladd.gtladditions.common.machine.multiblock.part
 
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.common.data.GTItems
-import com.gregtechceu.gtceu.integration.ae2.gui.widget.AETextInputButtonWidget
-import com.gregtechceu.gtceu.utils.ResearchManager
+import com.gregtechceu.gtceu.api.machine.mui.MachineUIPanelBuilder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.common.data.item.GTDataComponents
 import com.gtladd.gtladditions.api.machine.gui.FOAPatternConfigurator
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
-import net.minecraft.core.BlockPos
-import net.minecraft.nbt.Tag
-import net.minecraft.world.InteractionHand
+import com.gtladd.gtladditions.integration.ae2.SuperPatternDataStick
+import brachy.modularui.api.widget.IWidget
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.PanelSyncManager
+import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionResult
 import net.minecraft.world.entity.player.Player
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.phys.BlockHitResult
+import net.minecraft.world.item.ItemStack
 import org.gtlcore.gtlcore.api.gui.MEPatternCatalystUIManager
 import org.gtlcore.gtlcore.common.machine.multiblock.part.PaginationUIManager
 import org.gtlcore.gtlcore.common.machine.multiblock.part.ae.MEPatternBufferPartMachine
-import kotlin.math.max
 
+/** Native configurable pattern pages, FOA publication and independent data-stick binding. */
 class MESuperPatternBufferPartMachine @JvmOverloads constructor(
-    holder: IMachineBlockEntity?,
+    info: BlockEntityCreationInfo,
     patternsPerRow: Int = 9,
     rowsPerPage: Int = 6,
     maxPages: Int = 3
-) : MEPatternBufferPartMachine(holder, patternsPerRow * rowsPerPage * maxPages, IO.BOTH) {
-    private val paginationUIManager: PaginationUIManager
+) : MEPatternBufferPartMachine(info, capacity(patternsPerRow, rowsPerPage, maxPages), IO.BOTH) {
+    private val paginationUIManager = PaginationUIManager(
+        patternsPerRow, rowsPerPage, maxPages, maxOf(patternsPerRow * 18 + 16, 106), rowsPerPage * 18 + 28,
+        { index -> onPatternChange(index) }, { index -> cacheRecipe[index] }, patternInventory
+    )
 
-    @field:Persisted
-    private var foaModeEnabled: Boolean = false
+    @field:SaveField @field:SyncToClient
+    private var foaModeEnabled = false
+    @field:SaveField @field:SyncToClient
+    private var foaPatternOutputMultiplier = DEFAULT_MULTIPLIER
 
-    @field:Persisted
-    private var foaPatternOutputMultiplier: Int = DEFAULT_MULTIPLIER
-
-    init {
-        val uiWidth = max(patternsPerRow * 18 + 16, 106)
-        val uiHeight = rowsPerPage * 18 + 28
-        paginationUIManager = PaginationUIManager(
-            patternsPerRow,
-            rowsPerPage,
-            maxPages,
-            uiWidth,
-            uiHeight,
-            { index: Int -> this.onPatternChange(index) },
-            { i: Int? -> cacheRecipe[i!!] },
-            patternInventory
-        )
-    }
-
-    // ========================================
-    // DATASTICK INTERACTION
-    // ========================================
-    override fun onUse(
-        state: BlockState?,
-        world: Level,
-        pos: BlockPos,
-        player: Player,
-        hand: InteractionHand,
-        hit: BlockHitResult?
-    ): InteractionResult {
-        val stack = player.getItemInHand(hand)
-        if (stack.isEmpty) return InteractionResult.PASS
-
-        if (stack.`is`(GTItems.TOOL_DATA_STICK.asItem())) {
-            if (!world.isClientSide) {
-                // Check if it's research data - if so, pass to avoid conflicts
-                val researchData = ResearchManager.readResearchId(stack)
-                if (researchData != null) {
-                    return InteractionResult.PASS
-                }
-
-                if (stack.getOrCreateTag().contains("pos", Tag.TAG_INT_ARRAY.toInt())) {
-                    stack.getOrCreateTag().remove("pos")
-                }
-
-                // Store this pattern buffer's position in the data stick
-                stack.getOrCreateTag().putIntArray("superPos", intArrayOf(pos.x, pos.y, pos.z))
-                player.sendSystemMessage("gtceu.machine.me.import_copy_settings".toComponent)
-            }
-            return InteractionResult.sidedSuccess(world.isClientSide)
+    override fun onDataStickUse(player: Player, stack: ItemStack): InteractionResult {
+        if (stack.has(GTDataComponents.RESEARCH_ITEM)) return InteractionResult.PASS
+        if (!isRemote) {
+            SuperPatternDataStick.write(stack, blockPos, level!!.dimension().location())
+            player.sendSystemMessage(Component.translatable("gtceu.machine.me.import_copy_settings"))
         }
-
-        return InteractionResult.PASS
+        return InteractionResult.sidedSuccess(isRemote)
     }
 
-    fun isFOAModeEnabled(): Boolean = foaModeEnabled
-
-    fun getFOAPatternOutputMultiplier(): Int = foaPatternOutputMultiplier
-
+    fun isFOAModeEnabled() = foaModeEnabled
+    fun getFOAPatternOutputMultiplier() = foaPatternOutputMultiplier
     fun setFOAModeEnabled(enabled: Boolean) {
         if (foaModeEnabled == enabled) return
         foaModeEnabled = enabled
-        refreshAllByProduct()
+        markAsChanged()
+        syncDataHolder.markClientSyncFieldDirty("foaModeEnabled")
+        if (!isRemote) refreshAllByProduct()
     }
-
     fun setFOAPatternOutputMultiplier(multiplier: Int) {
-        if (foaPatternOutputMultiplier == multiplier) return
-        foaPatternOutputMultiplier = multiplier
-        if (foaModeEnabled) refreshAllByProduct()
+        val bounded = multiplier.coerceIn(MIN_MULTIPLIER, MAX_MULTIPLIER)
+        if (foaPatternOutputMultiplier == bounded) return
+        foaPatternOutputMultiplier = bounded
+        markAsChanged()
+        syncDataHolder.markClientSyncFieldDirty("foaPatternOutputMultiplier")
+        if (!isRemote && foaModeEnabled) refreshAllByProduct()
     }
 
-    // ========================================
-    // GUI SYSTEM
-    // ========================================
-
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        super.attachConfigurators(configuratorPanel)
-        configuratorPanel.attachConfigurators(FOAPatternConfigurator(this))
+    override fun getPanelBuilder(data: PosGuiData, sync: PanelSyncManager, settings: UISettings): MachineUIPanelBuilder {
+        val builder = super.getPanelBuilder(data, sync, settings)
+        val inherited = builder.leftConfigurators()
+        val config = FOAPatternConfigurator(this)
+        val popup = sync.syncedPanel("superPatternFOAConfig", true) { manager, _ -> config.createPanel(manager) }
+        return builder.leftConfigurators { flow ->
+            inherited.accept(flow)
+            flow.child(config.createButton { popup.openPanel() })
+        }
     }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, paginationUIManager.uiWidth, paginationUIManager.uiHeight)
-
-        // ME Network status indicator
-        group.addWidget(
-            LabelWidget(
-                8,
-                2
-            ) { if (this.isOnline) "gtceu.gui.me_network.online" else "gtceu.gui.me_network.offline" }
-        )
-
-        // Custom name input widget
-        group.addWidget(
-            AETextInputButtonWidget(paginationUIManager.uiWidth - 78, 2, 70, 10)
-                .setText(customName)
-                .setOnConfirm { customName: String? -> this.setCustomName(customName) }
-                .setButtonTooltips("gui.gtceu.rename.desc".toComponent)
-        )
-
-        val catalystUIManager = MEPatternCatalystUIManager(
-            group.sizeWidth + 4,
-            catalystItems,
-            catalystFluids,
-            cacheRecipeCount
-        ) { slot: Int -> this.removeSlotFromGTRecipeCache(slot) }
-        group.waitToAdded(catalystUIManager)
-
-        // Create pagination UI using the manager
-        group.addWidget(
-            paginationUIManager.createPaginationUI { index: Int ->
-                catalystUIManager.toggleFor(
-                    index
-                )
-            }
-        )
-
-        return group
-    }
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
+    override fun buildPatternPagination(sync: PanelSyncManager, catalysts: MEPatternCatalystUIManager): IWidget =
+        paginationUIManager.createPaginationUI(sync) { index -> catalysts.toggleFor(index) }
 
     companion object {
         private const val DEFAULT_MULTIPLIER = 15
         const val MIN_MULTIPLIER = 1
         const val MAX_MULTIPLIER = 30
-
-        private val MANAGED_FIELD_HOLDER = ManagedFieldHolder(
-            MESuperPatternBufferPartMachine::class.java,
-            MEPatternBufferPartMachine.MANAGED_FIELD_HOLDER
-        )
+        private fun capacity(columns: Int, rows: Int, pages: Int): Int {
+            require(columns in 1..18 && rows in 1..10 && pages in 1..10) { "Invalid super pattern page dimensions" }
+            return Math.multiplyExact(Math.multiplyExact(columns, rows), pages)
+        }
     }
 }

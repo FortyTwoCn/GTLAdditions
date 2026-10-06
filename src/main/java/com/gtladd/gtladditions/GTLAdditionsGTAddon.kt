@@ -12,22 +12,23 @@ import com.gtladd.gtladditions.common.modify.SkyTearsAndGregHeart
 import com.gtladd.gtladditions.data.recipes.*
 import com.gtladd.gtladditions.data.recipes.newmachinerecipe.*
 import com.gtladd.gtladditions.data.recipes.process.SocProcess
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
+import net.minecraft.resources.ResourceLocation
 import java.util.function.Consumer
 
 @Suppress("unused")
-@GTAddon
+@GTAddon(GTLAdditions.MOD_ID)
 class GTLAdditionsGTAddon : IGTAddon {
     override fun getRegistrate(): GTRegistrate = GTLAddRegistration.REGISTRATE
 
-    override fun initializeAddon() {
+    fun initializeAddon() {
         GTLAddItems.init()
         GTLAddBlocks.init()
     }
 
-    override fun addonModId(): String = GTLAdditions.MOD_ID
+    fun addonModId(): String = GTLAdditions.MOD_ID
 
-    override fun addRecipes(provider: Consumer<FinishedRecipe?>) {
+    override fun addRecipes(provider: RecipeOutput) {
         PhotonMatrixEtch.init(provider)
         EMResonanceConversionField.init(provider)
         TitansCripEarthbore.init(provider)
@@ -58,11 +59,24 @@ class GTLAdditionsGTAddon : IGTAddon {
         SkyTearsAndGregHeart.init(provider)
     }
 
-    override fun registerSounds() {
+    override fun removeRecipes(consumer: Consumer<ResourceLocation>) {
+        // GT 8 generates these routes itself; Additions defines their pack-specific fluids and costs.
+        for (path in listOf(
+            "extract_ruridit_ingot", "extract_ruridit_plate", "extract_long_ruridit_rod",
+            "extract_ruridit_rod", "extract_ruridit_gear", "extract_ruridit_block",
+            "extract_ruridit_nugget", "extract_ruridit_bolt", "extract_fine_ruridit_wire",
+            "extract_double_ruridit_plate", "extract_ruridit_foil", "extract_ruridit_frame",
+            "extract_ruridit_screw"
+        )) consumer.accept(ResourceLocation.fromNamespaceAndPath("gtceu", "extractor/$path"))
+        consumer.accept(ResourceLocation.fromNamespaceAndPath("gtceu", "vacuum_freezer/ruridit"))
+        consumer.accept(ResourceLocation.fromNamespaceAndPath("gtceu", "antientropy_condensation/ruridit"))
+    }
+
+    fun registerSounds() {
         GTLAddSoundEntries.init()
     }
 
-    override fun registerElements() {
+    fun registerElements() {
         GTLAddElements.init()
     }
 }

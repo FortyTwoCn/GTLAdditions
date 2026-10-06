@@ -1,13 +1,14 @@
 package com.gtladd.gtladditions.mixin.stargatejourney;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.registries.DeferredRegister;
-import net.minecraftforge.registries.RegistryObject;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.DeferredHolder;
 import net.povstalec.sgjourney.common.block_entities.StructureGenEntity;
 import net.povstalec.sgjourney.common.blocks.dhd.ClassicDHDBlock;
 import net.povstalec.sgjourney.common.blocks.dhd.MilkyWayDHDBlock;
@@ -15,6 +16,7 @@ import net.povstalec.sgjourney.common.blocks.dhd.PegasusDHDBlock;
 import net.povstalec.sgjourney.common.blocks.stargate.AbstractStargateBaseBlock;
 import net.povstalec.sgjourney.common.blocks.stargate.PegasusStargateBlock;
 import net.povstalec.sgjourney.common.init.BlockInit;
+import net.povstalec.sgjourney.common.init.BlockEntityInit;
 import net.povstalec.sgjourney.common.init.ItemInit;
 import net.povstalec.sgjourney.common.init.TabInit;
 import net.povstalec.sgjourney.common.items.NaquadahFuelRodItem;
@@ -36,18 +38,26 @@ public abstract class TabInitMixin {
 
     @Redirect(method = "<clinit>",
               at = @At(value = "INVOKE",
-                       target = "Lnet/minecraftforge/registries/DeferredRegister;register(Ljava/lang/String;Ljava/util/function/Supplier;)Lnet/minecraftforge/registries/RegistryObject;"),
-              remap = false)
-    private static RegistryObject<CreativeModeTab> replaceStargateItemsTab(
+                       target = "Lnet/neoforged/neoforge/registries/DeferredRegister;register(Ljava/lang/String;Ljava/util/function/Supplier;)Lnet/neoforged/neoforge/registries/DeferredHolder;"),
+              remap = false, require = 1)
+    private static DeferredHolder<CreativeModeTab, CreativeModeTab> replaceStargateItemsTab(
                                                                            DeferredRegister<CreativeModeTab> instance, String name, Supplier<CreativeModeTab> supplier) {
-        if ("stargate_items".equals(name)) {
-            return instance.register(name, () -> CreativeModeTab.builder()
+        // Populate all three SG tabs through the curated GTL event below. Native display
+        // generators already fill these tabs; retaining them would duplicate event entries.
+        return switch (name) {
+            case "stargate_items" -> instance.register(name, () -> CreativeModeTab.builder()
                     .icon(() -> new ItemStack(ItemInit.CONTROL_CRYSTAL.get()))
-                    .title(Component.translatable("itemGroup.stargate_items"))
-                    .build());
-        }
-
-        return instance.register(name, supplier);
+                    .title(Component.translatable("itemGroup.stargate_items")).build());
+            case "stargate_stuff" -> instance.register(name, () -> CreativeModeTab.builder()
+                    .icon(() -> new ItemStack(BlockInit.MILKY_WAY_STARGATE.get()))
+                    .title(Component.translatable("itemGroup.stargate_stuff"))
+                    .withTabsBefore(ResourceLocation.parse("sgjourney:stargate_blocks"))
+                    .withTabsAfter(ResourceLocation.parse("sgjourney:stargate_items")).build());
+            case "stargate_blocks" -> instance.register(name, () -> CreativeModeTab.builder()
+                    .icon(() -> new ItemStack(BlockInit.NAQUADAH_BLOCK.get()))
+                    .title(Component.translatable("itemGroup.stargate_blocks")).build());
+            default -> instance.register(name, supplier);
+        };
     }
 
     /**
@@ -88,7 +98,7 @@ public abstract class TabInitMixin {
             event.accept(ItemInit.NAQUADAH_BOOTS.get());
 
             event.accept(ItemInit.KARA_KESH.get());
-            event.accept(ItemInit.RING_REMOTE.get());
+            event.accept(ItemInit.GOAULD_RING_REMOTE.get());
 
             event.accept(ItemInit.JAFFA_STAFF_HEAD.get());
             event.accept(ItemInit.MATOK.get());
@@ -141,13 +151,13 @@ public abstract class TabInitMixin {
         } else if (event.getTab() == TabInit.STARGATE_STUFF.get()) {
             event.accept(BlockInit.UNIVERSE_STARGATE.get());
             event.accept(BlockInit.MILKY_WAY_STARGATE.get());
-            event.accept(AbstractStargateBaseBlock.localPointOfOrigin(new ItemStack(BlockInit.MILKY_WAY_STARGATE.get())));
-            event.accept(MilkyWayDHDBlock.milkyWayCrystalSetup());
+            event.accept(AbstractStargateBaseBlock.localPointOfOrigin(new ItemStack(BlockInit.MILKY_WAY_STARGATE.get()), BlockEntityInit.MILKY_WAY_STARGATE.get()));
+            event.accept(MilkyWayDHDBlock.milkyWayCrystalSetup(event.getParameters().holders()));
             event.accept(BlockInit.PEGASUS_STARGATE.get());
-            event.accept(PegasusStargateBlock.localSymbols(new ItemStack(BlockInit.PEGASUS_STARGATE.get())));
-            event.accept(PegasusDHDBlock.pegasusCrystalSetup());
+            event.accept(PegasusStargateBlock.localSymbols(new ItemStack(BlockInit.PEGASUS_STARGATE.get()), BlockEntityInit.PEGASUS_STARGATE.get()));
+            event.accept(PegasusDHDBlock.pegasusCrystalSetup(event.getParameters().holders()));
             event.accept(BlockInit.CLASSIC_STARGATE.get());
-            event.accept(AbstractStargateBaseBlock.localPointOfOrigin(new ItemStack(BlockInit.CLASSIC_STARGATE.get())));
+            event.accept(AbstractStargateBaseBlock.localPointOfOrigin(new ItemStack(BlockInit.CLASSIC_STARGATE.get()), BlockEntityInit.CLASSIC_STARGATE.get()));
             event.accept(BlockInit.CLASSIC_STARGATE_BASE_BLOCK.get());
             event.accept(BlockInit.CLASSIC_STARGATE_CHEVRON_BLOCK.get());
             event.accept(BlockInit.CLASSIC_STARGATE_RING_BLOCK.get());
@@ -172,7 +182,7 @@ public abstract class TabInitMixin {
             event.accept(ItemInit.DIAMOND_IRIS.get());
             event.accept(ItemInit.NETHERITE_IRIS.get());
 
-            event.accept(ItemInit.NAQUADAH_ALLOY_IRIS.get());
+            event.accept(ItemInit.NAQUADAH_COPPER_IRIS.get());
             // items.accept(ItemInit.TRINIUM_IRIS.get());
 
             event.accept(ItemInit.BRONZE_IRIS.get());
@@ -182,8 +192,8 @@ public abstract class TabInitMixin {
         } else if (event.getTab() == TabInit.STARGATE_BLOCKS.get()) {
             event.accept(BlockInit.UNIVERSE_STARGATE_CHEVRON.get());
 
-            event.accept(BlockInit.TRANSPORT_RINGS.get());
-            event.accept(BlockInit.RING_PANEL.get());
+            event.accept(BlockInit.GOAULD_TRANSPORT_RINGS.get());
+            event.accept(BlockInit.GOAULD_RING_PANEL.get());
 
             event.accept(BlockInit.ARCHEOLOGY_TABLE.get());
             event.accept(BlockInit.GOLDEN_IDOL.get());
@@ -252,16 +262,16 @@ public abstract class TabInitMixin {
 
             // event.accept(BlockInit.LARGE_NAQUADAH_BATTERY.get());
         } else if (event.getTabKey() == CreativeModeTabs.OP_BLOCKS && event.hasPermissions()) {
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.UNIVERSE_STARGATE.get()), StructureGenEntity.Step.SETUP));
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.MILKY_WAY_STARGATE.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.UNIVERSE_STARGATE.get(), new ItemStack(BlockInit.UNIVERSE_STARGATE.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.MILKY_WAY_STARGATE.get(), new ItemStack(BlockInit.MILKY_WAY_STARGATE.get()), StructureGenEntity.Step.SETUP));
             event.accept(MilkyWayDHDBlock.generatedDHD());
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.PEGASUS_STARGATE.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.PEGASUS_STARGATE.get(), new ItemStack(BlockInit.PEGASUS_STARGATE.get()), StructureGenEntity.Step.SETUP));
             event.accept(PegasusDHDBlock.generatedDHD());
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.CLASSIC_STARGATE.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.CLASSIC_STARGATE.get(), new ItemStack(BlockInit.CLASSIC_STARGATE.get()), StructureGenEntity.Step.SETUP));
             event.accept(ClassicDHDBlock.generatedDHD());
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.TOLLAN_STARGATE.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.TOLLAN_STARGATE.get(), new ItemStack(BlockInit.TOLLAN_STARGATE.get()), StructureGenEntity.Step.SETUP));
 
-            event.accept(InventoryUtil.generationStep(new ItemStack(BlockInit.TRANSPORT_RINGS.get()), StructureGenEntity.Step.SETUP));
+            event.accept(InventoryUtil.generationStep(BlockEntityInit.GOAULD_TRANSPORT_RINGS.get(), new ItemStack(BlockInit.GOAULD_TRANSPORT_RINGS.get()), StructureGenEntity.Step.SETUP));
         }
     }
 }

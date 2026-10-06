@@ -1,4 +1,4 @@
-﻿package com.gtladd.gtladditions.events
+package com.gtladd.gtladditions.events
 
 import com.gregtechceu.gtceu.common.data.GTMachines
 import com.gtladd.gtladditions.GTLAdditions
@@ -6,14 +6,15 @@ import com.gtladd.gtladditions.utils.CommonUtils.createLanguageRainbowComponent
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import committee.nova.mods.avaritia.init.registry.ModItems
 import net.minecraft.ChatFormatting
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.event.entity.player.ItemTooltipEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 import net.povstalec.sgjourney.common.init.BlockInit
 
 @Suppress("unused")
-@Mod.EventBusSubscriber(modid = GTLAdditions.Companion.MOD_ID, value = [Dist.CLIENT])
+@EventBusSubscriber(modid = GTLAdditions.Companion.MOD_ID, value = [Dist.CLIENT])
 object TooltipHandler {
     @SubscribeEvent
     @JvmStatic
@@ -49,7 +50,7 @@ object TooltipHandler {
                 )
             }
 
-            stack.`is`(GTMachines.CREATIVE_ITEM.item) -> {
+            stack.`is`(GTMachines.CREATIVE_ITEM.asItem()) -> {
                 event.toolTip.addAll(
                     event.toolTip.size - 1,
                     listOf(

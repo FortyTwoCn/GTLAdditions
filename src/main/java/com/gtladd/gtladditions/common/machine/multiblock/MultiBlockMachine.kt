@@ -1,5 +1,22 @@
 package com.gtladd.gtladditions.common.machine.multiblock
 
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.dynamicCasingModel
+import org.gtlcore.gtlcore.api.gui.preview.NativePreviewGeometry
+import org.gtlcore.gtlcore.api.gui.preview.NativePreviewShapes
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.allRotation
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.nonYAxisRotation
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.noneRotation
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextKey
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextMaxParallels
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextRecipeTypes
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextCoilParallel
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextLaser
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipOnlyTextLaser
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextMultiRecipes
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextParallelHatch
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.tooltipTextPerfectOverclock
+import com.gtladd.gtladditions.api.registry.GTLAddMultiBlockMachineBuilder.coilParallelDisplay
+
 import appeng.core.definitions.AEBlocks
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.data.RotationState
@@ -7,7 +24,9 @@ import com.gregtechceu.gtceu.api.data.chemical.ChemicalHelper
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.frameGt
 import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiController
+import org.gtlcore.gtlcore.common.data.GTLMultiblockDisplays
+import org.gtlcore.gtlcore.api.recipe.CoreRecipeModifiers
+import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility.COMPUTATION_DATA_RECEPTION
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility.EXPORT_FLUIDS
@@ -18,17 +37,14 @@ import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility.INPUT_ENERGY
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility.INPUT_LASER
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility.MAINTENANCE
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
-import com.gregtechceu.gtceu.api.pattern.FactoryBlockPattern
-import com.gregtechceu.gtceu.api.pattern.MultiblockShapeInfo
-import com.gregtechceu.gtceu.api.pattern.Predicates.*
+import com.gregtechceu.gtceu.api.multiblock.pattern.MultiblockPatternBuilder
+import com.gregtechceu.gtceu.api.multiblock.Predicates.*
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.OverclockingLogic
-import com.gregtechceu.gtceu.api.recipe.logic.OCParams
-import com.gregtechceu.gtceu.api.recipe.logic.OCResult
 import com.gregtechceu.gtceu.api.recipe.modifier.RecipeModifier
-import com.gregtechceu.gtceu.common.data.GCyMBlocks
-import com.gregtechceu.gtceu.common.data.GCyMBlocks.HEAT_VENT
-import com.gregtechceu.gtceu.common.data.GCyMRecipeTypes.ALLOY_BLAST_RECIPES
+import com.gregtechceu.gtceu.common.data.GCYMBlocks
+import com.gregtechceu.gtceu.common.data.GCYMBlocks.HEAT_VENT
+import com.gregtechceu.gtceu.common.data.GCYMRecipeTypes.ALLOY_BLAST_RECIPES
 import com.gregtechceu.gtceu.common.data.GTBlocks.*
 import com.gregtechceu.gtceu.common.data.GTMachines
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
@@ -46,7 +62,6 @@ import com.gtladd.gtladditions.client.render.machine.ArcanicAstrographRender
 import com.gtladd.gtladditions.client.render.machine.ForgeOfAntichristRenderer
 import com.gtladd.gtladditions.client.render.machine.HeartOfTheUniverseRenderer
 import com.gtladd.gtladditions.client.render.machine.LightHunterSpaceStationRenderer
-import com.gtladd.gtladditions.client.render.machine.PartWorkableCasingMachineRenderer
 import com.gtladd.gtladditions.client.render.machine.SpaceElevatorMKIIRenderer
 import com.gtladd.gtladditions.client.render.machine.TimeSpaceDistorterRenderer
 import com.gtladd.gtladditions.common.blocks.GTLAddBlocks.CENTRAL_GRAVITON_FLOW_REGULATOR
@@ -121,62 +136,63 @@ import org.gtlcore.gtlcore.common.data.GTLRecipeTypes.*
 import org.gtlcore.gtlcore.config.ConfigHolder
 import org.gtlcore.gtlcore.utils.Registries.getBlock
 import org.gtlcore.gtlcore.utils.StructureSlicer
-import java.util.function.Function
+import com.gregtechceu.gtceu.api.machine.MachineInstanceFactory
+import com.gregtechceu.gtceu.api.registry.registrate.entry.MachineEntry
 import kotlin.math.pow
 
 object MultiBlockMachine {
 
-    val NEXUS_SATELLITE_FACTORY_MKI: MultiblockMachineDefinition
-    val NEXUS_SATELLITE_FACTORY_MKII: MultiblockMachineDefinition
-    val NEXUS_SATELLITE_FACTORY_MKIII: MultiblockMachineDefinition
-    val NEXUS_SATELLITE_FACTORY_MKIV: MultiblockMachineDefinition
-    val LUCID_ETCHDREAMER: MultiblockMachineDefinition
-    val ATOMIC_TRANSMUTATIOON_CORE: MultiblockMachineDefinition
-    val SUBATOMIC_TRANSMUTATIOON_CORE: MultiblockMachineDefinition
-    val ASTRAL_CONVERGENCE_NEXUS: MultiblockMachineDefinition
-    val NEBULA_REAPER: MultiblockMachineDefinition
-    val ARCANIC_ASTROGRAPH: MultiblockMachineDefinition
-    val ARCANE_CACHE_VAULT: MultiblockMachineDefinition
-    val SPACE_SCALING_INSTRUMENT: MultiblockMachineDefinition
-    val DRACONIC_COLLAPSE_CORE: MultiblockMachineDefinition
-    val TITAN_CRIP_EARTHBORE: MultiblockMachineDefinition
-    val BIOLOGICAL_SIMULATION_LABORATORY: MultiblockMachineDefinition
-    val DIMENSIONALLY_TRANSCENDENT_CHEMICAL_PLANT: MultiblockMachineDefinition
-    val QUANTUM_SYPHON_MATRIX: MultiblockMachineDefinition
-    val FUXI_BAGUA_HEAVEN_FORGING_FURNACE: MultiblockMachineDefinition
-    val ANTIENTROPY_CONDENSATION_CENTER: MultiblockMachineDefinition
-    val TAIXU_TURBID_ARRAY: MultiblockMachineDefinition
-    val PLANETARY_IONISATION_CONVERGENCE_TOWER: MultiblockMachineDefinition
-    val INFERNO_CLEFT_SMELTING_VAULT: MultiblockMachineDefinition
-    val SKELETON_SHIFT_RIFT_ENGINE: MultiblockMachineDefinition
-    val TIME_SPACE_DISTORTER: MultiblockMachineDefinition
-    val APOCALYPTIC_TORSION_QUANTUM_MATRIX: MultiblockMachineDefinition
-    val FORGE_OF_THE_ANTICHRIST: MultiblockMachineDefinition
-    val RECURSIVE_REVERSE_ARRAY: MultiblockMachineDefinition
-    val CATALYTIC_CASCADE_ARRAY: MultiblockMachineDefinition
-    val MAGNETORHEOLOGICAL_CONVERGENCE_CORE: MultiblockMachineDefinition
-    val SPACETIME_STASIS_DEVICE: MultiblockMachineDefinition
-    val SUPRATEMPORAL_BOOSTING_ENGINE: MultiblockMachineDefinition
-    val HELIOFUSION_EXOTICIZER: MultiblockMachineDefinition
-    val HELIOFLARE_POWER_FORGE: MultiblockMachineDefinition
-    val HELIOFLUIX_MELTING_CORE: MultiblockMachineDefinition
-    val HELIOTHERMAL_PLASMA_FABRICATOR: MultiblockMachineDefinition
-    val HELIOPHASE_LEYLINE_CRYSTALLIZER: MultiblockMachineDefinition
-    val HEART_OF_THE_UNIVERSE: MultiblockMachineDefinition
-    val LIGHT_HUNTER_SPACE_STATION: MultiblockMachineDefinition
-    val DIMENSION_FOCUS_INFINITY_CRAFTING_ARRAY: MultiblockMachineDefinition
-    val SPACE_INFINITY_INTEGRATED_ORE_PROCESSOR: MultiblockMachineDefinition
-    val MACRO_ATOMIC_RESONANT_FRAGMENT_STRIPPER: MultiblockMachineDefinition
-    val PRIMORDIAL_EVOLUTION_NEXUS: MultiblockMachineDefinition
-    val BIOSPHERE_III: MultiblockMachineDefinition
-    val BIOSPHERE_III_MODULE: MultiblockMachineDefinition
-    val SPACE_ELEVATOR_MKII: MultiblockMachineDefinition
+    val NEXUS_SATELLITE_FACTORY_MKI: MachineEntry<MultiblockMachineDefinition>
+    val NEXUS_SATELLITE_FACTORY_MKII: MachineEntry<MultiblockMachineDefinition>
+    val NEXUS_SATELLITE_FACTORY_MKIII: MachineEntry<MultiblockMachineDefinition>
+    val NEXUS_SATELLITE_FACTORY_MKIV: MachineEntry<MultiblockMachineDefinition>
+    val LUCID_ETCHDREAMER: MachineEntry<MultiblockMachineDefinition>
+    val ATOMIC_TRANSMUTATIOON_CORE: MachineEntry<MultiblockMachineDefinition>
+    val SUBATOMIC_TRANSMUTATIOON_CORE: MachineEntry<MultiblockMachineDefinition>
+    val ASTRAL_CONVERGENCE_NEXUS: MachineEntry<MultiblockMachineDefinition>
+    val NEBULA_REAPER: MachineEntry<MultiblockMachineDefinition>
+    val ARCANIC_ASTROGRAPH: MachineEntry<MultiblockMachineDefinition>
+    val ARCANE_CACHE_VAULT: MachineEntry<MultiblockMachineDefinition>
+    val SPACE_SCALING_INSTRUMENT: MachineEntry<MultiblockMachineDefinition>
+    val DRACONIC_COLLAPSE_CORE: MachineEntry<MultiblockMachineDefinition>
+    val TITAN_CRIP_EARTHBORE: MachineEntry<MultiblockMachineDefinition>
+    val BIOLOGICAL_SIMULATION_LABORATORY: MachineEntry<MultiblockMachineDefinition>
+    val DIMENSIONALLY_TRANSCENDENT_CHEMICAL_PLANT: MachineEntry<MultiblockMachineDefinition>
+    val QUANTUM_SYPHON_MATRIX: MachineEntry<MultiblockMachineDefinition>
+    val FUXI_BAGUA_HEAVEN_FORGING_FURNACE: MachineEntry<MultiblockMachineDefinition>
+    val ANTIENTROPY_CONDENSATION_CENTER: MachineEntry<MultiblockMachineDefinition>
+    val TAIXU_TURBID_ARRAY: MachineEntry<MultiblockMachineDefinition>
+    val PLANETARY_IONISATION_CONVERGENCE_TOWER: MachineEntry<MultiblockMachineDefinition>
+    val INFERNO_CLEFT_SMELTING_VAULT: MachineEntry<MultiblockMachineDefinition>
+    val SKELETON_SHIFT_RIFT_ENGINE: MachineEntry<MultiblockMachineDefinition>
+    val TIME_SPACE_DISTORTER: MachineEntry<MultiblockMachineDefinition>
+    val APOCALYPTIC_TORSION_QUANTUM_MATRIX: MachineEntry<MultiblockMachineDefinition>
+    val FORGE_OF_THE_ANTICHRIST: MachineEntry<MultiblockMachineDefinition>
+    val RECURSIVE_REVERSE_ARRAY: MachineEntry<MultiblockMachineDefinition>
+    val CATALYTIC_CASCADE_ARRAY: MachineEntry<MultiblockMachineDefinition>
+    val MAGNETORHEOLOGICAL_CONVERGENCE_CORE: MachineEntry<MultiblockMachineDefinition>
+    val SPACETIME_STASIS_DEVICE: MachineEntry<MultiblockMachineDefinition>
+    val SUPRATEMPORAL_BOOSTING_ENGINE: MachineEntry<MultiblockMachineDefinition>
+    val HELIOFUSION_EXOTICIZER: MachineEntry<MultiblockMachineDefinition>
+    val HELIOFLARE_POWER_FORGE: MachineEntry<MultiblockMachineDefinition>
+    val HELIOFLUIX_MELTING_CORE: MachineEntry<MultiblockMachineDefinition>
+    val HELIOTHERMAL_PLASMA_FABRICATOR: MachineEntry<MultiblockMachineDefinition>
+    val HELIOPHASE_LEYLINE_CRYSTALLIZER: MachineEntry<MultiblockMachineDefinition>
+    val HEART_OF_THE_UNIVERSE: MachineEntry<MultiblockMachineDefinition>
+    val LIGHT_HUNTER_SPACE_STATION: MachineEntry<MultiblockMachineDefinition>
+    val DIMENSION_FOCUS_INFINITY_CRAFTING_ARRAY: MachineEntry<MultiblockMachineDefinition>
+    val SPACE_INFINITY_INTEGRATED_ORE_PROCESSOR: MachineEntry<MultiblockMachineDefinition>
+    val MACRO_ATOMIC_RESONANT_FRAGMENT_STRIPPER: MachineEntry<MultiblockMachineDefinition>
+    val PRIMORDIAL_EVOLUTION_NEXUS: MachineEntry<MultiblockMachineDefinition>
+    val BIOSPHERE_III: MachineEntry<MultiblockMachineDefinition>
+    val BIOSPHERE_III_MODULE: MachineEntry<MultiblockMachineDefinition>
+    val SPACE_ELEVATOR_MKII: MachineEntry<MultiblockMachineDefinition>
 
     init {
         REGISTRATE.creativeModeTab { GTLAddCreativeModeTabs.GTLADD_MACHINE }
         NEXUS_SATELLITE_FACTORY_MKI = REGISTRATE.multiblock(
             "nexus_satellite_factory_mk1",
-            Function { LightHunterSpaceStationModuleBase(it) }
+            MachineInstanceFactory { LightHunterSpaceStationModuleBase(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.nexus_satellite_factory.tooltip.0".toComponent)
@@ -201,11 +217,10 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LIGHT_HUNTER_SPACE_STATION_MODULE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("N", blocks(getBlock("kubejs:module_connector")))
-                    .where("J", blocks(getBlock("kubejs:restraint_device")))
-                    .where(
-                        "O",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('N', blocks(getBlock("kubejs:module_connector")))
+                    .where('J', blocks(getBlock("kubejs:restraint_device")))
+                    .where('O',
                         blocks(getBlock("gtceu:high_power_casing"))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_ITEMS))
@@ -216,21 +231,21 @@ object MultiBlockMachine {
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("C", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("L", blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
-                    .where("E", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("M", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("D", blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
-                    .where("F", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("H", blocks(getBlock("gtlcore:naquadah_alloy_casing")))
-                    .where("A", blocks(getBlock("gtlcore:echo_casing")))
-                    .where("K", blocks(getBlock("gtlcore:dimension_injection_casing")))
-                    .where("G", blocks(getBlock("gtceu:uhv_machine_casing")))
-                    .where("B", blocks(getBlock("gtceu:uxv_machine_casing")))
-                    .where("I", blocks(getBlock("gtlcore:uxv_hermetic_casing")))
+                    .where('C', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('L', blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
+                    .where('E', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('M', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('D', blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
+                    .where('F', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('H', blocks(getBlock("gtlcore:naquadah_alloy_casing")))
+                    .where('A', blocks(getBlock("gtlcore:echo_casing")))
+                    .where('K', blocks(getBlock("gtlcore:dimension_injection_casing")))
+                    .where('G', blocks(getBlock("gtceu:uhv_machine_casing")))
+                    .where('B', blocks(getBlock("gtceu:uxv_machine_casing")))
+                    .where('I', blocks(getBlock("gtlcore:uxv_hermetic_casing")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -238,7 +253,7 @@ object MultiBlockMachine {
 
         NEXUS_SATELLITE_FACTORY_MKII = REGISTRATE.multiblock(
             "nexus_satellite_factory_mk2",
-            Function { LightHunterSpaceStationModuleBase(it) }
+            MachineInstanceFactory { LightHunterSpaceStationModuleBase(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.nexus_satellite_factory.tooltip.0".toComponent)
@@ -262,11 +277,10 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LIGHT_HUNTER_SPACE_STATION_MODULE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("N", blocks(getBlock("kubejs:module_connector")))
-                    .where("J", blocks(getBlock("kubejs:restraint_device")))
-                    .where(
-                        "O",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('N', blocks(getBlock("kubejs:module_connector")))
+                    .where('J', blocks(getBlock("kubejs:restraint_device")))
+                    .where('O',
                         blocks(getBlock("gtceu:high_power_casing"))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_ITEMS))
@@ -277,21 +291,21 @@ object MultiBlockMachine {
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("C", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("L", blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
-                    .where("E", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("M", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("D", blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
-                    .where("F", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("H", blocks(getBlock("gtlcore:naquadah_alloy_casing")))
-                    .where("A", blocks(getBlock("gtlcore:echo_casing")))
-                    .where("K", blocks(getBlock("gtlcore:dimension_injection_casing")))
-                    .where("G", blocks(getBlock("gtceu:uhv_machine_casing")))
-                    .where("B", blocks(getBlock("gtceu:uxv_machine_casing")))
-                    .where("I", blocks(getBlock("gtlcore:uxv_hermetic_casing")))
+                    .where('C', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('L', blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
+                    .where('E', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('M', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('D', blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
+                    .where('F', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('H', blocks(getBlock("gtlcore:naquadah_alloy_casing")))
+                    .where('A', blocks(getBlock("gtlcore:echo_casing")))
+                    .where('K', blocks(getBlock("gtlcore:dimension_injection_casing")))
+                    .where('G', blocks(getBlock("gtceu:uhv_machine_casing")))
+                    .where('B', blocks(getBlock("gtceu:uxv_machine_casing")))
+                    .where('I', blocks(getBlock("gtlcore:uxv_hermetic_casing")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -299,7 +313,7 @@ object MultiBlockMachine {
 
         NEXUS_SATELLITE_FACTORY_MKIII = REGISTRATE.multiblock(
             "nexus_satellite_factory_mk3",
-            Function { LightHunterSpaceStationModuleBase(it) }
+            MachineInstanceFactory { LightHunterSpaceStationModuleBase(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.nexus_satellite_factory.tooltip.0".toComponent)
@@ -324,11 +338,10 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LIGHT_HUNTER_SPACE_STATION_MODULE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("N", blocks(getBlock("kubejs:module_connector")))
-                    .where("J", blocks(getBlock("kubejs:restraint_device")))
-                    .where(
-                        "O",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('N', blocks(getBlock("kubejs:module_connector")))
+                    .where('J', blocks(getBlock("kubejs:restraint_device")))
+                    .where('O',
                         blocks(getBlock("gtceu:high_power_casing"))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_ITEMS))
@@ -339,21 +352,21 @@ object MultiBlockMachine {
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("C", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("L", blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
-                    .where("E", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("M", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("D", blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
-                    .where("F", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("H", blocks(getBlock("gtlcore:naquadah_alloy_casing")))
-                    .where("A", blocks(getBlock("gtlcore:echo_casing")))
-                    .where("K", blocks(getBlock("gtlcore:dimension_injection_casing")))
-                    .where("G", blocks(getBlock("gtceu:uhv_machine_casing")))
-                    .where("B", blocks(getBlock("gtceu:uxv_machine_casing")))
-                    .where("I", blocks(getBlock("gtlcore:uxv_hermetic_casing")))
+                    .where('C', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('L', blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
+                    .where('E', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('M', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('D', blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
+                    .where('F', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('H', blocks(getBlock("gtlcore:naquadah_alloy_casing")))
+                    .where('A', blocks(getBlock("gtlcore:echo_casing")))
+                    .where('K', blocks(getBlock("gtlcore:dimension_injection_casing")))
+                    .where('G', blocks(getBlock("gtceu:uhv_machine_casing")))
+                    .where('B', blocks(getBlock("gtceu:uxv_machine_casing")))
+                    .where('I', blocks(getBlock("gtlcore:uxv_hermetic_casing")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -361,7 +374,7 @@ object MultiBlockMachine {
 
         NEXUS_SATELLITE_FACTORY_MKIV = REGISTRATE.multiblock(
             "nexus_satellite_factory_mk4",
-            Function { LightHunterSpaceStationModuleBase(it) }
+            MachineInstanceFactory { LightHunterSpaceStationModuleBase(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.nexus_satellite_factory.tooltip.0".toComponent)
@@ -386,11 +399,10 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LIGHT_HUNTER_SPACE_STATION_MODULE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("N", blocks(getBlock("kubejs:module_connector")))
-                    .where("J", blocks(getBlock("kubejs:restraint_device")))
-                    .where(
-                        "O",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('N', blocks(getBlock("kubejs:module_connector")))
+                    .where('J', blocks(getBlock("kubejs:restraint_device")))
+                    .where('O',
                         blocks(getBlock("gtceu:high_power_casing"))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_ITEMS))
@@ -401,21 +413,21 @@ object MultiBlockMachine {
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("C", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("L", blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
-                    .where("E", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("M", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("D", blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
-                    .where("F", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("H", blocks(getBlock("gtlcore:naquadah_alloy_casing")))
-                    .where("A", blocks(getBlock("gtlcore:echo_casing")))
-                    .where("K", blocks(getBlock("gtlcore:dimension_injection_casing")))
-                    .where("G", blocks(getBlock("gtceu:uhv_machine_casing")))
-                    .where("B", blocks(getBlock("gtceu:uxv_machine_casing")))
-                    .where("I", blocks(getBlock("gtlcore:uxv_hermetic_casing")))
+                    .where('C', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('L', blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
+                    .where('E', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('M', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('D', blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
+                    .where('F', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('H', blocks(getBlock("gtlcore:naquadah_alloy_casing")))
+                    .where('A', blocks(getBlock("gtlcore:echo_casing")))
+                    .where('K', blocks(getBlock("gtlcore:dimension_injection_casing")))
+                    .where('G', blocks(getBlock("gtceu:uhv_machine_casing")))
+                    .where('B', blocks(getBlock("gtceu:uxv_machine_casing")))
+                    .where('I', blocks(getBlock("gtlcore:uxv_hermetic_casing")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -423,7 +435,7 @@ object MultiBlockMachine {
 
         LUCID_ETCHDREAMER = REGISTRATE.multiblock(
             "lucid_etchdreamer",
-            Function { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextCoilParallel()
@@ -436,27 +448,26 @@ object MultiBlockMachine {
             .appearanceBlock(IRIDIUM_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LUCID_ETCHDREAMER_STRUCTURE!!
-                    .where("I", controller(blocks(definition!!.get())))
-                    .where(
-                        "A",
+                    .where('I', controller(blocks(definition!!.getBlock())))
+                    .where('A',
                         blocks(IRIDIUM_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("D", heatingCoils())
-                    .where("E", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("B", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("C", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("E", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("G", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("F", blocks(CLEANROOM_GLASS.get()))
-                    .where("H", blocks(getBlock("kubejs:annihilate_core")))
-                    .where(" ", any())
+                    .where('D', heatingCoils())
+                    .where('E', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('B', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('C', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('E', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('G', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('F', blocks(CLEANROOM_GLASS.get()))
+                    .where('H', blocks(getBlock("kubejs:annihilate_core")))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/iridium_casing"),
                 GTCEu.id("block/multiblock/gcym/large_engraving_laser")
             )
@@ -464,7 +475,7 @@ object MultiBlockMachine {
 
         ATOMIC_TRANSMUTATIOON_CORE = REGISTRATE.multiblock(
             "atomic_transmutation_core",
-            Function { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
         )
             .noneRotation()
             .tooltipTextKey("tooltip.gtladditions.discontinued".toComponent)
@@ -477,38 +488,37 @@ object MultiBlockMachine {
             .recipeType(EM_RESONANCE_CONVERSION_FIELD)
             .appearanceBlock(ALUMINIUM_BRONZE_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
-                FactoryBlockPattern.start()
-                    .aisle("AAAAAAAAA", "AAAAAAAAA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACCCCCCCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAA~AAAA")
-                    .aisle("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "ACCCCCCCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
-                    .aisle("AAAAAAAAA", "AAAAAAAAA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "AAAAAAAAA")
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "A",
+                MultiblockPatternBuilder.start()
+                    .slice("AAAAAAAAA", "AAAAAAAAA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACCCCCCCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAA~AAAA")
+                    .slice("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACDDDDDCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "ACCCCCCCA", "B       B", "B       B", "B       B", "B       B", "AAAAAAAAA")
+                    .slice("AAAAAAAAA", "AAAAAAAAA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "ABBBBBBBA", "AAAAAAAAA")
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A',
                         blocks(ALUMINIUM_BRONZE_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("C", heatingCoils())
-                    .where("D", blocks(getBlock("kubejs:infused_obsidian")))
-                    .where("B", blocks(CLEANROOM_GLASS.get()))
-                    .where(" ", any())
+                    .where('C', heatingCoils())
+                    .where('D', blocks(getBlock("kubejs:infused_obsidian")))
+                    .where('B', blocks(CLEANROOM_GLASS.get()))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/aluminium_bronze_casing"),
                 GTCEu.id("block/multiblock/cleanroom")
             )
             .register()
 
-        SUBATOMIC_TRANSMUTATIOON_CORE = REGISTRATE.multiblock("subatomic_transmutatioon_core", Function { ConversationMachine(it) })
+        SUBATOMIC_TRANSMUTATIOON_CORE = REGISTRATE.multiblock("subatomic_transmutatioon_core", MachineInstanceFactory { ConversationMachine(it) })
             .noneRotation()
             .tooltipTextKey(
                 "gtceu.multiblock.subatomic_transmutatioon_core.tooltip.0".toComponent,
@@ -521,29 +531,28 @@ object MultiBlockMachine {
             .appearanceBlock(LAFIUM_MECHANICAL_CASING)
             .pattern {
                 MultiBlockStructure.SUBATOMIC_TRANSMUTATIOON_CORE
-                    .where("~", controller(blocks(it.get())))
-                    .where(
-                        "d",
+                    .where('~', controller(blocks(it.getBlock())))
+                    .where('d',
                         blocks(LAFIUM_MECHANICAL_CASING.get())
                             .or(blocks(GTLAddMachines.ME_BLOCK_CONVERSATION.block).setMaxGlobalLimited(1))
                             .or(abilities(INPUT_ENERGY).setMaxGlobalLimited(1))
                     )
-                    .where("E", blocks(DRAGON_STRENGTH_TRITANIUM_CASING.get()))
-                    .where("B", blocks(ECHO_CASING.get()))
-                    .where("L", blocks(getBlock("kubejs:dyson_deployment_magnet")))
-                    .where("D", blocks(LAFIUM_MECHANICAL_CASING.get()))
-                    .where("F", blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
-                    .where("A", blocks(SPS_CASING.get()))
-                    .where("K", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("I", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("H", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("C", blocks(ChemicalHelper.getBlock(frameGt, Adamantium)))
-                    .where("G", GTLAddPredicates.heatingCoils(14400))
-                    .where("J", blocks(getBlock("kubejs:restraint_device")))
-                    .where(" ", any())
+                    .where('E', blocks(DRAGON_STRENGTH_TRITANIUM_CASING.get()))
+                    .where('B', blocks(ECHO_CASING.get()))
+                    .where('L', blocks(getBlock("kubejs:dyson_deployment_magnet")))
+                    .where('D', blocks(LAFIUM_MECHANICAL_CASING.get()))
+                    .where('F', blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
+                    .where('A', blocks(SPS_CASING.get()))
+                    .where('K', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('I', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('H', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('C', blocks(ChemicalHelper.getBlock(frameGt, Adamantium)))
+                    .where('G', GTLAddPredicates.heatingCoils(14400))
+                    .where('J', blocks(getBlock("kubejs:restraint_device")))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/lafium_mechanical_casing"),
                 GTCEu.id("block/multiblock/cleanroom")
             )
@@ -551,7 +560,7 @@ object MultiBlockMachine {
 
         ASTRAL_CONVERGENCE_NEXUS = REGISTRATE.multiblock(
             "astral_convergence_nexus",
-            Function { AdvancedSpaceElevatorModuleMachine(it) }
+            MachineInstanceFactory { AdvancedSpaceElevatorModuleMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextMaxParallels("gtceu.multiblock.max_parallel.space_elevator_module".toComponent)
@@ -562,23 +571,22 @@ object MultiBlockMachine {
             .recipeType(ASSEMBLER_MODULE_RECIPES) // 澶┖缁勮
             .appearanceBlock(SPACE_ELEVATOR_MECHANICAL_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
-                FactoryBlockPattern.start()
-                    .aisle("aaa", "bcb", "bbb", "bbb", "bbb")
-                    .aisle("aaa", "bbb", "bbb", "bbb", "bbb")
-                    .aisle("aaa", "bbb", "bbb", "b~b", "bbb")
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "b",
+                MultiblockPatternBuilder.start()
+                    .slice("aaa", "bcb", "bbb", "bbb", "bbb")
+                    .slice("aaa", "bbb", "bbb", "bbb", "bbb")
+                    .slice("aaa", "bbb", "bbb", "b~b", "bbb")
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('b',
                         blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("a", blocks(getBlock("kubejs:module_base")))
-                    .where("c", blocks(getBlock("kubejs:module_connector")))
+                    .where('a', blocks(getBlock("kubejs:module_base")))
+                    .where('c', blocks(getBlock("kubejs:module_connector")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/space_elevator_mechanical_casing"),
                 GTCEu.id("block/multiblock/gcym/large_assembler")
             )
@@ -586,7 +594,7 @@ object MultiBlockMachine {
 
         NEBULA_REAPER = REGISTRATE.multiblock(
             "nebula_reaper",
-            Function { AdvancedSpaceElevatorModuleMachine(it) }
+            MachineInstanceFactory { AdvancedSpaceElevatorModuleMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextMaxParallels("gtceu.multiblock.max_parallel.space_elevator_module".toComponent)
@@ -598,23 +606,22 @@ object MultiBlockMachine {
             .recipeType(DRILLING_MODULE_RECIPES) // 澶┖閽讳簳
             .appearanceBlock(SPACE_ELEVATOR_MECHANICAL_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
-                FactoryBlockPattern.start()
-                    .aisle("aaa", "bcb", "bbb", "bbb", "bbb")
-                    .aisle("aaa", "bbb", "bbb", "bbb", "bbb")
-                    .aisle("aaa", "bbb", "bbb", "b~b", "bbb")
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "b",
+                MultiblockPatternBuilder.start()
+                    .slice("aaa", "bcb", "bbb", "bbb", "bbb")
+                    .slice("aaa", "bbb", "bbb", "bbb", "bbb")
+                    .slice("aaa", "bbb", "bbb", "b~b", "bbb")
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('b',
                         blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("a", blocks(getBlock("kubejs:module_base")))
-                    .where("c", blocks(getBlock("kubejs:module_connector")))
+                    .where('a', blocks(getBlock("kubejs:module_base")))
+                    .where('c', blocks(getBlock("kubejs:module_connector")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/space_elevator_mechanical_casing"),
                 GTCEu.id("block/multiblock/gcym/large_assembler")
             )
@@ -622,7 +629,7 @@ object MultiBlockMachine {
 
         ARCANIC_ASTROGRAPH = REGISTRATE.multiblock(
             "arcanic_astrograph",
-            Function { ArcanicAstrograph(it) }
+            MachineInstanceFactory { ArcanicAstrograph(it) }
         )
             .nonYAxisRotation()
             .recipeType(COSMOS_SIMULATION_RECIPES)
@@ -650,7 +657,7 @@ object MultiBlockMachine {
             .appearanceBlock(CREATE_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.EYE_OF_HARMONY_STRUCTURE!!
-                    .where('~', controller(blocks(definition!!.get())))
+                    .where('~', controller(blocks(definition!!.getBlock())))
                     .where('A', blocks(CREATE_CASING.get()))
                     .where(
                         'B',
@@ -664,17 +671,16 @@ object MultiBlockMachine {
                     .where('E', blocks(getBlock("kubejs:dimension_creation_casing")))
                     .where('F', blocks(getBlock("kubejs:spacetime_compression_field_generator")))
                     .where('G', blocks(getBlock("kubejs:dimensional_stability_casing")))
-                    .where(" ", any())
+                    .where(' ', any())
                     .build()
             }
-            .renderer { ArcanicAstrographRender() }
+            .dynamicCasingModel(GTLCore.id("block/create_casing"), GTCEu.id("block/multiblock/cosmos_simulation"), ::ArcanicAstrographRender)
             .partAppearance { _, _, _ -> HIGH_POWER_CASING.get().defaultBlockState() }
-            .hasTESR(true)
             .register()
 
         ARCANE_CACHE_VAULT = REGISTRATE.multiblock(
             "arcane_cache_vault",
-            Function { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
         )
             .allRotation()
             .tooltipTextCoilParallel()
@@ -686,26 +692,25 @@ object MultiBlockMachine {
             .recipeType(PACKER_RECIPES)
             .appearanceBlock(PIKYONIUM_MACHINE_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
-                FactoryBlockPattern.start()
-                    .aisle("AAA", "AAA", "AAA")
-                    .aisle("AAA", "ABA", "AAA")
-                    .aisle("AAA", "ABA", "AAA")
-                    .aisle("AAA", "ABA", "AAA")
-                    .aisle("AAA", "ABA", "AAA")
-                    .aisle("AAA", "A~A", "AAA")
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "A",
+                MultiblockPatternBuilder.start()
+                    .slice("AAA", "AAA", "AAA")
+                    .slice("AAA", "ABA", "AAA")
+                    .slice("AAA", "ABA", "AAA")
+                    .slice("AAA", "ABA", "AAA")
+                    .slice("AAA", "ABA", "AAA")
+                    .slice("AAA", "A~A", "AAA")
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A',
                         blocks(PIKYONIUM_MACHINE_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("B", heatingCoils())
+                    .where('B', heatingCoils())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/pikyonium_machine_casing"),
                 GTCEu.id("block/multiblock/gcym/large_packer")
             )
@@ -713,7 +718,7 @@ object MultiBlockMachine {
 
         SPACE_SCALING_INSTRUMENT = REGISTRATE.multiblock(
             "space_scaling_instrument",
-            Function { SpaceScalingInstrument(it) }
+            MachineInstanceFactory { SpaceScalingInstrument(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist.tooltip.8".toComponent)
@@ -726,38 +731,37 @@ object MultiBlockMachine {
             .appearanceBlock(OXIDATION_RESISTANT_HASTELLOY_N_MECHANICAL_CASING)
             .pattern {
                 MultiBlockStructure.ARCANE_CACHE_VAULT_STRUCTURE
-                    .where("W", controller(blocks(it.get())))
-                    .where(
-                        "C",
+                    .where('W', controller(blocks(it.getBlock())))
+                    .where('C',
                         blocks(OXIDATION_RESISTANT_HASTELLOY_N_MECHANICAL_CASING.get())
                             .or(autoAbilities(*it.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                     )
-                    .where("R", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("S", blocks(PIKYONIUM_MACHINE_CASING.get()))
-                    .where("T", GTLAddPredicates.heatingCoils(273, true))
-                    .where("N", blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
-                    .where("G", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("M", blocks(getBlock("kubejs:molecular_coil")))
-                    .where("K", blocks(FUSION_GLASS.get()))
-                    .where("D", blocks(NAQUADAH_ALLOY_CASING.get()))
-                    .where("B", blocks(IRIDIUM_CASING.get()))
-                    .where("P", blocks(getBlock("kubejs:neutronium_gearbox")))
-                    .where("L", blocks(FILTER_CASING_STERILE.get()))
-                    .where("H", blocks(GCyMBlocks.CASING_ATOMIC.get()))
-                    .where("Q", blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
-                    .where("J", blocks(HERMETIC_CASING_UHV.get()))
-                    .where("I", blocks(MOLECULAR_CASING.get()))
-                    .where("V", blocks(getBlock("kubejs:hollow_casing")))
-                    .where("E", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("U", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("F", blocks(ChemicalHelper.getBlock(frameGt, Quantanium)))
-                    .where("O", blocks(ADVANCED_COMPUTER_CASING.get()))
-                    .where(" ", any())
+                    .where('R', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('S', blocks(PIKYONIUM_MACHINE_CASING.get()))
+                    .where('T', GTLAddPredicates.heatingCoils(273, true))
+                    .where('N', blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
+                    .where('G', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('M', blocks(getBlock("kubejs:molecular_coil")))
+                    .where('K', blocks(FUSION_GLASS.get()))
+                    .where('D', blocks(NAQUADAH_ALLOY_CASING.get()))
+                    .where('B', blocks(IRIDIUM_CASING.get()))
+                    .where('P', blocks(getBlock("kubejs:neutronium_gearbox")))
+                    .where('L', blocks(FILTER_CASING_STERILE.get()))
+                    .where('H', blocks(GCYMBlocks.CASING_ATOMIC.get()))
+                    .where('Q', blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
+                    .where('J', blocks(HERMETIC_CASING_UHV.get()))
+                    .where('I', blocks(MOLECULAR_CASING.get()))
+                    .where('V', blocks(getBlock("kubejs:hollow_casing")))
+                    .where('E', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('U', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('F', blocks(ChemicalHelper.getBlock(frameGt, Quantanium)))
+                    .where('O', blocks(ADVANCED_COMPUTER_CASING.get()))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/oxidation_resistant_hastelloy_n_mechanical_casing"),
                 GTCEu.id("block/multiblock/gcym/large_packer")
             )
@@ -765,7 +769,7 @@ object MultiBlockMachine {
 
         DRACONIC_COLLAPSE_CORE = REGISTRATE.multiblock(
             "draconic_collapse_core",
-            Function {
+            MachineInstanceFactory {
                 object : MutableElectricMultiblockMachine(it) {
                     override fun getMaxParallel(): Int = 8.0.pow(tier - 10).toInt()
                 }
@@ -779,57 +783,54 @@ object MultiBlockMachine {
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .recipeType(AGGREGATION_DEVICE_RECIPES)
             .recipeModifiers(
-                { machine: MetaMachine?, recipe: GTRecipe?, _: OCParams?, _: OCResult? ->
-                    GTRecipeModifiers.accurateParallel(
+                RecipeModifier { machine, _ -> ModifierFunction { recipe ->
+                    CoreRecipeModifiers.accurateParallel(
                         machine,
                         recipe!!,
                         8.0.pow(((machine as WorkableElectricMultiblockMachine).getTier() - 10).toDouble()).toInt(),
                         false
                     ).getFirst()
-                },
+                } },
                 GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.PERFECT_OVERCLOCK)
             )
             .appearanceBlock(FUSION_CASING_MK5)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.DRACONIC_COLLAPSE_CORE_STRUCTURE!!
-                    .where("E", controller(blocks(definition!!.get())))
-                    .where(
-                        "D",
+                    .where('E', controller(blocks(definition!!.getBlock())))
+                    .where('D',
                         blocks(GTLFusionCasingBlock.getCasingState(10))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(2).setMinGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where(
-                        "L",
+                    .where('L',
                         blocks(GTLFusionCasingBlock.getCasingState(10))
-                            .or(blocks(GTMachines.ITEM_IMPORT_BUS[0].get()))
-                            .or(blocks(CustomMachines.HUGE_ITEM_IMPORT_BUS[0].get()))
-                            .or(blocks(ME_SUPER_PATTERN_BUFFER.get()))
-                            .or(blocks(ME_SUPER_PATTERN_BUFFER_PROXY.get()))
+                            .or(machines(GTMachines.ITEM_IMPORT_BUS[0].get()))
+                            .or(machines(CustomMachines.HUGE_ITEM_IMPORT_BUS[0].get()))
+                            .or(machines(ME_SUPER_PATTERN_BUFFER.get()))
+                            .or(machines(ME_SUPER_PATTERN_BUFFER_PROXY.get()))
                     )
-                    .where("I", blocks(MOLECULAR_CASING.get()))
-                    .where("K", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("J", blocks(getBlock("kubejs:aggregatione_core")))
-                    .where("F", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("B", blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
-                    .where("A", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("C", blocks(GTLFusionCasingBlock.getCasingState(10)))
-                    .where("H", blocks(getBlock("kubejs:hollow_casing")))
-                    .where("G", blocks(GTLFusionCasingBlock.getCompressedCoilState(10)))
-                    .where(
-                        "O",
+                    .where('I', blocks(MOLECULAR_CASING.get()))
+                    .where('K', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('J', blocks(getBlock("kubejs:aggregatione_core")))
+                    .where('F', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('B', blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
+                    .where('A', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('C', blocks(GTLFusionCasingBlock.getCasingState(10)))
+                    .where('H', blocks(getBlock("kubejs:hollow_casing")))
+                    .where('G', blocks(GTLFusionCasingBlock.getCompressedCoilState(10)))
+                    .where('O',
                         blocks(GTLFusionCasingBlock.getCasingState(10))
                             .or(
                                 GTLPredicates.diffAbilities(
-                                    listOf<PartAbility?>(EXPORT_ITEMS),
-                                    listOf<PartAbility?>(IMPORT_ITEMS, IMPORT_FLUIDS)
+                                    listOf<PartAbility>(EXPORT_ITEMS),
+                                    listOf<PartAbility>(IMPORT_ITEMS, IMPORT_FLUIDS)
                                 )
                             )
                     )
-                    .where(" ", any())
+                    .where(' ', any())
                     .build()
             }
-            .additionalDisplay { controller: IMultiController?, components: MutableList<Component?>? ->
+            .additionalDisplay(GTLMultiblockDisplays.syncedLines { controller, components ->
                 if (controller!!.isFormed) {
                     components!!.add(
                         "gtceu.multiblock.parallel".toComponent(
@@ -842,8 +843,8 @@ object MultiBlockMachine {
                         ).withStyle(ChatFormatting.GRAY)
                     )
                 }
-            }
-            .workableCasingRenderer(
+            })
+            .workableCasingModel(
                 GTLFusionCasingBlock.getCasingType(10).texture,
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -851,7 +852,7 @@ object MultiBlockMachine {
 
         TITAN_CRIP_EARTHBORE = REGISTRATE.multiblock(
             "titan_crip_earthbore",
-            Function {
+            MachineInstanceFactory {
                 object : MutableElectricMultiblockMachine(it) {
                     override fun getMaxParallel(): Int = 2.0.pow(tier - 6).toInt()
                 }
@@ -865,31 +866,30 @@ object MultiBlockMachine {
             .recipeType(TECTONIC_FAULT_GENERATOR)
             .recipeModifiers(
                 *arrayOf<RecipeModifier?>(
-                    RecipeModifier { machine: MetaMachine?, recipe: GTRecipe?, _: OCParams?, _: OCResult? ->
-                        GTRecipeModifiers.accurateParallel(
+                    RecipeModifier { machine, _ -> ModifierFunction { recipe ->
+                        CoreRecipeModifiers.accurateParallel(
                             machine,
                             recipe!!,
                             2.0.pow(((machine as WorkableElectricMultiblockMachine).getTier() - 6).toDouble()).toInt(),
                             false
                         ).getFirst()
-                    },
+                    } },
                     GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.PERFECT_OVERCLOCK)
                 )
             )
             .appearanceBlock(ECHO_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.TITAN_CRIP_EARTHBORE_STRUCTURE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("I", blocks(getBlock("kubejs:neutronium_gearbox")))
-                    .where("H", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("G", blocks(getBlock("kubejs:machine_casing_grinding_head")))
-                    .where("B", blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
-                    .where("C", blocks(ECHO_CASING.get()))
-                    .where("A", blocks(MOLECULAR_CASING.get()))
-                    .where("F", blocks(getBlock("minecraft:bedrock")))
-                    .where("D", blocks(getBlock("kubejs:molecular_coil")))
-                    .where(
-                        "E",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('I', blocks(getBlock("kubejs:neutronium_gearbox")))
+                    .where('H', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('G', blocks(getBlock("kubejs:machine_casing_grinding_head")))
+                    .where('B', blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
+                    .where('C', blocks(ECHO_CASING.get()))
+                    .where('A', blocks(MOLECULAR_CASING.get()))
+                    .where('F', blocks(getBlock("minecraft:bedrock")))
+                    .where('D', blocks(getBlock("kubejs:molecular_coil")))
+                    .where('E',
                         blocks(ECHO_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
@@ -897,7 +897,7 @@ object MultiBlockMachine {
                     )
                     .build()
             }
-            .additionalDisplay { controller: IMultiController?, components: MutableList<Component?>? ->
+            .additionalDisplay(GTLMultiblockDisplays.syncedLines { controller, components ->
                 if (controller!!.isFormed) {
                     components!!.add(
                         "gtceu.multiblock.parallel".toComponent(
@@ -906,8 +906,8 @@ object MultiBlockMachine {
                         ).withStyle(ChatFormatting.GRAY)
                     )
                 }
-            }
-            .workableCasingRenderer(
+            })
+            .workableCasingModel(
                 GTLCore.id("block/casings/echo_casing"),
                 GTCEu.id("block/multiblock/cleanroom")
             )
@@ -915,7 +915,7 @@ object MultiBlockMachine {
 
         BIOLOGICAL_SIMULATION_LABORATORY = REGISTRATE.multiblock(
             "biological_simulation_laboratory",
-            Function { BiologicalSimulationLaboratory(it) }
+            MachineInstanceFactory { BiologicalSimulationLaboratory(it) }
         )
             .allRotation()
             .tooltipTextKey("gtceu.multiblock.biological_simulation_laboratory.tooltip.0".toComponent)
@@ -934,24 +934,23 @@ object MultiBlockMachine {
             .appearanceBlock(NAQUADAH_ALLOY_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.BIOLOGICAL_SIMULATION_LABORATORY_STRUCTURE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "A",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A',
                         blocks(NAQUADAH_ALLOY_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(blocks(*INPUT_LASER.getBlockRange(12, 14).toTypedArray<Block?>()).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("B", blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
-                    .where("C", blocks(HERMETIC_CASING_LuV.get()))
-                    .where("E", blocks(FUSION_GLASS.get()))
-                    .where("G", blocks(COMPUTER_HEAT_VENT.get()))
-                    .where("D", blocks(ADVANCED_COMPUTER_CASING.get()))
-                    .where("H", blocks(FILTER_CASING_STERILE.get()))
-                    .where("F", blocks(HERMETIC_CASING_ZPM.get()))
+                    .where('B', blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
+                    .where('C', blocks(HERMETIC_CASING_LuV.get()))
+                    .where('E', blocks(FUSION_GLASS.get()))
+                    .where('G', blocks(COMPUTER_HEAT_VENT.get()))
+                    .where('D', blocks(ADVANCED_COMPUTER_CASING.get()))
+                    .where('H', blocks(FILTER_CASING_STERILE.get()))
+                    .where('F', blocks(HERMETIC_CASING_ZPM.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/hyper_mechanical_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -959,7 +958,7 @@ object MultiBlockMachine {
 
         DIMENSIONALLY_TRANSCENDENT_CHEMICAL_PLANT = REGISTRATE.multiblock(
             "dimensionally_transcendent_chemical_plant",
-            Function { DimensionallyTranscendentChemicalPlant(it) }
+            MachineInstanceFactory { DimensionallyTranscendentChemicalPlant(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtceu.multiblock.dimensionally_transcendent_chemical_plant".toComponent)
@@ -971,10 +970,9 @@ object MultiBlockMachine {
             .recipeType(LARGE_CHEMICAL_RECIPES)
             .appearanceBlock(CASING_PTFE_INERT)
             .pattern { definition: MultiblockMachineDefinition? ->
-                GTLMachines.DTPF
-                    .where("a", controller(blocks(definition!!.get())))
-                    .where(
-                        "e",
+                GTLMachines.DTPF.get()
+                    .where('a', controller(blocks(definition!!.getBlock())))
+                    .where('e',
                         blocks(CASING_PTFE_INERT.get())
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
@@ -985,14 +983,14 @@ object MultiBlockMachine {
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("b", blocks(HIGH_POWER_CASING.get()))
-                    .where("C", heatingCoils())
-                    .where("d", blocks(CASING_PTFE_INERT.get()))
-                    .where("s", blocks(getBlock("gtceu:ptfe_pipe_casing")))
-                    .where(" ", any())
+                    .where('b', blocks(HIGH_POWER_CASING.get()))
+                    .where('C', heatingCoils())
+                    .where('d', blocks(CASING_PTFE_INERT.get()))
+                    .where('s', blocks(getBlock("gtceu:ptfe_pipe_casing")))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/solid/machine_casing_inert_ptfe"),
                 GTCEu.id("block/machines/chemical_reactor")
             )
@@ -1000,7 +998,7 @@ object MultiBlockMachine {
 
         QUANTUM_SYPHON_MATRIX = REGISTRATE.multiblock(
             "quantum_syphon_matrix",
-            Function { GTLAddWorkableElectricParallelHatchMultipleRecipesMachine(it) }
+            MachineInstanceFactory { GTLAddWorkableElectricParallelHatchMultipleRecipesMachine(it) }
         )
             .noneRotation()
             .tooltipTextParallelHatch()
@@ -1013,13 +1011,12 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.QUANTUM_SYPHON_MATRIX_STRUCTURE!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("C", blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
-                    .where("G", blocks(getBlock("kubejs:accelerated_pipeline")))
-                    .where("D", blocks(MOLECULAR_CASING.get()))
-                    .where("H", blocks(getBlock("kubejs:neutronium_gearbox")))
-                    .where(
-                        "F",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('C', blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
+                    .where('G', blocks(getBlock("kubejs:accelerated_pipeline")))
+                    .where('D', blocks(MOLECULAR_CASING.get()))
+                    .where('H', blocks(getBlock("kubejs:neutronium_gearbox")))
+                    .where('F',
                         blocks(HIGH_POWER_CASING.get())
                             .or(autoAbilities(*definition.recipeTypes))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
@@ -1027,15 +1024,15 @@ object MultiBlockMachine {
                             .or(abilities(PartAbility.PARALLEL_HATCH).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("J", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("A", blocks(NAQUADAH_ALLOY_CASING.get()))
-                    .where("B", blocks(getBlock("gtceu:assembly_line_grating")))
-                    .where("I", blocks(HERMETIC_CASING_UHV.get()))
-                    .where("E", blocks(getBlock("kubejs:hollow_casing")))
-                    .where(" ", any())
+                    .where('J', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('A', blocks(NAQUADAH_ALLOY_CASING.get()))
+                    .where('B', blocks(getBlock("gtceu:assembly_line_grating")))
+                    .where('I', blocks(HERMETIC_CASING_UHV.get()))
+                    .where('E', blocks(getBlock("kubejs:hollow_casing")))
+                    .where(' ', any())
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/machines/gas_collector")
             )
@@ -1043,7 +1040,7 @@ object MultiBlockMachine {
 
         FUXI_BAGUA_HEAVEN_FORGING_FURNACE = REGISTRATE.multiblock(
             "fuxi_bagua_heaven_forging_furnace",
-            Function { GTLAddCoilWorkableElectricParallelHatchMultipleRecipesMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricParallelHatchMultipleRecipesMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextParallelHatch()
@@ -1059,10 +1056,9 @@ object MultiBlockMachine {
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.FUXI_BAGUA_HEAVEN_FORGING_FURNACE_STRUCTURE!!
-                    .where("D", controller(blocks(definition!!.get())))
-                    .where("K", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where(
-                        "C",
+                    .where('D', controller(blocks(definition!!.getBlock())))
+                    .where('K', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('C',
                         blocks(DIMENSION_INJECTION_CASING.get())
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
@@ -1072,22 +1068,22 @@ object MultiBlockMachine {
                             .or(abilities(PartAbility.PARALLEL_HATCH).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("X", heatingCoils())
-                    .where("J", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("F", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("I", blocks(getBlock("kubejs:molecular_coil")))
-                    .where("A", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("G", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("N", blocks(ULTIMATE_STELLAR_CONTAINMENT_CASING.get()))
-                    .where("B", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("E", blocks(getBlock("kubejs:dimension_creation_casing")))
-                    .where("H", blocks(getBlock("kubejs:spacetime_compression_field_generator")))
-                    .where("L", blocks(COMPRESSED_FUSION_COIL_MK2_PROTOTYPE.get()))
-                    .where("M", blocks(getBlock("kubejs:dimensional_stability_casing")))
-                    .where("O", blocks(getBlock("kubejs:restraint_device")))
+                    .where('X', heatingCoils())
+                    .where('J', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('F', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('I', blocks(getBlock("kubejs:molecular_coil")))
+                    .where('A', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('G', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('N', blocks(ULTIMATE_STELLAR_CONTAINMENT_CASING.get()))
+                    .where('B', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('E', blocks(getBlock("kubejs:dimension_creation_casing")))
+                    .where('H', blocks(getBlock("kubejs:spacetime_compression_field_generator")))
+                    .where('L', blocks(COMPRESSED_FUSION_COIL_MK2_PROTOTYPE.get()))
+                    .where('M', blocks(getBlock("kubejs:dimensional_stability_casing")))
+                    .where('O', blocks(getBlock("kubejs:restraint_device")))
                     .build()
             }
-            .additionalDisplay { controller: IMultiController?, components: MutableList<Component?>? ->
+            .additionalDisplay(GTLMultiblockDisplays.syncedLines { controller, components ->
                 if (controller is GTLAddCoilWorkableElectricParallelHatchMultipleRecipesMachine) {
                     if (controller.isFormed()) {
                         components!!.add(
@@ -1098,8 +1094,8 @@ object MultiBlockMachine {
                         )
                     }
                 }
-            }
-            .workableCasingRenderer(
+            })
+            .workableCasingModel(
                 GTLCore.id("block/casings/dimension_injection_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -1107,7 +1103,7 @@ object MultiBlockMachine {
 
         ANTIENTROPY_CONDENSATION_CENTER = REGISTRATE.multiblock(
             "antientropy_condensation_center",
-            Function { AntientropyCondensationCenter(it) }
+            MachineInstanceFactory { AntientropyCondensationCenter(it) }
         )
             .allRotation()
             .tooltipTextKey("gtceu.multiblock.antientropy_condensation_center.0".toComponent)
@@ -1123,16 +1119,15 @@ object MultiBlockMachine {
             .appearanceBlock(ANTIFREEZE_HEATPROOF_MACHINE_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.ANTIENTROPY_CONDENSATION_CENTER_STRUCTURE!!
-                    .where("B", controller(blocks(definition!!.get())))
-                    .where("C", blocks(MOLECULAR_CASING.get()))
-                    .where("K", blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
-                    .where("D", blocks(HERMETIC_CASING_UXV.get()))
-                    .where("M", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("J", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("I", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("A", blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
-                    .where(
-                        "X",
+                    .where('B', controller(blocks(definition!!.getBlock())))
+                    .where('C', blocks(MOLECULAR_CASING.get()))
+                    .where('K', blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
+                    .where('D', blocks(HERMETIC_CASING_UXV.get()))
+                    .where('M', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('J', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('I', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('A', blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
+                    .where('X',
                         blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get())
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
@@ -1142,14 +1137,14 @@ object MultiBlockMachine {
                             .or(abilities(PartAbility.PARALLEL_HATCH).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("F", blocks(COMPRESSED_FUSION_COIL_MK2.get()))
-                    .where("G", blocks(getBlock("gtlcore:law_filter_casing")))
-                    .where("H", blocks(getBlock("kubejs:hollow_casing")))
-                    .where("E", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("L", blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('F', blocks(COMPRESSED_FUSION_COIL_MK2.get()))
+                    .where('G', blocks(getBlock("gtlcore:law_filter_casing")))
+                    .where('H', blocks(getBlock("kubejs:hollow_casing")))
+                    .where('E', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('L', blocks(DIMENSION_INJECTION_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/antifreeze_heatproof_machine_casing"),
                 GTCEu.id("block/multiblock/vacuum_freezer")
             )
@@ -1157,7 +1152,7 @@ object MultiBlockMachine {
 
         TAIXU_TURBID_ARRAY = REGISTRATE.multiblock(
             "taixu_turbid_array",
-            Function { TaixuTurbidArray(it) }
+            MachineInstanceFactory { TaixuTurbidArray(it) }
         )
             .tooltipTextKey("gtceu.machine.taixuturbidarray.tooltip.0".toComponent)
             .tooltipTextKey("gtceu.machine.taixuturbidarray.tooltip.1".toComponent)
@@ -1187,44 +1182,44 @@ object MultiBlockMachine {
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .rotationState(RotationState.Y_AXIS)
             .recipeType(CHAOS_WEAVE)
-            .recipeModifier { machine: MetaMachine?, recipe: GTRecipe?, _: OCParams?, _: OCResult? ->
+            .recipeModifier { machine, _ -> ModifierFunction { recipe ->
                 TaixuTurbidArray.recipeModifier(machine!!, recipe!!)
-            }
+            } }
             .appearanceBlock(MACHINE_CASING_UHV)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.TAIXU_TURBID_ARRAY_STRUCTURE!!
-                    .where("T", controller(blocks(definition!!.get())))
-                    .where(
-                        "K",
+                    .where('T', controller(blocks(definition!!.getBlock())))
+                    .where('K',
                         blocks(MACHINE_CASING_UHV.get())
                             .or(abilities(INPUT_LASER).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(EXPORT_FLUIDS).setPreviewCount(1))
                     )
-                    .where("H", blocks(MACHINE_CASING_UHV.get()))
-                    .where("E", blocks(getBlock("gtceu:woods_glass_block")))
-                    .where("J", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("B", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("R", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("S", GTLPredicates.countBlock("SpeedPipe", getBlock("kubejs:speeding_pipe")))
-                    .where("G", blocks(getBlock("kubejs:hollow_casing")))
-                    .where("F", blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
-                    .where("N", blocks(FUSION_CASING_MK5.get()))
-                    .where("I", blocks(SPS_CASING.get()))
-                    .where("P", blocks(FUSION_GLASS.get()))
-                    .where("M", GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
-                    .where("A", blocks(IRIDIUM_CASING.get()))
-                    .where("L", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("Q", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("C", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("D", blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
-                    .where("O", heatingCoils())
+                    .where('H', blocks(MACHINE_CASING_UHV.get()))
+                    .where('E', blocks(getBlock("gtceu:woods_glass_block")))
+                    .where('J', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('B', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('R', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('S', GTLPredicates.countBlock("SpeedPipe", getBlock("kubejs:speeding_pipe")))
+                    .where('G', blocks(getBlock("kubejs:hollow_casing")))
+                    .where('F', blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
+                    .where('N', blocks(FUSION_CASING_MK5.get()))
+                    .where('I', blocks(SPS_CASING.get()))
+                    .where('P', blocks(FUSION_GLASS.get()))
+                    .where('M', GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
+                    .where('A', blocks(IRIDIUM_CASING.get()))
+                    .where('L', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('Q', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('C', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('D', blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
+                    .where('O', heatingCoils())
                     .build()
             }
-            .shapeInfos { definition ->
-                val results = ObjectArrayList<MultiblockShapeInfo>()
-                val shapeInfo = MultiblockShapeInfo.builder()
+            .onRegister { definition ->
+                NativePreviewShapes.register(definition) {
+                val results = ObjectArrayList<NativePreviewGeometry>()
+                val shapeInfo = NativePreviewGeometry.visualBuilder()
                     .where('T', definition, Direction.DOWN)
                     .where('J', getBlock("gtlcore:dimension_injection_casing"))
                     .where('G', getBlock("kubejs:hollow_casing"))
@@ -1266,12 +1261,13 @@ object MultiBlockMachine {
                     it.forEach { strings ->
                         copy = copy.aisle(*strings)
                     }
-                    val result = copy.build()
+                    val result = copy.build(definition)
                     results.add(result)
                 }
                 results
             }
-            .workableCasingRenderer(
+            }
+            .workableCasingModel(
                 GTCEu.id("block/casings/voltage/uhv/side"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
@@ -1279,7 +1275,7 @@ object MultiBlockMachine {
 
         PLANETARY_IONISATION_CONVERGENCE_TOWER = REGISTRATE.multiblock(
             "planetary_ionisation_convergence_tower",
-            Function { PlanetaryIonisationConvergenceTower(it) }
+            MachineInstanceFactory { PlanetaryIonisationConvergenceTower(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtceu.machine.hold_g.tooltip.0".toComponent)
@@ -1291,41 +1287,40 @@ object MultiBlockMachine {
             .appearanceBlock(SPS_CASING)
             .pattern { definition ->
                 MultiBlockStructure.PLANETARY_IONISATION_CONVERGENCE_TOWER
-                    .where("Z", controller(blocks(definition!!.get())))
-                    .where(
-                        "I",
+                    .where('Z', controller(blocks(definition!!.getBlock())))
+                    .where('I',
                         blocks(SPS_CASING.get())
                             .or(abilities(IMPORT_FLUIDS).setMaxGlobalLimited(1))
                             .or(abilities(PartAbility.OUTPUT_LASER).setExactLimit(1))
                     )
-                    .where("U", blocks(PLASTCRETE.get()))
-                    .where("G", blocks(GCyMBlocks.ELECTROLYTIC_CELL.get()))
-                    .where("N", blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
-                    .where("H", GTLAddPredicates.slabBlock(SlabType.BOTTOM, Blocks.POLISHED_DEEPSLATE_SLAB))
-                    .where("O", blocks(Blocks.POLISHED_DEEPSLATE_WALL))
-                    .where("P", blocks(CASING_EXTREME_ENGINE_INTAKE.get()))
-                    .where("R", blocks(FUSION_GLASS.get()))
-                    .where("X", blocks(SUPERCONDUCTING_COIL.get()))
-                    .where("M", GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
-                    .where("B", blocks(ENHANCE_HYPER_MECHANICAL_CASING.get()))
-                    .where("W", blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
-                    .where("C", blocks(HIGH_POWER_CASING.get()))
-                    .where("Q", GTLAddPredicates.heatingCoils(14400))
-                    .where("T", blocks(AEBlocks.QUARTZ_VIBRANT_GLASS.block()))
-                    .where("D", blocks(HYPER_MECHANICAL_CASING.get()))
-                    .where("F", blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
-                    .where("J", blocks(OXIDATION_RESISTANT_HASTELLOY_N_MECHANICAL_CASING.get()))
-                    .where("L", blocks(Blocks.IRON_TRAPDOOR))
-                    .where("K", blocks(HEAT_VENT.get()))
-                    .where("E", blocks(MOLECULAR_CASING.get()))
-                    .where("V", blocks(CASING_PTFE_INERT.get()))
-                    .where("S", blocks(HSSS_REINFORCED_BOROSILICATE_GLASS.get()))
-                    .where("[", blocks(Blocks.BEACON))
-                    .where("a", blocks(CLEANROOM_GLASS.get()))
-                    .where("Y", blocks(Blocks.IRON_BLOCK))
+                    .where('U', blocks(PLASTCRETE.get()))
+                    .where('G', blocks(GCYMBlocks.ELECTROLYTIC_CELL.get()))
+                    .where('N', blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
+                    .where('H', GTLAddPredicates.slabBlock(SlabType.BOTTOM, Blocks.POLISHED_DEEPSLATE_SLAB))
+                    .where('O', blocks(Blocks.POLISHED_DEEPSLATE_WALL))
+                    .where('P', blocks(CASING_EXTREME_ENGINE_INTAKE.get()))
+                    .where('R', blocks(FUSION_GLASS.get()))
+                    .where('X', blocks(SUPERCONDUCTING_COIL.get()))
+                    .where('M', GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
+                    .where('B', blocks(ENHANCE_HYPER_MECHANICAL_CASING.get()))
+                    .where('W', blocks(ChemicalHelper.getBlock(frameGt, NaquadahAlloy)))
+                    .where('C', blocks(HIGH_POWER_CASING.get()))
+                    .where('Q', GTLAddPredicates.heatingCoils(14400))
+                    .where('T', blocks(AEBlocks.QUARTZ_VIBRANT_GLASS.block()))
+                    .where('D', blocks(HYPER_MECHANICAL_CASING.get()))
+                    .where('F', blocks(ChemicalHelper.getBlock(frameGt, Mithril)))
+                    .where('J', blocks(OXIDATION_RESISTANT_HASTELLOY_N_MECHANICAL_CASING.get()))
+                    .where('L', blocks(Blocks.IRON_TRAPDOOR))
+                    .where('K', blocks(HEAT_VENT.get()))
+                    .where('E', blocks(MOLECULAR_CASING.get()))
+                    .where('V', blocks(CASING_PTFE_INERT.get()))
+                    .where('S', blocks(HSSS_REINFORCED_BOROSILICATE_GLASS.get()))
+                    .where('[', blocks(Blocks.BEACON))
+                    .where('a', blocks(CLEANROOM_GLASS.get()))
+                    .where('Y', blocks(Blocks.IRON_BLOCK))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/sps_casing"),
                 GTCEu.id("block/multiblock/gcym/large_assembler")
             )
@@ -1333,7 +1328,7 @@ object MultiBlockMachine {
 
         INFERNO_CLEFT_SMELTING_VAULT = REGISTRATE.multiblock(
             "inferno_cleft_smelting_vault",
-            Function { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextCoilParallel()
@@ -1345,9 +1340,8 @@ object MultiBlockMachine {
             .appearanceBlock(IRIDIUM_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.INFERNO_CLEFT_SMELTING_VAULT!!
-                    .where("L", controller(blocks(definition!!.get())))
-                    .where(
-                        "I",
+                    .where('L', controller(blocks(definition!!.getBlock())))
+                    .where('I',
                         blocks(IRIDIUM_CASING.get())
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
@@ -1357,20 +1351,20 @@ object MultiBlockMachine {
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("M", blocks(getBlock("gtceu:uv_muffler_hatch")))
-                    .where("G", heatingCoils())
-                    .where("H", heatingCoils())
-                    .where("B", blocks(IRIDIUM_CASING.get()))
-                    .where("A", blocks(MOLECULAR_CASING.get()))
-                    .where("J", blocks(HERMETIC_CASING_LuV.get()))
-                    .where("C", blocks(HYPER_MECHANICAL_CASING.get()))
-                    .where("E", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("K", blocks(HYPER_CORE.get()))
-                    .where("D", blocks(getBlock("gtceu:high_temperature_smelting_casing")))
-                    .where("F", blocks(FUSION_GLASS.get()))
+                    .where('M', blocks(getBlock("gtceu:uv_muffler_hatch")))
+                    .where('G', heatingCoils())
+                    .where('H', heatingCoils())
+                    .where('B', blocks(IRIDIUM_CASING.get()))
+                    .where('A', blocks(MOLECULAR_CASING.get()))
+                    .where('J', blocks(HERMETIC_CASING_LuV.get()))
+                    .where('C', blocks(HYPER_MECHANICAL_CASING.get()))
+                    .where('E', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('K', blocks(HYPER_CORE.get()))
+                    .where('D', blocks(getBlock("gtceu:high_temperature_smelting_casing")))
+                    .where('F', blocks(FUSION_GLASS.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/iridium_casing"),
                 GTCEu.id("block/multiblock/pyrolyse_oven")
             )
@@ -1378,7 +1372,7 @@ object MultiBlockMachine {
 
         SKELETON_SHIFT_RIFT_ENGINE = REGISTRATE.multiblock(
             "skeleton_shift_rift_engine",
-            Function { SkeletonShiftRiftEngine(it) }
+            MachineInstanceFactory { SkeletonShiftRiftEngine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtceu.multiblock.skeleton_shift_rift_engine.0".toComponent)
@@ -1392,17 +1386,16 @@ object MultiBlockMachine {
             .appearanceBlock(HYPER_MECHANICAL_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.SKELETON_SHIFT_RIFT_ENGINE!!
-                    .where("Q", controller(blocks(definition!!.get())))
-                    .where("P", GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
-                    .where("E", blocks(ChemicalHelper.getBlock(frameGt, BlackSteel)))
-                    .where("B", blocks(HIGH_POWER_CASING.get()))
-                    .where("D", blocks(SPS_CASING.get()))
-                    .where("J", blocks(getBlock("gtceu:steel_pipe_casing")))
-                    .where("A", blocks(IRIDIUM_CASING.get()))
-                    .where("M", blocks(getBlock("gtceu:tungstensteel_gearbox")))
-                    .where("H", blocks(HYPER_MECHANICAL_CASING.get()))
-                    .where(
-                        "h",
+                    .where('Q', controller(blocks(definition!!.getBlock())))
+                    .where('P', GTLPredicates.tierCasings(BlockMap.scMap, "SCTier"))
+                    .where('E', blocks(ChemicalHelper.getBlock(frameGt, BlackSteel)))
+                    .where('B', blocks(HIGH_POWER_CASING.get()))
+                    .where('D', blocks(SPS_CASING.get()))
+                    .where('J', blocks(getBlock("gtceu:steel_pipe_casing")))
+                    .where('A', blocks(IRIDIUM_CASING.get()))
+                    .where('M', blocks(getBlock("gtceu:tungstensteel_gearbox")))
+                    .where('H', blocks(HYPER_MECHANICAL_CASING.get()))
+                    .where('h',
                         blocks(HYPER_MECHANICAL_CASING.get())
                             .or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
@@ -1412,23 +1405,23 @@ object MultiBlockMachine {
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("O", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("F", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("I", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("N", heatingCoils())
-                    .where("G", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("C", blocks(ENHANCE_HYPER_MECHANICAL_CASING.get()))
-                    .where("K", blocks(HYPER_CORE.get()))
-                    .where("L", blocks(FUSION_GLASS.get()))
+                    .where('O', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('F', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('I', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('N', heatingCoils())
+                    .where('G', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('C', blocks(ENHANCE_HYPER_MECHANICAL_CASING.get()))
+                    .where('K', blocks(HYPER_CORE.get()))
+                    .where('L', blocks(FUSION_GLASS.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/hyper_mechanical_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )
             .register()
 
-        TIME_SPACE_DISTORTER = REGISTRATE.multiblock("time_space_distorter", Function { TimeSpaceDistorter(it) })
+        TIME_SPACE_DISTORTER = REGISTRATE.multiblock("time_space_distorter", MachineInstanceFactory { TimeSpaceDistorter(it) })
             .nonYAxisRotation()
             .tooltipTextKey("gtceu.multiblock.time_space_distorter.tooltip.0".toComponent)
             .tooltipTextKey("gtceu.multiblock.time_space_distorter.tooltip.1".toComponent)
@@ -1437,53 +1430,51 @@ object MultiBlockMachine {
             .tooltipTextRecipeTypes(GTLAddRecipesTypes.TIME_SPACE_DISTORTION)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .recipeType(GTLAddRecipesTypes.TIME_SPACE_DISTORTION)
-            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 1.0, false)))
+            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 1.0, false)))
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.TIME_SPACE_DISTORTER_STRUCTURE
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(INPUT_ENERGY))
                     )
-                    .where("F", blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
-                    .where("C", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("U", blocks(getBlock("kubejs:dyson_deployment_casing")))
-                    .where("N", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("V", blocks(MANIPULATOR.get()))
-                    .where("G", blocks(ChemicalHelper.getBlock(frameGt, MagnetohydrodynamicallyConstrainedStarMatter)))
-                    .where("E", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("I", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("X", blocks(getBlock("kubejs:dimensional_stability_casing")))
-                    .where("A", blocks(CREATE_CASING.get()))
-                    .where("S", blocks(Blocks.BEACON))
-                    .where("H", blocks(ChemicalHelper.getBlock(frameGt, QuantumChromodynamicallyConfinedMatter)))
-                    .where("Z", blocks(getBlock("kubejs:dimension_creation_casing")))
-                    .where("W", blocks(HYPER_CORE.get()))
-                    .where("M", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("Y", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("Q", blocks(Blocks.DIAMOND_BLOCK))
-                    .where("P", blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
-                    .where("R", blocks(INFINITY_GLASS.get()))
-                    .where("T", blocks(getBlock("kubejs:dyson_control_casing")))
-                    .where("[", blocks(getBlock("kubejs:create_aggregatione_core")))
-                    .where("L", blocks(getBlock("kubejs:eternity_coil_block")))
-                    .where("O", blocks(ChemicalHelper.getBlock(frameGt, Eternity)))
-                    .where("K", blocks(getBlock("kubejs:molecular_coil")))
-                    .where("J", blocks(QFT_COIL.get()))
-                    .where("D", blocks(getBlock("kubejs:uruium_coil_block")))
+                    .where('F', blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
+                    .where('C', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('U', blocks(getBlock("kubejs:dyson_deployment_casing")))
+                    .where('N', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('V', blocks(MANIPULATOR.get()))
+                    .where('G', blocks(ChemicalHelper.getBlock(frameGt, MagnetohydrodynamicallyConstrainedStarMatter)))
+                    .where('E', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('I', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('X', blocks(getBlock("kubejs:dimensional_stability_casing")))
+                    .where('A', blocks(CREATE_CASING.get()))
+                    .where('S', blocks(Blocks.BEACON))
+                    .where('H', blocks(ChemicalHelper.getBlock(frameGt, QuantumChromodynamicallyConfinedMatter)))
+                    .where('Z', blocks(getBlock("kubejs:dimension_creation_casing")))
+                    .where('W', blocks(HYPER_CORE.get()))
+                    .where('M', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('Y', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('Q', blocks(Blocks.DIAMOND_BLOCK))
+                    .where('P', blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
+                    .where('R', blocks(INFINITY_GLASS.get()))
+                    .where('T', blocks(getBlock("kubejs:dyson_control_casing")))
+                    .where('[', blocks(getBlock("kubejs:create_aggregatione_core")))
+                    .where('L', blocks(getBlock("kubejs:eternity_coil_block")))
+                    .where('O', blocks(ChemicalHelper.getBlock(frameGt, Eternity)))
+                    .where('K', blocks(getBlock("kubejs:molecular_coil")))
+                    .where('J', blocks(QFT_COIL.get()))
+                    .where('D', blocks(getBlock("kubejs:uruium_coil_block")))
                     .build()
             }
-            .renderer { TimeSpaceDistorterRenderer() }
-            .hasTESR(true)
+            .dynamicCasingModel(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"), ::TimeSpaceDistorterRenderer)
             .register()
 
         APOCALYPTIC_TORSION_QUANTUM_MATRIX = REGISTRATE.multiblock(
             "apocalyptic_torsion_quantum_matrix",
-            Function { ApocalypticTorsionQuantumMatrix(it) }
+            MachineInstanceFactory { ApocalypticTorsionQuantumMatrix(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.apocalyptic_torsion_quantum_matrix.tooltip.0".toComponent)
@@ -1504,14 +1495,13 @@ object MultiBlockMachine {
             .appearanceBlock(DIMENSIONALLY_TRANSCENDENT_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.APOCALYPTIC_TORSION_QUANTUM_MATRIX!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("A", blocks(QFT_COIL.get()))
-                    .where("B", blocks(MANIPULATOR.get()))
-                    .where("C", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("D", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("E", blocks(QUANTUM_GLASS.get()))
-                    .where(
-                        "F",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A', blocks(QFT_COIL.get()))
+                    .where('B', blocks(MANIPULATOR.get()))
+                    .where('C', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('D', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('E', blocks(QUANTUM_GLASS.get()))
+                    .where('F',
                         blocks(MANIPULATOR.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
@@ -1521,23 +1511,16 @@ object MultiBlockMachine {
                             .or(abilities(PartAbility.PARALLEL_HATCH).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("G", blocks(SPACETIMECONTINUUMRIPPER.get()))
+                    .where('G', blocks(SPACETIMECONTINUUMRIPPER.get()))
                     .build()
             }
-            .renderer {
-                PartWorkableCasingMachineRenderer(
-                    GTLCore.id("block/casings/dimensionally_transcendent_casing"),
-                    GTCEu.id("block/multiblock/data_bank"),
-                    MANIPULATOR,
-                    GTLCore.id("block/manipulator")
-                )
-            }
+            .workableCasingModel(GTLCore.id("block/casings/dimensionally_transcendent_casing"), GTCEu.id("block/multiblock/data_bank"))
             .partAppearance { _, _, _ -> MANIPULATOR.get().defaultBlockState() }
             .register()
 
         FORGE_OF_THE_ANTICHRIST = REGISTRATE.multiblock(
             "forge_of_the_antichrist",
-            Function { ForgeOfTheAntichrist(it) }
+            MachineInstanceFactory { ForgeOfTheAntichrist(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist.tooltip.0".toComponent)
@@ -1567,48 +1550,38 @@ object MultiBlockMachine {
             .recipeTypes(DIMENSIONALLY_TRANSCENDENT_PLASMA_FORGE_RECIPES, STELLAR_FORGE_RECIPES, ULTIMATE_MATERIAL_FORGE_RECIPES)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where(
-                        "A",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A',
                         blocks(GOD_FORGE_SUPPORT_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("B", blocks(GOD_FORGE_TRIM_CASING.get()))
-                    .where("C", blocks(GOD_FORGE_INNER_CASING.get()))
-                    .where("D", blocks(GOD_FORGE_SUPPORT_CASING.get()))
-                    .where("E", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("F", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("G", blocks(REMOTE_GRAVITON_FLOW_REGULATOR.get()))
-                    .where("H", blocks(SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS.get()))
-                    .where("I", blocks(CENTRAL_GRAVITON_FLOW_REGULATOR.get()))
-                    .where(
-                        "J",
+                    .where('B', blocks(GOD_FORGE_TRIM_CASING.get()))
+                    .where('C', blocks(GOD_FORGE_INNER_CASING.get()))
+                    .where('D', blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('E', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('F', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('G', blocks(REMOTE_GRAVITON_FLOW_REGULATOR.get()))
+                    .where('H', blocks(SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS.get()))
+                    .where('I', blocks(CENTRAL_GRAVITON_FLOW_REGULATOR.get()))
+                    .where('J',
                         blocks(GOD_FORGE_TRIM_CASING.get())
-                            .or(blocks(HELIOFUSION_EXOTICIZER.get()))
-                            .or(blocks(HELIOFLARE_POWER_FORGE.get()))
-                            .or(blocks(HELIOFLUIX_MELTING_CORE.get()))
-                            .or(blocks(HELIOTHERMAL_PLASMA_FABRICATOR.get()))
-                            .or(blocks(HELIOPHASE_LEYLINE_CRYSTALLIZER.get()))
+                            .or(machines(HELIOFUSION_EXOTICIZER.get()))
+                            .or(machines(HELIOFLARE_POWER_FORGE.get()))
+                            .or(machines(HELIOFLUIX_MELTING_CORE.get()))
+                            .or(machines(HELIOTHERMAL_PLASMA_FABRICATOR.get()))
+                            .or(machines(HELIOPHASE_LEYLINE_CRYSTALLIZER.get()))
                     )
-                    .where("K", blocks(MEDIARY_GRAVITON_FLOW_REGULATOR.get()))
+                    .where('K', blocks(MEDIARY_GRAVITON_FLOW_REGULATOR.get()))
                     .build()
             }
-            .renderer {
-                ForgeOfAntichristRenderer(
-                    GTLAdditions.id("block/casings/god_forge_inner_casing"),
-                    GTLAdditions.id("block/multiblock/forge_of_antichrist"),
-                    GOD_FORGE_SUPPORT_CASING,
-                    GTLAdditions.id("block/casings/god_forge_support_casing")
-                )
-            }
+            .dynamicCasingModel(GTLAdditions.id("block/casings/god_forge_inner_casing"), GTLAdditions.id("block/multiblock/forge_of_antichrist"), ::ForgeOfAntichristRenderer)
             .partAppearance { _, _, _ -> GOD_FORGE_SUPPORT_CASING.get().defaultBlockState() }
-            .hasTESR(true)
             .register()
 
-        RECURSIVE_REVERSE_ARRAY = REGISTRATE.multiblock("recursive_reverse_array", Function { RecursiveReverseArray(it) })
+        RECURSIVE_REVERSE_ARRAY = REGISTRATE.multiblock("recursive_reverse_array", MachineInstanceFactory { RecursiveReverseArray(it) })
             .noneRotation()
             .tooltipTextKey("gtladditions.multiblock.recursive_reverse_array.tooltip.1".toComponent)
             .tooltipTextKey("gtladditions.multiblock.recursive_reverse_array.tooltip.0".toComponent)
@@ -1616,9 +1589,8 @@ object MultiBlockMachine {
             .appearanceBlock(CREATE_CASING)
             .pattern {
                 MultiBlockStructure.RECURSIVE_REVERSE_FORGE_STRUCTURE
-                    .where("V", controller(blocks(it.get())))
-                    .where(
-                        "B",
+                    .where('V', controller(blocks(it.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
                             .or(abilities(EXPORT_ITEMS).setMaxGlobalLimited(2))
                             .or(abilities(IMPORT_ITEMS).setMaxGlobalLimited(1))
@@ -1626,138 +1598,134 @@ object MultiBlockMachine {
                             .or(abilities(IMPORT_FLUIDS).setMaxGlobalLimited(1))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                     )
-                    .where("D", blocks(DIMENSION_INJECTION_CASING.get()))
-                    .where("Q", blocks(HYPER_CORE.get()))
-                    .where("A", blocks(CREATE_CASING.get()))
-                    .where("L", blocks(getBlock("kubejs:dimension_creation_casing")))
-                    .where("U", blocks(FUSION_GLASS.get()))
-                    .where("G", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("C", blocks(TEMPORAL_ANCHOR_FIELD_CASING.get()))
-                    .where("E", blocks(ADVANCED_FUSION_COIL.get()))
-                    .where("J", blocks(FUSION_CASING_MK4.get()))
-                    .where("O", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("M", blocks(DRAGON_STRENGTH_TRITANIUM_CASING.get()))
-                    .where("P", blocks(IMPROVED_SUPERCONDUCTOR_COIL.get()))
-                    .where("K", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("F", blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
-                    .where("N", blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
-                    .where("S", blocks(getBlock("kubejs:magic_core")))
-                    .where("T", blocks(Blocks.CRYING_OBSIDIAN))
-                    .where("H", blocks(DIMENSION_CONNECTION_CASING.get()))
-                    .where("I", blocks(HIGH_POWER_CASING.get()))
-                    .where("R", blocks(FUSION_CASING_MK5.get()))
+                    .where('D', blocks(DIMENSION_INJECTION_CASING.get()))
+                    .where('Q', blocks(HYPER_CORE.get()))
+                    .where('A', blocks(CREATE_CASING.get()))
+                    .where('L', blocks(getBlock("kubejs:dimension_creation_casing")))
+                    .where('U', blocks(FUSION_GLASS.get()))
+                    .where('G', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('C', blocks(TEMPORAL_ANCHOR_FIELD_CASING.get()))
+                    .where('E', blocks(ADVANCED_FUSION_COIL.get()))
+                    .where('J', blocks(FUSION_CASING_MK4.get()))
+                    .where('O', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('M', blocks(DRAGON_STRENGTH_TRITANIUM_CASING.get()))
+                    .where('P', blocks(IMPROVED_SUPERCONDUCTOR_COIL.get()))
+                    .where('K', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('F', blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
+                    .where('N', blocks(DIMENSIONALLY_TRANSCENDENT_CASING.get()))
+                    .where('S', blocks(getBlock("kubejs:magic_core")))
+                    .where('T', blocks(Blocks.CRYING_OBSIDIAN))
+                    .where('H', blocks(DIMENSION_CONNECTION_CASING.get()))
+                    .where('I', blocks(HIGH_POWER_CASING.get()))
+                    .where('R', blocks(FUSION_CASING_MK5.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/create_casing"),
                 GTCEu.id("block/multiblock/top/cosmos_simulation")
             )
             .register()
 
-        CATALYTIC_CASCADE_ARRAY = REGISTRATE.multiblock("catalytic_cascade_array", Function { CatalyticCascadeArray(it) })
+        CATALYTIC_CASCADE_ARRAY = REGISTRATE.multiblock("catalytic_cascade_array", MachineInstanceFactory { CatalyticCascadeArray(it) })
             .nonYAxisRotation()
             .tooltipTextKey("tooltip.gtladditions.recursive_reverse_array_module".toComponent)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern {
                 MultiBlockStructure.RECURSIVE_REVERSE_FORGE_MODULE_STRUCTURE
-                    .where("F", controller(blocks(it.get())))
-                    .where(
-                        "B",
+                    .where('F', controller(blocks(it.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
-                            .or(blocks(GTLMachines.HUGE_FLUID_IMPORT_HATCH[1].get()).setExactLimit(1))
-                            .or(blocks(GTLAddMachines.VIENTIANE_TRANSCRIPTION_NODE.get()).setExactLimit(1))
+                            .or(machines(GTLMachines.HUGE_FLUID_IMPORT_HATCH[1].get()).setExactLimit(1))
+                            .or(machines(GTLAddMachines.VIENTIANE_TRANSCRIPTION_NODE.get()).setExactLimit(1))
                     )
-                    .where("C", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("E", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("D", blocks(getBlock("gtceu:attuned_tengam_block")))
-                    .where("A", blocks(FUSION_CASING_MK3.get()))
+                    .where('C', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('E', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('D', blocks(getBlock("gtceu:attuned_tengam_block")))
+                    .where('A', blocks(FUSION_CASING_MK3.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
+            .workableCasingModel(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
             .register()
 
-        MAGNETORHEOLOGICAL_CONVERGENCE_CORE = REGISTRATE.multiblock("magnetorheological_convergence_core", Function { MagnetorheologicalConvergenceCore(it) })
+        MAGNETORHEOLOGICAL_CONVERGENCE_CORE = REGISTRATE.multiblock("magnetorheological_convergence_core", MachineInstanceFactory { MagnetorheologicalConvergenceCore(it) })
             .nonYAxisRotation()
             .tooltipTextKey("tooltip.gtladditions.recursive_reverse_array_module".toComponent)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern {
                 MultiBlockStructure.RECURSIVE_REVERSE_FORGE_MODULE_STRUCTURE
-                    .where("F", controller(blocks(it.get())))
-                    .where(
-                        "B",
+                    .where('F', controller(blocks(it.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
-                            .or(blocks(CustomMachines.HUGE_ITEM_IMPORT_BUS[0].get()).setExactLimit(2))
-                            .or(blocks(GTLMachines.HUGE_FLUID_IMPORT_HATCH[1].get()).setExactLimit(1))
+                            .or(machines(CustomMachines.HUGE_ITEM_IMPORT_BUS[0].get()).setExactLimit(2))
+                            .or(machines(GTLMachines.HUGE_FLUID_IMPORT_HATCH[1].get()).setExactLimit(1))
                             .or(abilities(IMPORT_ITEMS).setMaxGlobalLimited(3))
                     )
-                    .where("C", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("E", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("D", blocks(getBlock("gtceu:attuned_tengam_block")))
-                    .where("A", blocks(FUSION_CASING_MK3.get()))
+                    .where('C', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('E', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('D', blocks(getBlock("gtceu:attuned_tengam_block")))
+                    .where('A', blocks(FUSION_CASING_MK3.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
+            .workableCasingModel(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
             .register()
 
-        SPACETIME_STASIS_DEVICE = REGISTRATE.multiblock("spacetime_stasis_device", Function { SpacetimeStasisDevice(it) })
+        SPACETIME_STASIS_DEVICE = REGISTRATE.multiblock("spacetime_stasis_device", MachineInstanceFactory { SpacetimeStasisDevice(it) })
             .nonYAxisRotation()
             .tooltipTextKey("tooltip.gtladditions.recursive_reverse_array_module".toComponent)
             .tooltipTextRecipeTypes(GTLAddRecipesTypes.SPACETIME_STASIS)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .recipeType(GTLAddRecipesTypes.SPACETIME_STASIS)
-            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 1.0, false)))
+            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 1.0, false)))
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern {
                 MultiBlockStructure.RECURSIVE_REVERSE_FORGE_MODULE_STRUCTURE
-                    .where("F", controller(blocks(it.get())))
-                    .where(
-                        "B",
+                    .where('F', controller(blocks(it.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(INPUT_ENERGY).setExactLimit(1))
                     )
-                    .where("C", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("E", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("D", blocks(getBlock("gtceu:attuned_tengam_block")))
-                    .where("A", blocks(FUSION_CASING_MK3.get()))
+                    .where('C', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('E', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('D', blocks(getBlock("gtceu:attuned_tengam_block")))
+                    .where('A', blocks(FUSION_CASING_MK3.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
+            .workableCasingModel(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
             .register()
 
-        SUPRATEMPORAL_BOOSTING_ENGINE = REGISTRATE.multiblock("supratemporal_boosting_engine", Function { SupratemporalBoostingEngine(it) })
+        SUPRATEMPORAL_BOOSTING_ENGINE = REGISTRATE.multiblock("supratemporal_boosting_engine", MachineInstanceFactory { SupratemporalBoostingEngine(it) })
             .nonYAxisRotation()
             .tooltipTextKey("tooltip.gtladditions.recursive_reverse_array_module".toComponent)
             .tooltipTextRecipeTypes(GTLAddRecipesTypes.SUPRATEMPORAL_BOOSTING)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .recipeType(GTLAddRecipesTypes.SUPRATEMPORAL_BOOSTING)
-            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 1.0, false)))
+            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 1.0, false)))
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern {
                 MultiBlockStructure.RECURSIVE_REVERSE_FORGE_MODULE_STRUCTURE
-                    .where("F", controller(blocks(it.get())))
-                    .where(
-                        "B",
+                    .where('F', controller(blocks(it.getBlock())))
+                    .where('B',
                         blocks(DIMENSION_INJECTION_CASING.get())
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(IMPORT_ITEMS).setMaxGlobalLimited(1))
                             .or(abilities(INPUT_ENERGY).setExactLimit(1))
-                            .or(blocks(GTLAddMachines.VIENTIANE_TRANSCRIPTION_NODE.get()).setExactLimit(1))
+                            .or(machines(GTLAddMachines.VIENTIANE_TRANSCRIPTION_NODE.get()).setExactLimit(1))
                     )
-                    .where("C", blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
-                    .where("E", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("D", blocks(getBlock("gtceu:attuned_tengam_block")))
-                    .where("A", blocks(FUSION_CASING_MK3.get()))
+                    .where('C', blocks(DEGENERATE_RHENIUM_CONSTRAINED_CASING.get()))
+                    .where('E', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('D', blocks(getBlock("gtceu:attuned_tengam_block")))
+                    .where('A', blocks(FUSION_CASING_MK3.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
+            .workableCasingModel(GTLCore.id("block/casings/dimension_injection_casing"), GTCEu.id("block/multiblock/fusion_reactor"))
             .register()
 
         HELIOFUSION_EXOTICIZER = REGISTRATE.multiblock(
             "heliofusion_exoticizer",
-            Function { HelioFusionExoticizer(it) }
+            MachineInstanceFactory { HelioFusionExoticizer(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.heliofusion_exoticizer.tooltip.0".toComponent)
@@ -1776,27 +1744,26 @@ object MultiBlockMachine {
             .appearanceBlock(GOD_FORGE_TRIM_CASING)
             .pattern { definition ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST_MODULE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(definition))
+                    .where('B',
                         blocks(GOD_FORGE_TRIM_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("F", blocks(PHONON_CONDUIT.get()))
-                    .where("G", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("D", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("E", blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('F', blocks(PHONON_CONDUIT.get()))
+                    .where('G', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('D', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('E', blocks(GOD_FORGE_SUPPORT_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
+            .workableCasingModel(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
             .register()
 
         HELIOFLARE_POWER_FORGE = REGISTRATE.multiblock(
             "helioflare_power_forge",
-            Function { HelioflarePowerForge(it) }
+            MachineInstanceFactory { HelioflarePowerForge(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.helioflare_power_forge.tooltip.0".toComponent)
@@ -1805,7 +1772,7 @@ object MultiBlockMachine {
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.0".toComponent)
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.2".toComponent)
             .tooltipTextKey(
-                "gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.3".toComponent(ALLOY_BLAST_RECIPES.registryName.toLanguageKey().toComponent)
+                "gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.3".toComponent(ALLOY_BLAST_RECIPES.id.toLanguageKey().toComponent)
             )
             .tooltipTextKey("gtceu.machine.eut_multiplier.tooltip".toComponent(0.2))
             .tooltipTextKey("gtladditions.multiblock.wireless_multiple_recipes_machine.tooltip.0".toComponent)
@@ -1817,27 +1784,26 @@ object MultiBlockMachine {
             .appearanceBlock(GOD_FORGE_TRIM_CASING)
             .pattern { definition ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST_MODULE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(definition))
+                    .where('B',
                         blocks(GOD_FORGE_TRIM_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("F", blocks(PHONON_CONDUIT.get()))
-                    .where("G", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("D", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("E", blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('F', blocks(PHONON_CONDUIT.get()))
+                    .where('G', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('D', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('E', blocks(GOD_FORGE_SUPPORT_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
+            .workableCasingModel(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
             .register()
 
         HELIOFLUIX_MELTING_CORE = REGISTRATE.multiblock(
             "heliofluix_melting_core",
-            Function { HeliofluixMeltingCore(it) }
+            MachineInstanceFactory { HeliofluixMeltingCore(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.heliofluix_melting_core.tooltip.0".toComponent)
@@ -1846,7 +1812,7 @@ object MultiBlockMachine {
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.0".toComponent)
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.2".toComponent)
             .tooltipTextKey(
-                "gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.3".toComponent(CHAOTIC_ALCHEMY.registryName.toLanguageKey().toComponent)
+                "gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.3".toComponent(CHAOTIC_ALCHEMY.id.toLanguageKey().toComponent)
             )
             .tooltipTextKey("gtceu.machine.eut_multiplier.tooltip".toComponent(0.2))
             .tooltipTextKey("gtladditions.multiblock.wireless_multiple_recipes_machine.tooltip.0".toComponent)
@@ -1858,27 +1824,26 @@ object MultiBlockMachine {
             .appearanceBlock(GOD_FORGE_TRIM_CASING)
             .pattern { definition ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST_MODULE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(definition))
+                    .where('B',
                         blocks(GOD_FORGE_TRIM_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("F", blocks(PHONON_CONDUIT.get()))
-                    .where("G", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("D", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("E", blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('F', blocks(PHONON_CONDUIT.get()))
+                    .where('G', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('D', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('E', blocks(GOD_FORGE_SUPPORT_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
+            .workableCasingModel(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
             .register()
 
         HELIOTHERMAL_PLASMA_FABRICATOR = REGISTRATE.multiblock(
             "heliothermal_plasma_fabricator",
-            Function { HeliothermalPlasmaFabricator(it) }
+            MachineInstanceFactory { HeliothermalPlasmaFabricator(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.heliothermal_plasma_fabricator.tooltip.0".toComponent)
@@ -1888,9 +1853,9 @@ object MultiBlockMachine {
             .tooltipTextKey("gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.2".toComponent)
             .tooltipTextKey(
                 "gtladditions.multiblock.forge_of_the_antichrist_module.tooltip.3".toComponent(
-                    FUSION_RECIPES.registryName.toLanguageKey().toComponent
+                    FUSION_RECIPES.id.toLanguageKey().toComponent
                         .append(", ".literal)
-                        .append(SUPER_PARTICLE_COLLIDER_RECIPES.registryName.toLanguageKey().toComponent)
+                        .append(SUPER_PARTICLE_COLLIDER_RECIPES.id.toLanguageKey().toComponent)
                 )
             )
             .tooltipTextKey("gtceu.machine.eut_multiplier.tooltip".toComponent(0.2))
@@ -1903,27 +1868,26 @@ object MultiBlockMachine {
             .appearanceBlock(GOD_FORGE_TRIM_CASING)
             .pattern { definition ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST_MODULE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(definition))
+                    .where('B',
                         blocks(GOD_FORGE_TRIM_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("F", blocks(PHONON_CONDUIT.get()))
-                    .where("G", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("D", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("E", blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('F', blocks(PHONON_CONDUIT.get()))
+                    .where('G', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('D', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('E', blocks(GOD_FORGE_SUPPORT_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
+            .workableCasingModel(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
             .register()
 
         HELIOPHASE_LEYLINE_CRYSTALLIZER = REGISTRATE.multiblock(
             "heliophase_leyline_crystallizer",
-            Function { HeliophaseLeylineCrystallizer(it) }
+            MachineInstanceFactory { HeliophaseLeylineCrystallizer(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.heliophase_leyline_crystallizer.tooltip.0".toComponent)
@@ -1941,27 +1905,26 @@ object MultiBlockMachine {
             .appearanceBlock(GOD_FORGE_TRIM_CASING)
             .pattern { definition ->
                 MultiBlockStructure.FORGE_OF_THE_ANTICHRIST_MODULE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where(
-                        "B",
+                    .where('~', controller(definition))
+                    .where('B',
                         blocks(GOD_FORGE_TRIM_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(EXPORT_FLUIDS))
                     )
-                    .where("F", blocks(PHONON_CONDUIT.get()))
-                    .where("G", blocks(GOD_FORGE_ENERGY_CASING.get()))
-                    .where("D", blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
-                    .where("E", blocks(GOD_FORGE_SUPPORT_CASING.get()))
+                    .where('F', blocks(PHONON_CONDUIT.get()))
+                    .where('G', blocks(GOD_FORGE_ENERGY_CASING.get()))
+                    .where('D', blocks(SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.get()))
+                    .where('E', blocks(GOD_FORGE_SUPPORT_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
+            .workableCasingModel(GTLAdditions.id("block/casings/god_forge_trim_casing"), GTLAdditions.id("block/multiblock/heliofusion_exoticizer"))
             .register()
 
         HEART_OF_THE_UNIVERSE = REGISTRATE.multiblock(
             "heart_of_the_universe",
-            Function { HeartOfTheUniverse(it) }
+            MachineInstanceFactory { HeartOfTheUniverse(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.heart_of_the_universe.tooltip.0".toComponent)
@@ -1977,36 +1940,34 @@ object MultiBlockMachine {
             .appearanceBlock(DIMENSION_INJECTION_CASING)
             .pattern { definition ->
                 MultiBlockStructure.ANNIHILATE_GENERATOR_STRUCTURE!!
-                    .where("~", controller(blocks(definition.get())))
-                    .where("A", blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
-                    .where("B", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("C", blocks(HYPER_MECHANICAL_CASING.get()))
-                    .where("D", blocks(getBlock("kubejs:dimensional_stability_casing")))
-                    .where("E", blocks(TEMPORAL_ANCHOR_FIELD_CASING.get()))
-                    .where("F", blocks(FUSION_GLASS.get()))
-                    .where("G", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("H", blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
-                    .where("P", blocks(DIMENSION_CONNECTION_CASING.get()))
-                    .where(
-                        "S",
+                    .where('~', controller(definition))
+                    .where('A', blocks(GRAVITON_FIELD_CONSTRAINT_CASING.get()))
+                    .where('B', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('C', blocks(HYPER_MECHANICAL_CASING.get()))
+                    .where('D', blocks(getBlock("kubejs:dimensional_stability_casing")))
+                    .where('E', blocks(TEMPORAL_ANCHOR_FIELD_CASING.get()))
+                    .where('F', blocks(FUSION_GLASS.get()))
+                    .where('G', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('H', blocks(RHENIUM_REINFORCED_ENERGY_GLASS.get()))
+                    .where('P', blocks(DIMENSION_CONNECTION_CASING.get()))
+                    .where('S',
                         blocks(DIMENSION_INJECTION_CASING.get())
-                            .or(blocks(Wireless_Energy_Network_OUTPUT_Terminal.get()))
+                            .or(machines(Wireless_Energy_Network_OUTPUT_Terminal.get()))
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("T", blocks(CREATE_CASING.get()))
-                    .where("R", blocks(getBlock("kubejs:dyson_deployment_magnet")))
-                    .where(" ", any())
+                    .where('T', blocks(CREATE_CASING.get()))
+                    .where('R', blocks(getBlock("kubejs:dyson_deployment_magnet")))
+                    .where(' ', any())
                     .build()
             }
-            .renderer { HeartOfTheUniverseRenderer() }
-            .hasTESR(true)
+            .dynamicCasingModel(GTCEu.id("block/casings/hpca/high_power_casing"), GTCEu.id("block/multiblock/cosmos_simulation"), ::HeartOfTheUniverseRenderer)
             .register()
 
         DIMENSION_FOCUS_INFINITY_CRAFTING_ARRAY = REGISTRATE.multiblock(
             "dimension_focus_infinity_crafting_array",
-            Function { DimensionFocusInfinityCraftingArray(it) }
+            MachineInstanceFactory { DimensionFocusInfinityCraftingArray(it) }
         )
             .nonYAxisRotation()
             .tooltipTextMaxParallels(4096.toString())
@@ -2021,18 +1982,17 @@ object MultiBlockMachine {
             .appearanceBlock(TEMPORAL_ANCHOR_FIELD_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.DIMENSION_FOCUS_INFINITY_CRAFTING_ARRAY!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("N", blocks(getBlock("gtceu:assembly_line_grating")))
-                    .where("O", blocks(getBlock("gtceu:assembly_line_casing")))
-                    .where("I", blocks(getBlock("gtceu:trinium_frame")))
-                    .where("L", blocks(getBlock("gtlcore:graviton_field_constraint_casing")))
-                    .where("B", blocks(getBlock("gtlcore:iridium_casing")))
-                    .where("F", blocks(getBlock("gtceu:high_power_casing")))
-                    .where("H", blocks(getBlock("gtceu:superconducting_coil")))
-                    .where("E", blocks(getBlock("gtlcore:advanced_assembly_line_unit")))
-                    .where("D", blocks(getBlock("gtladditions:temporal_anchor_field_casing")))
-                    .where(
-                        "S",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('N', blocks(getBlock("gtceu:assembly_line_grating")))
+                    .where('O', blocks(getBlock("gtceu:assembly_line_casing")))
+                    .where('I', blocks(getBlock("gtceu:trinium_frame")))
+                    .where('L', blocks(getBlock("gtlcore:graviton_field_constraint_casing")))
+                    .where('B', blocks(getBlock("gtlcore:iridium_casing")))
+                    .where('F', blocks(getBlock("gtceu:high_power_casing")))
+                    .where('H', blocks(getBlock("gtceu:superconducting_coil")))
+                    .where('E', blocks(getBlock("gtlcore:advanced_assembly_line_unit")))
+                    .where('D', blocks(getBlock("gtladditions:temporal_anchor_field_casing")))
+                    .where('S',
                         blocks(getBlock("gtladditions:temporal_anchor_field_casing"))
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
@@ -2040,18 +2000,18 @@ object MultiBlockMachine {
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("J", blocks(getBlock("gtlcore:molecular_casing")))
-                    .where("Q", blocks(getBlock("gtlcore:hyper_mechanical_casing")))
-                    .where("P", blocks(getBlock("gtceu:naquadah_alloy_frame")))
-                    .where("C", blocks(getBlock("gtceu:fusion_glass")))
-                    .where("K", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("M", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("A", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("G", blocks(getBlock("gtceu:advanced_computer_casing")))
-                    .where("R", blocks(getBlock("gtlcore:rhenium_reinforced_energy_glass")))
+                    .where('J', blocks(getBlock("gtlcore:molecular_casing")))
+                    .where('Q', blocks(getBlock("gtlcore:hyper_mechanical_casing")))
+                    .where('P', blocks(getBlock("gtceu:naquadah_alloy_frame")))
+                    .where('C', blocks(getBlock("gtceu:fusion_glass")))
+                    .where('K', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('M', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('A', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('G', blocks(getBlock("gtceu:advanced_computer_casing")))
+                    .where('R', blocks(getBlock("gtlcore:rhenium_reinforced_energy_glass")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/sps_casing"),
                 GTCEu.id("block/multiblock/research_station")
             )
@@ -2059,7 +2019,7 @@ object MultiBlockMachine {
 
         LIGHT_HUNTER_SPACE_STATION = REGISTRATE.multiblock(
             "light_hunter_space_station",
-            Function { LightHunterSpaceStation(it) }
+            MachineInstanceFactory { LightHunterSpaceStation(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.light_hunter_space_station.tooltip.0".toComponent)
@@ -2072,61 +2032,59 @@ object MultiBlockMachine {
             .tooltipTextRecipeTypes(INTER_STELLAR)
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .recipeType(INTER_STELLAR)
-            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 1.0, false)))
+            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 1.0, false)))
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.LIGHT_HUNTER_SPACE_STATION!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("b", blocks(getBlock("gtceu:uiv_machine_casing")))
-                    .where("G", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("P", blocks(getBlock("kubejs:restraint_device")))
-                    .where("`", blocks(getBlock("gtceu:computer_heat_vent")))
-                    .where("a", blocks(getBlock("gtlcore:super_computation_component")))
-                    .where("C", blocks(getBlock("gtceu:uxv_machine_casing")))
-                    .where("^", blocks(getBlock("kubejs:module_connector")))
-                    .where("X", blocks(getBlock("gtlcore:ultimate_stellar_containment_casing")))
-                    .where("D", blocks(getBlock("gtceu:fusion_glass")))
-                    .where("N", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("Q", blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
-                    .where("U", blocks(getBlock("gtlcore:fusion_casing_mk4")))
-                    .where("T", blocks(getBlock("ae2:quartz_vibrant_glass")))
-                    .where("L", blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
-                    .where("A", blocks(getBlock("gtceu:uhv_machine_casing")))
-                    .where("F", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("I", blocks(getBlock("gtladditions:extreme_density_casing")))
-                    .where(
-                        "d",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('b', blocks(getBlock("gtceu:uiv_machine_casing")))
+                    .where('G', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('P', blocks(getBlock("kubejs:restraint_device")))
+                    .where('`', blocks(getBlock("gtceu:computer_heat_vent")))
+                    .where('a', blocks(getBlock("gtlcore:super_computation_component")))
+                    .where('C', blocks(getBlock("gtceu:uxv_machine_casing")))
+                    .where('^', blocks(getBlock("kubejs:module_connector")))
+                    .where('X', blocks(getBlock("gtlcore:ultimate_stellar_containment_casing")))
+                    .where('D', blocks(getBlock("gtceu:fusion_glass")))
+                    .where('N', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('Q', blocks(getBlock("kubejs:spacetime_assembly_line_unit")))
+                    .where('U', blocks(getBlock("gtlcore:fusion_casing_mk4")))
+                    .where('T', blocks(getBlock("ae2:quartz_vibrant_glass")))
+                    .where('L', blocks(getBlock("gtlcore:dragon_strength_tritanium_casing")))
+                    .where('A', blocks(getBlock("gtceu:uhv_machine_casing")))
+                    .where('F', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('I', blocks(getBlock("gtladditions:extreme_density_casing")))
+                    .where('d',
                         blocks(HIGH_POWER_CASING.get())
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(INPUT_ENERGY).setMaxGlobalLimited(1))
                     )
-                    .where("V", blocks(getBlock("gtlcore:sps_casing")))
-                    .where("R", blocks(getBlock("gtceu:high_power_casing")))
-                    .where("E", blocks(getBlock("gtlcore:dimension_injection_casing")))
-                    .where("J", blocks(getBlock("gtceu:neutronium_frame")))
-                    .where("c", blocks(getBlock("gtceu:uhv_ultimate_battery")))
-                    .where("_", blocks(getBlock("gtceu:advanced_computer_casing")))
-                    .where("K", blocks(getBlock("gtlcore:echo_casing")))
-                    .where("M", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("S", blocks(getBlock("gtlcore:molecular_casing")))
-                    .where("=", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("W", blocks(getBlock("gtlcore:fusion_casing_mk5")))
-                    .where("O", blocks(getBlock("gtlcore:uxv_hermetic_casing")))
-                    .where("]", blocks(getBlock("gtladditions:gravity_stabilization_casing")))
-                    .where("H", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("Z", blocks(getBlock("gtlcore:improved_superconductor_coil")))
-                    .where("[", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("B", blocks(getBlock("gtlcore:naquadah_alloy_casing")))
-                    .where("Y", blocks(getBlock("gtlcore:enhance_hyper_mechanical_casing")))
+                    .where('V', blocks(getBlock("gtlcore:sps_casing")))
+                    .where('R', blocks(getBlock("gtceu:high_power_casing")))
+                    .where('E', blocks(getBlock("gtlcore:dimension_injection_casing")))
+                    .where('J', blocks(getBlock("gtceu:neutronium_frame")))
+                    .where('c', blocks(getBlock("gtceu:uhv_ultimate_battery")))
+                    .where('_', blocks(getBlock("gtceu:advanced_computer_casing")))
+                    .where('K', blocks(getBlock("gtlcore:echo_casing")))
+                    .where('M', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('S', blocks(getBlock("gtlcore:molecular_casing")))
+                    .where('=', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('W', blocks(getBlock("gtlcore:fusion_casing_mk5")))
+                    .where('O', blocks(getBlock("gtlcore:uxv_hermetic_casing")))
+                    .where(']', blocks(getBlock("gtladditions:gravity_stabilization_casing")))
+                    .where('H', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('Z', blocks(getBlock("gtlcore:improved_superconductor_coil")))
+                    .where('[', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('B', blocks(getBlock("gtlcore:naquadah_alloy_casing")))
+                    .where('Y', blocks(getBlock("gtlcore:enhance_hyper_mechanical_casing")))
                     .build()
             }
-            .renderer { LightHunterSpaceStationRenderer() }
-            .hasTESR(true)
+            .dynamicCasingModel(GTCEu.id("block/casings/hpca/high_power_casing"), GTCEu.id("block/multiblock/data_bank"), ::LightHunterSpaceStationRenderer)
             .register()
 
         PRIMORDIAL_EVOLUTION_NEXUS = REGISTRATE.multiblock(
             "primordial_evolution_nexus",
-            Function { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
+            MachineInstanceFactory { GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(it) }
         )
             .nonYAxisRotation()
             .tooltipTextCoilParallel()
@@ -2138,13 +2096,12 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.PRIMORDIAL_EVOLUTION_NEXUS_STRUCTURE
-                    .where("H", controller(blocks(definition!!.get())))
-                    .where("J", blocks(CASING_ALUMINIUM_FROSTPROOF.get()))
-                    .where("M", blocks(getBlock("kubejs:laser_cooling_casing")))
-                    .where("P", blocks(CLEANROOM_GLASS.get()))
-                    .where("[", blocks(ChemicalHelper.getBlock(frameGt, StainlessSteel)))
-                    .where(
-                        "F",
+                    .where('H', controller(blocks(definition!!.getBlock())))
+                    .where('J', blocks(CASING_ALUMINIUM_FROSTPROOF.get()))
+                    .where('M', blocks(getBlock("kubejs:laser_cooling_casing")))
+                    .where('P', blocks(CLEANROOM_GLASS.get()))
+                    .where('[', blocks(ChemicalHelper.getBlock(frameGt, StainlessSteel)))
+                    .where('F',
                         blocks(HIGH_POWER_CASING.get()).or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(EXPORT_FLUIDS).setPreviewCount(1))
@@ -2153,38 +2110,38 @@ object MultiBlockMachine {
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("A", blocks(getBlock("kubejs:high_strength_concrete")))
-                    .where("G", blocks(CASING_STAINLESS_CLEAN.get()))
-                    .where("`", blocks(CASING_ALUMINIUM_FROSTPROOF.get()))
-                    .where("L", blocks(getBlock("kubejs:gelid_cryotheum")))
-                    .where("+", blocks(getBlock("gtceu:crushing_wheels")))
-                    .where("_", blocks(ChemicalHelper.getBlock(frameGt, Tungsten)))
-                    .where("B", blocks(MOLECULAR_CASING.get()))
-                    .where("W", blocks(getBlock("gtceu:ptfe_pipe_casing")))
-                    .where("Q", blocks(ChemicalHelper.getBlock(com.gregtechceu.gtceu.api.data.tag.TagPrefix.block, RedAlloy)))
-                    .where("U", blocks(FUSION_GLASS.get()))
-                    .where("V", heatingCoils())
-                    .where("T", blocks(getBlock("kubejs:red_steel_casing")))
-                    .where("R", blocks(ChemicalHelper.getBlock(com.gregtechceu.gtceu.api.data.tag.TagPrefix.block, BlueAlloy)))
-                    .where("]", blocks(getBlock("gtceu:watertight_casing")))
-                    .where("S", blocks(CASING_TUNGSTENSTEEL_PIPE.get()))
-                    .where("K", blocks(HEAT_VENT.get()))
-                    .where("I", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("Z", blocks(getBlock("gtceu:secure_maceration_casing")))
-                    .where("D", blocks(getBlock("gtceu:high_temperature_smelting_casing")))
-                    .where("^", blocks(getBlock("gtceu:corrosion_proof_casing")))
-                    .where("N", blocks(GTMachines.MUFFLER_HATCH[10].get()))
-                    .where("O", blocks(getBlock("gtceu:vibration_safe_casing")))
-                    .where("Y", blocks(FILTER_CASING_STERILE.get()))
-                    .where("C", blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
-                    .where("a", blocks(CASING_INVAR_HEATPROOF.get()))
-                    .where("E", blocks(CASING_EXTREME_ENGINE_INTAKE.get()))
-                    .where("c", blocks(CASING_STAINLESS_EVAPORATION.get()))
-                    .where("X", blocks(CASING_PTFE_INERT.get()))
-                    .where("b", blocks(ChemicalHelper.getBlock(frameGt, Ruridit)))
+                    .where('A', blocks(getBlock("kubejs:high_strength_concrete")))
+                    .where('G', blocks(CASING_STAINLESS_CLEAN.get()))
+                    .where('`', blocks(CASING_ALUMINIUM_FROSTPROOF.get()))
+                    .where('L', blocks(getBlock("kubejs:gelid_cryotheum")))
+                    .where('+', blocks(getBlock("gtceu:crushing_wheels")))
+                    .where('_', blocks(ChemicalHelper.getBlock(frameGt, Tungsten)))
+                    .where('B', blocks(MOLECULAR_CASING.get()))
+                    .where('W', blocks(getBlock("gtceu:ptfe_pipe_casing")))
+                    .where('Q', blocks(ChemicalHelper.getBlock(com.gregtechceu.gtceu.api.data.tag.TagPrefix.block, RedAlloy)))
+                    .where('U', blocks(FUSION_GLASS.get()))
+                    .where('V', heatingCoils())
+                    .where('T', blocks(getBlock("kubejs:red_steel_casing")))
+                    .where('R', blocks(ChemicalHelper.getBlock(com.gregtechceu.gtceu.api.data.tag.TagPrefix.block, BlueAlloy)))
+                    .where(']', blocks(getBlock("gtceu:watertight_casing")))
+                    .where('S', blocks(CASING_TUNGSTENSTEEL_PIPE.get()))
+                    .where('K', blocks(HEAT_VENT.get()))
+                    .where('I', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('Z', blocks(getBlock("gtceu:secure_maceration_casing")))
+                    .where('D', blocks(getBlock("gtceu:high_temperature_smelting_casing")))
+                    .where('^', blocks(getBlock("gtceu:corrosion_proof_casing")))
+                    .where('N', machines(GTMachines.MUFFLER_HATCH[10].get()))
+                    .where('O', blocks(getBlock("gtceu:vibration_safe_casing")))
+                    .where('Y', blocks(FILTER_CASING_STERILE.get()))
+                    .where('C', blocks(ANTIFREEZE_HEATPROOF_MACHINE_CASING.get()))
+                    .where('a', blocks(CASING_INVAR_HEATPROOF.get()))
+                    .where('E', blocks(CASING_EXTREME_ENGINE_INTAKE.get()))
+                    .where('c', blocks(org.gtlcore.gtlcore.common.data.GTLRetainedGTBlocks.CASING_STAINLESS_EVAPORATION.get()))
+                    .where('X', blocks(CASING_PTFE_INERT.get()))
+                    .where('b', blocks(ChemicalHelper.getBlock(frameGt, Ruridit)))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/gcym/large_assembler")
             )
@@ -2192,7 +2149,7 @@ object MultiBlockMachine {
 
         BIOSPHERE_III = REGISTRATE.multiblock(
             "biosphere_iii",
-            Function { BiosphereIIIController(it) }
+            MachineInstanceFactory { BiosphereIIIController(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey(
@@ -2204,90 +2161,89 @@ object MultiBlockMachine {
             .appearanceBlock(SPS_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.BIOSPHERE_III_STRUCTURE
-                    .where("|", controller(blocks(definition!!.get())))
-                    .where(
-                        "{",
+                    .where('|', controller(blocks(definition!!.getBlock())))
+                    .where('{',
                         blocks(SPS_CASING.get())
                             .or(abilities(INPUT_ENERGY))
                             .or(ability(INPUT_LASER, 11, 12, 13, 14))
                             .or(abilities(GTLAddPartAbility.THREAD_MODIFIER).setMaxGlobalLimited(1))
                     )
-                    .where("b", blocks(getBlock("gtceu:computer_casing")))
-                    .where("g", blocks(getBlock("kubejs:neutronium_pipe_casing")))
-                    .where("r", blocks(getBlock("kubejs:molecular_coil")))
-                    .where("G", blocks(getBlock("minecraft:mud")))
-                    .where("B", blocks(getBlock("gtceu:naquadria_frame")))
-                    .where("*", blocks(getBlock("gtceu:sterilizing_filter_casing")))
-                    .where("<", blocks(getBlock("minecraft:diorite")))
-                    .where("K", blocks(getBlock("minecraft:gravel")))
-                    .where("m", heatingCoils())
-                    .where("E", blocks(getBlock("gtlcore:rhenium_reinforced_energy_glass")))
-                    .where("M", blocks(getBlock("minecraft:mangrove_leaves")))
-                    .where("T", blocks(getBlock("minecraft:oak_leaves")))
-                    .where("i", blocks(getBlock("gtlcore:super_computation_component")))
-                    .where("l", blocks(getBlock("gtlcore:antifreeze_heatproof_machine_casing")))
-                    .where("~", blocks(getBlock("minecraft:water")).or(blocks(getBlock("minecraft:bubble_column"))))
-                    .where("L", blocks(getBlock("minecraft:water")))
-                    .where("R", blocks(getBlock("minecraft:packed_mud")))
-                    .where("S", blocks(getBlock("kubejs:magic_core")))
-                    .where("y", blocks(getBlock("minecraft:red_stained_glass_pane")))
-                    .where("#", blocks(getBlock("minecraft:coarse_dirt")))
-                    .where(";", blocks(getBlock("minecraft:deepslate")))
-                    .where("H", blocks(getBlock("minecraft:dirt")))
-                    .where("P", blocks(getBlock("minecraft:mangrove_log")))
-                    .where("Y", blocks(getBlock("minecraft:acacia_log")))
-                    .where("t", blocks(getBlock("gtlcore:hyper_core")))
-                    .where("`", blocks(getBlock("gtceu:high_power_casing")))
-                    .where("W", blocks(getBlock("minecraft:sea_lantern")))
-                    .where("x", blocks(getBlock("minecraft:green_stained_glass_pane")))
-                    .where("&", blocks(getBlock("gtceu:cleanroom_glass")))
-                    .where("!", blocks(getBlock("kubejs:speeding_pipe")))
-                    .where("f", blocks(getBlock("gtceu:advanced_computer_casing")))
-                    .where("c", blocks(getBlock("gtlcore:oxidation_resistant_hastelloy_n_mechanical_casing")))
-                    .where("=", blocks(getBlock("gtlcore:iridium_casing")))
-                    .where("j", blocks(getBlock("gtlcore:enhance_hyper_mechanical_casing")))
-                    .where(">", blocks(getBlock("minecraft:granite")))
-                    .where("k", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("o", blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
-                    .where("O", blocks(getBlock("minecraft:sweet_berry_bush")))
-                    .where("@", blocks(getBlock("minecraft:yellow_stained_glass_pane")))
-                    .where(".", blocks(getBlock("gtlcore:degenerate_rhenium_constrained_casing")))
-                    .where("z", blocks(getBlock("kubejs:containment_field_generator")))
-                    .where("}", blocks(getBlock("minecraft:soul_sand")))
-                    .where("^", blocks(getBlock("minecraft:spruce_leaves")))
-                    .where("X", blocks(getBlock("minecraft:oak_log")))
-                    .where("J", blocks(getBlock("minecraft:sand")))
-                    .where("N", blocks(getBlock("minecraft:mangrove_roots")))
-                    .where("-", blocks(getBlock("minecraft:sponge")))
-                    .where("e", blocks(getBlock("kubejs:gelid_cryotheum")))
-                    .where("Q", blocks(getBlock("minecraft:grass_block")))
-                    .where("D", blocks(getBlock("gtceu:fusion_glass")))
-                    .where("V", blocks(getBlock("kubejs:hollow_casing")))
-                    .where("C", blocks(getBlock("kubejs:high_strength_concrete")))
-                    .where("h", blocks(getBlock("gtlcore:sps_casing")))
-                    .where("a", blocks(getBlock("gtceu:computer_heat_vent")))
-                    .where("d", blocks(getBlock("gtlcore:super_cooler_component")))
-                    .where("n", blocks(getBlock("gtlcore:molecular_casing")))
-                    .where("]", blocks(getBlock("minecraft:cactus")))
-                    .where("%", blocks(getBlock("gtceu:filter_casing")))
-                    .where("I", blocks(getBlock("gtlcore:law_filter_casing")))
-                    .where("v", blocks(getBlock("gtceu:uhv_ultimate_battery")))
-                    .where("_", blocks(getBlock("minecraft:spruce_log")))
-                    .where("[", blocks(getBlock("minecraft:clay")))
-                    .where("?", blocks(getBlock("minecraft:lava")))
-                    .where("u", blocks(getBlock("kubejs:force_field_glass")))
-                    .where("F", blocks(getBlock("gtceu:inert_machine_casing")))
-                    .where("q", blocks(getBlock("kubejs:restraint_device")))
-                    .where("A", blocks(getBlock("gtceu:plascrete")))
-                    .where("U", blocks(getBlock("minecraft:acacia_leaves")))
-                    .where(":", blocks(getBlock("minecraft:andesite")))
-                    .where("+", blocks(getBlock("gtlcore:hyper_mechanical_casing")))
-                    .where("p", blocks(getBlock("gtceu:atomic_casing")))
-                    .where("s", blocks(getBlock("kubejs:aggregatione_core")))
-                    .where("w", blocks(getBlock("minecraft:blue_stained_glass_pane")))
+                    .where('b', blocks(getBlock("gtceu:computer_casing")))
+                    .where('g', blocks(getBlock("kubejs:neutronium_pipe_casing")))
+                    .where('r', blocks(getBlock("kubejs:molecular_coil")))
+                    .where('G', blocks(getBlock("minecraft:mud")))
+                    .where('B', blocks(getBlock("gtceu:naquadria_frame")))
+                    .where('*', blocks(getBlock("gtceu:sterilizing_filter_casing")))
+                    .where('<', blocks(getBlock("minecraft:diorite")))
+                    .where('K', blocks(getBlock("minecraft:gravel")))
+                    .where('m', heatingCoils())
+                    .where('E', blocks(getBlock("gtlcore:rhenium_reinforced_energy_glass")))
+                    .where('M', blocks(getBlock("minecraft:mangrove_leaves")))
+                    .where('T', blocks(getBlock("minecraft:oak_leaves")))
+                    .where('i', blocks(getBlock("gtlcore:super_computation_component")))
+                    .where('l', blocks(getBlock("gtlcore:antifreeze_heatproof_machine_casing")))
+                    .where('~', blocks(getBlock("minecraft:water")).or(blocks(getBlock("minecraft:bubble_column"))))
+                    .where('L', blocks(getBlock("minecraft:water")))
+                    .where('R', blocks(getBlock("minecraft:packed_mud")))
+                    .where('S', blocks(getBlock("kubejs:magic_core")))
+                    .where('y', blocks(getBlock("minecraft:red_stained_glass_pane")))
+                    .where('#', blocks(getBlock("minecraft:coarse_dirt")))
+                    .where(';', blocks(getBlock("minecraft:deepslate")))
+                    .where('H', blocks(getBlock("minecraft:dirt")))
+                    .where('P', blocks(getBlock("minecraft:mangrove_log")))
+                    .where('Y', blocks(getBlock("minecraft:acacia_log")))
+                    .where('t', blocks(getBlock("gtlcore:hyper_core")))
+                    .where('`', blocks(getBlock("gtceu:high_power_casing")))
+                    .where('W', blocks(getBlock("minecraft:sea_lantern")))
+                    .where('x', blocks(getBlock("minecraft:green_stained_glass_pane")))
+                    .where('&', blocks(getBlock("gtceu:cleanroom_glass")))
+                    .where('!', blocks(getBlock("kubejs:speeding_pipe")))
+                    .where('f', blocks(getBlock("gtceu:advanced_computer_casing")))
+                    .where('c', blocks(getBlock("gtlcore:oxidation_resistant_hastelloy_n_mechanical_casing")))
+                    .where('=', blocks(getBlock("gtlcore:iridium_casing")))
+                    .where('j', blocks(getBlock("gtlcore:enhance_hyper_mechanical_casing")))
+                    .where('>', blocks(getBlock("minecraft:granite")))
+                    .where('k', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('o', blocks(getBlock("gtlcore:dimensionally_transcendent_casing")))
+                    .where('O', blocks(getBlock("minecraft:sweet_berry_bush")))
+                    .where('@', blocks(getBlock("minecraft:yellow_stained_glass_pane")))
+                    .where('.', blocks(getBlock("gtlcore:degenerate_rhenium_constrained_casing")))
+                    .where('z', blocks(getBlock("kubejs:containment_field_generator")))
+                    .where('}', blocks(getBlock("minecraft:soul_sand")))
+                    .where('^', blocks(getBlock("minecraft:spruce_leaves")))
+                    .where('X', blocks(getBlock("minecraft:oak_log")))
+                    .where('J', blocks(getBlock("minecraft:sand")))
+                    .where('N', blocks(getBlock("minecraft:mangrove_roots")))
+                    .where('-', blocks(getBlock("minecraft:sponge")))
+                    .where('e', blocks(getBlock("kubejs:gelid_cryotheum")))
+                    .where('Q', blocks(getBlock("minecraft:grass_block")))
+                    .where('D', blocks(getBlock("gtceu:fusion_glass")))
+                    .where('V', blocks(getBlock("kubejs:hollow_casing")))
+                    .where('C', blocks(getBlock("kubejs:high_strength_concrete")))
+                    .where('h', blocks(getBlock("gtlcore:sps_casing")))
+                    .where('a', blocks(getBlock("gtceu:computer_heat_vent")))
+                    .where('d', blocks(getBlock("gtlcore:super_cooler_component")))
+                    .where('n', blocks(getBlock("gtlcore:molecular_casing")))
+                    .where(']', blocks(getBlock("minecraft:cactus")))
+                    .where('%', blocks(getBlock("gtceu:filter_casing")))
+                    .where('I', blocks(getBlock("gtlcore:law_filter_casing")))
+                    .where('v', blocks(getBlock("gtceu:uhv_ultimate_battery")))
+                    .where('_', blocks(getBlock("minecraft:spruce_log")))
+                    .where('[', blocks(getBlock("minecraft:clay")))
+                    .where('?', blocks(getBlock("minecraft:lava")))
+                    .where('u', blocks(getBlock("kubejs:force_field_glass")))
+                    .where('F', blocks(getBlock("gtceu:inert_machine_casing")))
+                    .where('q', blocks(getBlock("kubejs:restraint_device")))
+                    .where('A', blocks(getBlock("gtceu:plascrete")))
+                    .where('U', blocks(getBlock("minecraft:acacia_leaves")))
+                    .where(':', blocks(getBlock("minecraft:andesite")))
+                    .where('+', blocks(getBlock("gtlcore:hyper_mechanical_casing")))
+                    .where('p', blocks(getBlock("gtceu:atomic_casing")))
+                    .where('s', blocks(getBlock("kubejs:aggregatione_core")))
+                    .where('w', blocks(getBlock("minecraft:blue_stained_glass_pane")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/sps_casing"),
                 GTCEu.id("block/multiblock/implosion_compressor")
             )
@@ -2295,7 +2251,7 @@ object MultiBlockMachine {
 
         BIOSPHERE_III_MODULE = REGISTRATE.multiblock(
             "garden_of_hermes",
-            Function { BiosphereIIIModule(it) }
+            MachineInstanceFactory { BiosphereIIIModule(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey(
@@ -2310,19 +2266,18 @@ object MultiBlockMachine {
             .appearanceBlock(HIGH_POWER_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.BIOSPHERE_III_MODULE_STRUCTURE
-                    .where(
-                        "A",
+                    .where('A',
                         blocks(HIGH_POWER_CASING.get()).or(abilities(EXPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(IMPORT_ITEMS).setPreviewCount(1))
                             .or(abilities(EXPORT_FLUIDS).setPreviewCount(1))
                             .or(abilities(IMPORT_FLUIDS).setPreviewCount(1))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                     )
-                    .where("B", controller(blocks(definition!!.get())))
-                    .where("C", blocks(getBlock("kubejs:high_strength_concrete")))
+                    .where('B', controller(blocks(definition!!.getBlock())))
+                    .where('C', blocks(getBlock("kubejs:high_strength_concrete")))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTCEu.id("block/casings/hpca/high_power_casing"),
                 GTCEu.id("block/multiblock/implosion_compressor")
             )
@@ -2330,7 +2285,7 @@ object MultiBlockMachine {
 
         SPACE_ELEVATOR_MKII = REGISTRATE.multiblock(
             "space_elevator_mkii",
-            Function { SpaceElevatorMKII(it) }
+            MachineInstanceFactory { SpaceElevatorMKII(it) }
         )
             .nonYAxisRotation()
             .recipeType(SPACE_ELEVATOR_RECIPES)
@@ -2346,40 +2301,38 @@ object MultiBlockMachine {
             )
             .tooltipBuilder(GTLAddMachines.GTLAdd_ADD)
             .appearanceBlock(SPACE_ELEVATOR_MECHANICAL_CASING)
-            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic(1.0, 4.0, false)))
+            .recipeModifier(GTRecipeModifiers.ELECTRIC_OVERCLOCK.apply(OverclockingLogic.create(1.0, 4.0, false)))
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.SPACE_ELEVATOR_MKII_STRUCTURE
-                    .where("P", controller(blocks(definition!!.get())))
-                    .where(
-                        "L",
+                    .where('P', controller(blocks(definition!!.getBlock())))
+                    .where('L',
                         blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get())
                             .or(abilities(INPUT_ENERGY).setExactLimit(1))
                             .or(abilities(IMPORT_ITEMS).setExactLimit(1))
                             .or(abilities(COMPUTATION_DATA_RECEPTION).setExactLimit(1))
                             .or(abilities(MAINTENANCE).setExactLimit(1))
                     )
-                    .where("A", blocks(SPACE_ELEVATOR_SUPPORT.get()))
-                    .where("G", blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
-                    .where("E", blocks(getBlock("kubejs:space_elevator_internal_support")))
-                    .where("M", GTLPredicates.tierCasings(BlockMap.sepmMap, "SEPMTier"))
-                    .where("B", blocks(getBlock("kubejs:high_strength_concrete")))
-                    .where("D", blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get()))
-                    .where("N", blocks(POWER_CORE.get()))
-                    .where("I", blocks(getBlock("kubejs:module_base")))
-                    .where("J", any().or(blocks(getBlock("kubejs:module_connector"))).setPreviewCount(1))
-                    .where("K", blocks(getBlock("ad_astra:glowing_iron_pillar")))
-                    .where("C", blocks(getBlock("ad_astra:aeronos_cap")))
-                    .where("H", blocks(getBlock("ad_astra:marked_iron_pillar")))
-                    .where("O", air())
+                    .where('A', blocks(SPACE_ELEVATOR_SUPPORT.get()))
+                    .where('G', blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
+                    .where('E', blocks(getBlock("kubejs:space_elevator_internal_support")))
+                    .where('M', GTLPredicates.tierCasings(BlockMap.sepmMap, "SEPMTier"))
+                    .where('B', blocks(getBlock("kubejs:high_strength_concrete")))
+                    .where('D', blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get()))
+                    .where('N', blocks(POWER_CORE.get()))
+                    .where('I', blocks(getBlock("kubejs:module_base")))
+                    .where('J', any().or(blocks(getBlock("kubejs:module_connector"))).setPreviewCount(1))
+                    .where('K', blocks(getBlock("ad_astra:glowing_iron_pillar")))
+                    .where('C', blocks(getBlock("ad_astra:aeronos_cap")))
+                    .where('H', blocks(getBlock("ad_astra:marked_iron_pillar")))
+                    .where('O', air())
                     .build()
             }
-            .renderer { SpaceElevatorMKIIRenderer() }
-            .hasTESR(true)
+            .dynamicCasingModel(GTLCore.id("block/space_elevator_mechanical_casing"), GTCEu.id("block/multiblock/data_bank"), ::SpaceElevatorMKIIRenderer)
             .register()
 
         SPACE_INFINITY_INTEGRATED_ORE_PROCESSOR = REGISTRATE.multiblock(
             "space_infinity_integrated_ore_processor",
-            Function { SpaceInfinityIntegratedOreProcessor(it) }
+            MachineInstanceFactory { SpaceInfinityIntegratedOreProcessor(it) }
         )
             .allRotation()
             .tooltipTextKey("gtladditions.multiblock.space_infinity_integrated_ore_processor.tooltip.0".toComponent)
@@ -2393,27 +2346,26 @@ object MultiBlockMachine {
             .appearanceBlock(CASING_TUNGSTENSTEEL_ROBUST)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.SPACE_INFINITY_INTEGRATED_ORE_PROCESSOR!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("A", blocks(IRIDIUM_CASING.get()))
-                    .where("B", blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get()))
-                    .where("C", blocks(SPACE_ELEVATOR_SUPPORT.get()))
-                    .where("D", blocks(getBlock("kubejs:space_elevator_internal_support")))
-                    .where("E", blocks(POWER_MODULE_7.get()))
-                    .where("F", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where("G", blocks(getBlock("kubejs:high_strength_concrete")))
-                    .where(
-                        "H",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A', blocks(IRIDIUM_CASING.get()))
+                    .where('B', blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get()))
+                    .where('C', blocks(SPACE_ELEVATOR_SUPPORT.get()))
+                    .where('D', blocks(getBlock("kubejs:space_elevator_internal_support")))
+                    .where('E', blocks(POWER_MODULE_7.get()))
+                    .where('F', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('G', blocks(getBlock("kubejs:high_strength_concrete")))
+                    .where('H',
                         blocks(SPACE_ELEVATOR_MECHANICAL_CASING.get())
                             .or(abilities(INPUT_LASER))
                             .or(abilities(IMPORT_ITEMS))
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_FLUIDS))
-                            .or(blocks(GTLAddMachines.ORE_PROCESSOR_HATCH.get()).setMaxGlobalLimited(1))
+                            .or(machines(GTLAddMachines.ORE_PROCESSOR_HATCH.get()).setMaxGlobalLimited(1))
                     )
-                    .where("I", blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
+                    .where('I', blocks(ChemicalHelper.getBlock(frameGt, Infinity)))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/space_elevator_mechanical_casing"),
                 GTCEu.id("block/multiblock/data_bank")
             )
@@ -2421,7 +2373,7 @@ object MultiBlockMachine {
 
         MACRO_ATOMIC_RESONANT_FRAGMENT_STRIPPER = REGISTRATE.multiblock(
             "macro_atomic_resonant_fragment_stripper",
-            Function { MacroAtomicResonantFragmentStripper(it) }
+            MachineInstanceFactory { MacroAtomicResonantFragmentStripper(it) }
         )
             .nonYAxisRotation()
             .tooltipTextKey("gtladditions.multiblock.macro_atomic_resonant_fragment_stripper.tooltip.0".toComponent)
@@ -2465,27 +2417,25 @@ object MultiBlockMachine {
             .appearanceBlock(HYPER_MECHANICAL_CASING)
             .pattern { definition: MultiblockMachineDefinition? ->
                 MultiBlockStructure.MACRO_ATOMIC_RESONANT_FRAGMENT_STRIPPER!!
-                    .where("~", controller(blocks(definition!!.get())))
-                    .where("A", blocks(FUSION_GLASS.get()))
-                    .where("B", blocks(QFT_COIL.get()))
-                    .where("C", blocks(getBlock("kubejs:annihilate_core")))
-                    .where("D", GTLAddPredicates.heatingCoils(21600))
-                    .where("E", blocks(ECHO_CASING.get()))
-                    .where("F", blocks(getBlock("kubejs:dimensional_stability_casing")))
-                    .where("G", blocks(HYPER_MECHANICAL_CASING.get()))
-                    .where("H", blocks(FUSION_CASING_MK5.get()))
-                    .where("I", blocks(SPS_CASING.get()))
-                    .where("J", blocks(getBlock("kubejs:dyson_control_toroid")))
-                    .where("K", blocks(getBlock("kubejs:dyson_receiver_casing")))
-                    .where("L", blocks(getBlock("kubejs:dyson_control_casing")))
-                    .where("M", blocks(getBlock("kubejs:dimensional_bridge_casing")))
-                    .where(
-                        "N",
+                    .where('~', controller(blocks(definition!!.getBlock())))
+                    .where('A', blocks(FUSION_GLASS.get()))
+                    .where('B', blocks(QFT_COIL.get()))
+                    .where('C', blocks(getBlock("kubejs:annihilate_core")))
+                    .where('D', GTLAddPredicates.heatingCoils(21600))
+                    .where('E', blocks(ECHO_CASING.get()))
+                    .where('F', blocks(getBlock("kubejs:dimensional_stability_casing")))
+                    .where('G', blocks(HYPER_MECHANICAL_CASING.get()))
+                    .where('H', blocks(FUSION_CASING_MK5.get()))
+                    .where('I', blocks(SPS_CASING.get()))
+                    .where('J', blocks(getBlock("kubejs:dyson_control_toroid")))
+                    .where('K', blocks(getBlock("kubejs:dyson_receiver_casing")))
+                    .where('L', blocks(getBlock("kubejs:dyson_control_casing")))
+                    .where('M', blocks(getBlock("kubejs:dimensional_bridge_casing")))
+                    .where('N',
                         blocks(ChemicalHelper.getBlock(frameGt, QuantumChromodynamicallyConfinedMatter))
                     )
-                    .where("O", blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
-                    .where(
-                        "Y",
+                    .where('O', blocks(ChemicalHelper.getBlock(frameGt, Neutronium)))
+                    .where('Y',
                         blocks(HYPER_MECHANICAL_CASING.get())
                             .or(abilities(EXPORT_ITEMS))
                             .or(abilities(IMPORT_ITEMS))
@@ -2494,10 +2444,10 @@ object MultiBlockMachine {
                             .or(abilities(INPUT_ENERGY).setMaxGlobalLimited(2))
                             .or(abilities(INPUT_LASER).setMaxGlobalLimited(1))
                     )
-                    .where("Z", blocks(HIGH_POWER_CASING.get()))
+                    .where('Z', blocks(HIGH_POWER_CASING.get()))
                     .build()
             }
-            .workableCasingRenderer(
+            .workableCasingModel(
                 GTLCore.id("block/casings/hyper_mechanical_casing"),
                 GTCEu.id("block/multiblock/fusion_reactor")
             )

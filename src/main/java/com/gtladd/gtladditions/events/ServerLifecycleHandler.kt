@@ -4,13 +4,14 @@ import com.gtladd.gtladditions.GTLAdditions.Companion.MOD_ID
 import com.gtladd.gtladditions.utils.CloudNetworkManager
 import com.gtladd.gtladditions.utils.antichrist.ServerMachineManager
 import net.minecraft.server.level.ServerLevel
-import net.minecraftforge.event.level.LevelEvent
-import net.minecraftforge.event.server.ServerStoppingEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.neoforge.event.level.LevelEvent
+import net.neoforged.neoforge.event.server.ServerStoppingEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 
 @Suppress("unused")
-@Mod.EventBusSubscriber(modid = MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
+@EventBusSubscriber(modid = MOD_ID, bus = EventBusSubscriber.Bus.GAME)
 object ServerLifecycleHandler {
 
     @SubscribeEvent

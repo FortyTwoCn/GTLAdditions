@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.mutable
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition
 import com.gtladd.gtladditions.api.machine.IWirelessThreadModifierParallelMachine
@@ -13,18 +13,17 @@ import org.gtlcore.gtlcore.api.recipe.RecipeResult
 import org.gtlcore.gtlcore.common.machine.multiblock.electric.SuprachronalAssemblyLineMachine
 import java.util.function.BiPredicate
 
-class MutableSuprachronalAssemblyLineMachine(holder: IMachineBlockEntity, vararg args: Any?) :
-    SuprachronalAssemblyLineMachine(holder, *args),
+class MutableSuprachronalAssemblyLineMachine(holder: BlockEntityCreationInfo) :
+    SuprachronalAssemblyLineMachine(holder, MutableRecipesLogic<MutableSuprachronalAssemblyLineMachine>(DATA_CHECK, 1.0, 0.4)),
     IWirelessThreadModifierParallelMachine {
     private var threadPartMachine: IThreadModifierPart? = null
-
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = MutableRecipesLogic(this, DATA_CHECK, 1.0, 0.4)
 
     @Suppress("UNCHECKED_CAST")
     override fun getRecipeLogic(): MutableRecipesLogic<MutableSuprachronalAssemblyLineMachine> = super.getRecipeLogic() as MutableRecipesLogic<MutableSuprachronalAssemblyLineMachine>
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         threadPartMachine = null
         getRecipeLogic().setUseMultipleRecipes(false)
     }
@@ -36,7 +35,7 @@ class MutableSuprachronalAssemblyLineMachine(holder: IMachineBlockEntity, vararg
     }
 
     @Suppress("CAST_NEVER_SUCCEEDS")
-    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch?.currentParallel ?: 1
+    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch.map { it.currentParallel }.orElse(1)
 
     override fun setThreadPartMachine(threadModifierPart: IThreadModifierPart) {
         this.threadPartMachine = threadModifierPart

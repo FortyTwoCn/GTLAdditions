@@ -1,59 +1,40 @@
 package com.gtladd.gtladditions.api.machine.gui
 
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator
-import com.gregtechceu.gtceu.api.gui.widget.IntInputWidget
-import com.gregtechceu.gtceu.api.gui.widget.ToggleButtonWidget
+import com.gregtechceu.gtceu.common.mui.GTGuiTextures
+import com.gregtechceu.gtceu.common.mui.widgets.PopupPanel
 import com.gregtechceu.gtceu.data.lang.LangHandler
-import com.gtladd.gtladditions.common.machine.multiblock.MultiBlockMachine
 import com.gtladd.gtladditions.common.machine.multiblock.part.MESuperPatternBufferPartMachine
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.texture.IGuiTexture
-import com.lowdragmc.lowdraglib.gui.texture.ItemStackTexture
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
+import brachy.modularui.api.drawable.Text
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.value.sync.SyncHandlers
+import brachy.modularui.widgets.ButtonWidget
+import brachy.modularui.widgets.ToggleButton
+import brachy.modularui.widgets.textfield.TextFieldWidget
 import net.minecraft.network.chat.Component
 
-class FOAPatternConfigurator(private val machine: MESuperPatternBufferPartMachine) : IFancyConfigurator {
-    override fun getTitle(): Component = "gtladditions.machine.me_super_pattern_buffer.foa_config.title".toComponent
-
-    override fun getIcon(): IGuiTexture = ItemStackTexture(MultiBlockMachine.FORGE_OF_THE_ANTICHRIST.asStack())
-
-    override fun getTooltips(): List<Component> =
-        mutableListOf(getTitle()).apply {
-            addAll(LangHandler.getMultiLang("gtladditions.machine.me_super_pattern_buffer.foa_config.tooltip"))
+class FOAPatternConfigurator(private val machine: MESuperPatternBufferPartMachine) {
+    private class FOAButton : ButtonWidget<FOAButton>()
+    fun getTitle(): Component = Component.translatable("gtladditions.machine.me_super_pattern_buffer.foa_config.title")
+    fun createButton(open: Runnable): ButtonWidget<*> = FOAButton().name("superPatternFOAButton").size(18)
+        .overlay(Text.str("F"))
+        .tooltipDynamic { tooltip ->
+            tooltip.addLine(getTitle())
+            LangHandler.getMultiLang("gtladditions.machine.me_super_pattern_buffer.foa_config.tooltip").forEach(tooltip::addLine)
         }
+        .onMousePressed { _, button -> if (button == 0) { open.run(); true } else false }
 
-    override fun createConfigurator(): Widget {
-        val group = WidgetGroup(0, 0, 118, 56)
-        group.addWidget(
-            ToggleButtonWidget(
-                6,
-                5,
-                20,
-                20,
-                GuiTextures.BUTTON_POWER,
-                { machine.isFOAModeEnabled() },
-                { enabled -> machine.setFOAModeEnabled(enabled) }
-            ).setTooltipText("gtladditions.machine.me_super_pattern_buffer.foa_mode")
-        )
-        group.addWidget(LabelWidget(32, 10, "gtladditions.machine.me_super_pattern_buffer.foa_mode"))
-        group.addWidget(LabelWidget(6, 36, "gtladditions.machine.me_super_pattern_buffer.foa_multiplier"))
-        group.addWidget(
-            IntInputWidget(
-                58,
-                31,
-                54,
-                20,
-                { machine.getFOAPatternOutputMultiplier() },
-                { multiplier: Int? -> machine.setFOAPatternOutputMultiplier(multiplier ?: machine.getFOAPatternOutputMultiplier()) }
-            ).setMin(
-                MESuperPatternBufferPartMachine.MIN_MULTIPLIER
-            ).setMax(
-                MESuperPatternBufferPartMachine.MAX_MULTIPLIER
-            )
-        )
-        return group
+    fun createPanel(sync: PanelSyncManager): PopupPanel {
+        val enabled = SyncHandlers.bool(machine::isFOAModeEnabled, machine::setFOAModeEnabled).allowC2S()
+        val multiplier = SyncHandlers.string({ machine.getFOAPatternOutputMultiplier().toString() }) { text ->
+            text.toIntOrNull()?.let(machine::setFOAPatternOutputMultiplier)
+        }.allowC2S()
+        sync.syncValue("superPatternFOAMode", enabled)
+        sync.syncValue("superPatternFOAMultiplier", multiplier)
+        return PopupPanel.createPopupPanel("superPatternFOAConfigPanel", 190, 92)
+            .child(Text.lang("gtladditions.machine.me_super_pattern_buffer.foa_config.title").asWidget().pos(6, 6))
+            .child(ToggleButton().name("superPatternFOAToggle").value(enabled).size(20).pos(6, 28).overlay(*GTGuiTextures.BUTTON_POWER))
+            .child(Text.lang("gtladditions.machine.me_super_pattern_buffer.foa_mode").asWidget().pos(32, 33))
+            .child(Text.lang("gtladditions.machine.me_super_pattern_buffer.foa_multiplier").asWidget().pos(6, 65))
+            .child(TextFieldWidget().name("superPatternFOAMultiplierInput").value(multiplier).size(54, 18).pos(126, 59))
     }
 }

@@ -1,7 +1,7 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine
 import com.gtladd.gtladditions.common.data.ParallelData
@@ -11,13 +11,12 @@ import com.gtladd.gtladditions.utils.RecipeCalculationHelper
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 
-class SpaceScalingInstrument(holder: IMachineBlockEntity) : GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder) {
+class SpaceScalingInstrument(holder: BlockEntityCreationInfo) : GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder, SpaceScalingInstrumentLogic()) {
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = SpaceScalingInstrumentLogic(this)
 
     override fun getRecipeLogic(): SpaceScalingInstrumentLogic = super.getRecipeLogic() as SpaceScalingInstrumentLogic
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         textList.add(
             "gtceu.multiblock.parallel".toComponent(
                 createLanguageRainbowComponentOnServer(
@@ -35,11 +34,11 @@ class SpaceScalingInstrument(holder: IMachineBlockEntity) : GTLAddCoilWorkableEl
     }
 
     companion object {
-        class SpaceScalingInstrumentLogic(parallel: SpaceScalingInstrument) : GTLAddMultipleRecipesLogic(parallel) {
+        class SpaceScalingInstrumentLogic() : GTLAddMultipleRecipesLogic() {
             override fun getMachine(): SpaceScalingInstrument = super.getMachine() as SpaceScalingInstrument
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
 
                 return RecipeCalculationHelper.calculateParallelsWithProcessing(
                     recipes = recipes,

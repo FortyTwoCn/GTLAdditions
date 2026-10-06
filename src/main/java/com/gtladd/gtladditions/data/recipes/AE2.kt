@@ -2,17 +2,17 @@ package com.gtladd.gtladditions.data.recipes
 
 import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.dust
-import com.gregtechceu.gtceu.api.data.tag.TagUtil.createItemTag
+import com.gregtechceu.gtceu.utils.TagUtil.createItemTag
 import com.gregtechceu.gtceu.common.data.GTMaterials.CertusQuartz
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes.ALLOY_SMELTER_RECIPES
 import com.gtladd.gtladditions.GTLAdditions
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLRecipeTypes.MATTER_FABRICATOR_RECIPES
 import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object AE2 {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         MATTER_FABRICATOR_RECIPES.recipeBuilder(GTLAdditions.id("singularity_1"))
             .inputItems(getItemStack("kubejs:scrap", 4320))
             .circuitMeta(3)

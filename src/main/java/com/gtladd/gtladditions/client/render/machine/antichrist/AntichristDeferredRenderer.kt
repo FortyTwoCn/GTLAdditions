@@ -10,16 +10,17 @@ import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 
 @OnlyIn(Dist.CLIENT)
-@Mod.EventBusSubscriber(
+@EventBusSubscriber(
     modid = GTLAdditions.MOD_ID,
-    bus = Mod.EventBusSubscriber.Bus.FORGE,
+    bus = EventBusSubscriber.Bus.GAME,
     value = [Dist.CLIENT]
 )
 object AntichristDeferredRenderer {

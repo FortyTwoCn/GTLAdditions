@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.data.tag.TagPrefix.*
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
 import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType
 import com.gregtechceu.gtceu.api.recipe.ResearchRecipeBuilder.StationRecipeBuilder
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient as FluidIngredient
 import com.gregtechceu.gtceu.common.data.GTItems.*
 import com.gregtechceu.gtceu.common.data.GTMachines
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
@@ -19,8 +19,8 @@ import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.common.machine.GTLAddMachines
 import com.hepdd.gtmthings.data.WirelessMachines
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import net.minecraft.data.recipes.FinishedRecipe
+import net.neoforged.neoforge.fluids.FluidStack
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.common.data.GTLBlocks.QFT_COIL
 import org.gtlcore.gtlcore.common.data.GTLBlocks.SPACETIMEBENDINGCORE
@@ -35,7 +35,7 @@ import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object PartMachine {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         ASSEMBLER_RECIPES.recipeBuilder(id("huge_steam_hatch"))
             .inputItems(GTLMachines.LARGE_STEAM_HATCH, 4)
             .inputItems(CustomTags.IV_CIRCUITS, 4)
@@ -69,7 +69,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(INTEGRATED_ORE_PROCESSOR.asStack())
                     .dataStack(TOOL_DATA_ORB.asStack())
-                    .EUt(VA[ZPM]).CWUt(128)
+                    .EUt(VA[ZPM].toLong()).CWUt(128)
             }
             .save(provider)
         VanillaRecipeHelper.addShapedRecipe(
@@ -97,7 +97,7 @@ object PartMachine {
             .inputItems(GTMachines.HULL[UIV])
             .inputItems(GTLMachines.BLOCK_BUS.asStack(8))
             .inputItems(GTLMachines.GTAEMachines.ME_EXTENDED_EXPORT_BUFFER.asStack(8))
-            .inputItems(AEBlocks.CHEST.stack(8))
+            .inputItems(AEBlocks.ME_CHEST.stack(8))
             .inputItems(CustomTags.UXV_CIRCUITS, 8)
             .inputItems(ROBOT_ARM_UXV, 16)
             .inputItems(FIELD_GENERATOR_UXV, 2)
@@ -114,7 +114,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLMachines.BLOCK_BUS.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UXV]).CWUt(2048)
+                    .EUt(VA[UXV].toLong()).CWUt(2048)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder(id("super_parallel_hatch"))
@@ -143,7 +143,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:max_parallel_hatch"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("me_super_pattern_buffer"))
@@ -172,7 +172,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:me_pattern_buffer_proxy"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UXV]).CWUt(640)
+                    .EUt(VA[UXV].toLong()).CWUt(640)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("me_super_pattern_buffer_proxy"))
@@ -198,7 +198,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtladditions:me_super_pattern_buffer"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UXV]).CWUt(640)
+                    .EUt(VA[UXV].toLong()).CWUt(640)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("wireless_energy_network_input_terminal"))
@@ -220,7 +220,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddMachines.WIRELESS_LASER_INPUT_HATCH_67108864A[MAX]!!.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("wireless_energy_network_output_terminal"))
@@ -242,7 +242,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddMachines.WIRELESS_LASER_OUTPUT_HATCH_67108863A[MAX]!!.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("thread_modifier_hatch"))
@@ -259,13 +259,13 @@ object PartMachine {
             .inputFluids(Radox.getFluid(589000000))
             .inputFluids(TemporalFluid.getFluid(46080000))
             .inputFluids(Shirabon.getFluid(92160000))
-            .inputFluids(CosmicElement.getFluid(18874368000))
+            .inputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(CosmicElement, 18874368000L))
             .outputItems(GTLAddMachines.THREAD_MODIFIER_HATCH)
             .EUt(VA[MAX].toLong()).duration(12000)
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddMachines.SUPER_PARALLEL_HATCH.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("infinity_input_dual_hatch"))
@@ -289,7 +289,7 @@ object PartMachine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddMachines.SUPER_INPUT_DUAL_HATCH.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[OpV]).CWUt(1280)
+                    .EUt(VA[OpV].toLong()).CWUt(1280)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder(id("cloud_computation_monitor"))
@@ -302,14 +302,14 @@ object PartMachine {
             .inputItems(CustomTags.UIV_CIRCUITS, 8)
             .inputItems(foil, Neutronium, 64)
             .inputFluids(MutatedLivingSolder.getFluid(5760))
-            .inputFluids(FluidIngredient.of(FluidStack.create(getFluid("kubejs:gelid_cryotheum"), 2880)))
+            .inputFluids(FluidIngredient.of(FluidStack(getFluid("kubejs:gelid_cryotheum"), 2880)))
             .outputItems(GTLAddMachines.CLOUD_COMPUTATION_MONITOR)
             .EUt(VA[UEV].toLong())
             .duration(600)
             .stationResearch { builder ->
                 builder.researchStack(WirelessMachines.WIRELESS_ENERGY_MONITOR.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UV])
+                    .EUt(VA[UV].toLong())
                     .CWUt(256)
             }
             .save(provider)
@@ -328,7 +328,7 @@ object PartMachine {
             .stationResearch { builder ->
                 builder.researchStack(WirelessMachines.WIRELESS_COMPUTATION_HATCH_TRANSMITTER.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UV])
+                    .EUt(VA[UV].toLong())
                     .CWUt(256)
             }
             .save(provider)
@@ -347,7 +347,7 @@ object PartMachine {
             .stationResearch { builder ->
                 builder.researchStack(WirelessMachines.WIRELESS_COMPUTATION_HATCH_RECEIVER.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UV])
+                    .EUt(VA[UV].toLong())
                     .CWUt(256)
             }
             .save(provider)
@@ -366,7 +366,7 @@ object PartMachine {
             .stationResearch { builder ->
                 builder.researchStack(GTLMachines.WIRELESS_DATA_HATCH_RECEIVER.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UV])
+                    .EUt(VA[UV].toLong())
                     .CWUt(256)
             }
             .save(provider)
@@ -382,7 +382,7 @@ object PartMachine {
             .inputItems(wireGtDouble, RutheniumTriniumAmericiumNeutronate, 64)
             .inputFluids(MutatedLivingSolder.getFluid(5760))
             .inputFluids(Zylon.getFluid(4032))
-            .inputFluids(FluidIngredient.of(FluidStack.create(getFluid("kubejs:gelid_cryotheum"), 2880)))
+            .inputFluids(FluidIngredient.of(FluidStack(getFluid("kubejs:gelid_cryotheum"), 2880)))
             .outputItems(GTLAddMachines.CLOUD_DATA_MACHINE)
             .EUt(VA[UEV].toLong())
             .duration(600)
@@ -391,7 +391,7 @@ object PartMachine {
                     com.gregtechceu.gtceu.common.data.machines.GTResearchMachines.ADVANCED_DATA_ACCESS_HATCH.asStack()
                 )
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UV])
+                    .EUt(VA[UV].toLong())
                     .CWUt(256)
             }
             .save(provider)

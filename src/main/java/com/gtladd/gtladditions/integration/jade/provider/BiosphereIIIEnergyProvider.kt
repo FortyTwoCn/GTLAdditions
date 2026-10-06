@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.integration.jade.provider
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.machine.multiblock.controller.bs.BiosphereIIIController
 import com.gtladd.gtladditions.utils.CommonUtils
@@ -22,8 +22,8 @@ class BiosphereIIIEnergyProvider :
     IServerDataProvider<BlockAccessor> {
 
     override fun appendTooltip(tooltip: ITooltip, accessor: BlockAccessor, config: IPluginConfig) {
-        val blockEntity = accessor.blockEntity as? IMachineBlockEntity ?: return
-        if (blockEntity.metaMachine !is BiosphereIIIController) return
+        val blockEntity = accessor.blockEntity as? MetaMachine ?: return
+        if (blockEntity !is BiosphereIIIController) return
 
         val serverData = accessor.serverData
         if (!serverData.contains(AVERAGE_ENERGY_KEY, Tag.TAG_BYTE_ARRAY.toInt())) return
@@ -38,8 +38,8 @@ class BiosphereIIIEnergyProvider :
     }
 
     override fun appendServerData(tag: CompoundTag, accessor: BlockAccessor) {
-        val blockEntity = accessor.blockEntity as? IMachineBlockEntity ?: return
-        val controller = blockEntity.metaMachine as? BiosphereIIIController ?: return
+        val blockEntity = accessor.blockEntity as? MetaMachine ?: return
+        val controller = blockEntity as? BiosphereIIIController ?: return
         tag.putByteArray(AVERAGE_ENERGY_KEY, controller.getAverageEnergyConsumption().toByteArray())
     }
 

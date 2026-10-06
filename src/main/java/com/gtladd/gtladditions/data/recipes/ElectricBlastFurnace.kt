@@ -5,11 +5,11 @@ import com.gregtechceu.gtceu.api.data.tag.TagPrefix.dust
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes.BLAST_RECIPES
 import com.gtladd.gtladditions.GTLAdditions
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import java.util.function.Consumer
 
 object ElectricBlastFurnace {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         BLAST_RECIPES.recipeBuilder(GTLAdditions.id("magnesium_chloride_dust"))
             .inputItems(dust, Magnesia)
             .inputItems(dust, Carbon)

@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.api.data.chemical.material.properties.BlastProperty
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder;
 import com.gregtechceu.gtceu.data.recipe.generated.MaterialRecipeHandler;
 
-import net.minecraft.data.recipes.FinishedRecipe;
+import net.minecraft.data.recipes.RecipeOutput;
 import net.minecraft.world.item.ItemStack;
 
 import com.llamalad7.mixinextras.sugar.Local;
@@ -25,11 +25,11 @@ public abstract class MaterialRecipeHandlerMixin {
             method = "processEBFRecipe",
             at = @At(
                      value = "INVOKE",
-                     target = "Lcom/gregtechceu/gtceu/data/recipe/builder/GTRecipeBuilder;save(Ljava/util/function/Consumer;)V",
+                     target = "Lcom/gregtechceu/gtceu/data/recipe/builder/GTRecipeBuilder;save(Lnet/minecraft/data/recipes/RecipeOutput;)V",
                      ordinal = 2),
             remap = false)
     private static void onEBFRecipeBeforeSave(
-                                              Material material, BlastProperty property, ItemStack output, Consumer<FinishedRecipe> provider, CallbackInfo ci, @Local GTRecipeBuilder blastBuilder) {
+                                              Material material, BlastProperty property, ItemStack output, RecipeOutput provider, CallbackInfo ci, @Local GTRecipeBuilder blastBuilder) {
         if (material == Eternity) {
             blastBuilder.circuitMeta(1);
         }

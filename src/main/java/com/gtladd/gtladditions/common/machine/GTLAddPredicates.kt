@@ -1,56 +1,51 @@
 package com.gtladd.gtladditions.common.machine
 
 import com.gregtechceu.gtceu.api.GTCEuAPI
-import com.gregtechceu.gtceu.api.pattern.MultiblockState
-import com.gregtechceu.gtceu.api.pattern.TraceabilityPredicate
-import com.gregtechceu.gtceu.api.pattern.error.PatternStringError
-import com.gregtechceu.gtceu.api.pattern.predicates.PredicateBlocks
-import com.gregtechceu.gtceu.api.pattern.predicates.SimplePredicate
+import com.gregtechceu.gtceu.api.block.ICoilType
+import com.gregtechceu.gtceu.api.multiblock.MultiPredicate
+import com.gregtechceu.gtceu.api.multiblock.error.CoilMatchingError
+import com.gregtechceu.gtceu.api.multiblock.predicates.PredicateBuilder
+import com.gregtechceu.gtceu.api.multiblock.util.BlockInfo
 import com.gregtechceu.gtceu.common.block.CoilBlock
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.utils.BlockInfo
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.SlabBlock
 import net.minecraft.world.level.block.state.properties.SlabType
-import java.util.function.Predicate
+import org.gtlcore.gtlcore.api.pattern.PatternMatchData
 
 object GTLAddPredicates {
-    fun slabBlock(slabType: SlabType, vararg block: Block): TraceabilityPredicate = TraceabilityPredicate(object : PredicateBlocks(*block) {
-        override fun test(blockWorldState: MultiblockState): Boolean = super.test(blockWorldState) &&
-            blockWorldState.blockState.getValue(SlabBlock.TYPE) == slabType
-    })
 
-    fun heatingCoils(temperature: Int, equals: Boolean = false): TraceabilityPredicate {
-        val matchesTemperature: (Int) -> Boolean = if (equals) {
-            { coilTemperature -> coilTemperature == temperature }
-        } else {
-            { coilTemperature -> coilTemperature >= temperature }
-        }
+    fun slabBlock(slabType: SlabType, vararg block: Block): MultiPredicate =
+        PredicateBuilder("GTLSlab:$slabType")
+            .predicate { context ->
+                val state = context.state()
+                block.any { state.`is`(it) } && state.hasProperty(SlabBlock.TYPE) && state.getValue(SlabBlock.TYPE) == slabType
+            }
+            .candidatesSupplier {
+                block.filterIsInstance<SlabBlock>().map { BlockInfo.fromBlockState(it.defaultBlockState().setValue(SlabBlock.TYPE, slabType)) }
+            }.toMultiPredicate()
 
-        return TraceabilityPredicate(object : SimplePredicate(
-            Predicate {
-                for (entry in GTCEuAPI.HEATING_COILS.entries) {
-                    if (it.blockState.`is`(entry.value.get())) {
-                        val stats = entry.key
-                        val currentCoil = it.matchContext.getOrPut("CoilType", stats)
-                        if (currentCoil != stats) {
-                            it.setError(PatternStringError("gtceu.multiblock.pattern.error.coils"))
-                            return@Predicate false
-                        }
-                        return@Predicate true
-                    }
+    fun heatingCoils(temperature: Int, equals: Boolean = false): MultiPredicate {
+        val matches: (ICoilType) -> Boolean = { if (equals) it.coilTemperature == temperature else it.coilTemperature >= temperature }
+        return PredicateBuilder("GTLCoils:$temperature:$equals")
+            .predicate { context ->
+                val coil = context.state().block as? CoilBlock
+                if (coil == null || !GTCEuAPI.HEATING_COILS.containsKey(coil.coilType) || !matches(coil.coilType)) {
+                    false
+                } else {
+                    val data = PatternMatchData.of(context)
+                    if (!data.matchCoil(coil.coilType)) {
+                        val first = requireNotNull(data.coil())
+                        context.appendError(CoilMatchingError(context.pos(), first, coil.coilType))
+                        false
+                    } else true
                 }
-                false
-            },
-            {
-                val (matched, notMatched) = GTCEuAPI.HEATING_COILS.entries.partition { matchesTemperature(it.key.coilTemperature) }
-                (matched.sortedBy { it.key.coilTemperature } + notMatched.sortedBy { it.key.coilTemperature }).map { BlockInfo.fromBlockState(it.value.get().defaultBlockState()) }.toTypedArray()
             }
-        ) {
-            override fun test(blockWorldState: MultiblockState): Boolean {
-                if (super.test(blockWorldState)) return matchesTemperature((blockWorldState.blockState.block as CoilBlock).coilType.coilTemperature)
-                return false
-            }
-        }).addTooltips("gtceu.multiblock.pattern.error.coils".toComponent)
+            .candidatesSupplier {
+                val entries = GTCEuAPI.HEATING_COILS.entries.sortedBy { it.key.coilTemperature }
+                val (accepted, remaining) = entries.partition { matches(it.key) }
+                (accepted + remaining).map { BlockInfo.fromBlock(it.value.get()) }
+            }.toMultiPredicate()
+            .addTooltips(Component.translatable("gtceu.multiblock.pattern.error.coils"))
     }
 }

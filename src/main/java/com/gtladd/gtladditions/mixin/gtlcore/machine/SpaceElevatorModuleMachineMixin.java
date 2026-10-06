@@ -26,7 +26,7 @@ public abstract class SpaceElevatorModuleMachineMixin {
         Level level = module.getLevel();
         if (!(level instanceof ServerLevel serverLevel)) return MachineUtil.EMPTY_POS_ARRAY;
 
-        BlockPos modulePos = module.getPos();
+        BlockPos modulePos = module.getBlockPos();
         int[][] originalOffsets = new int[][] {
                 { 8, 3 }, { 8, -3 }, { -8, 3 }, { -8, -3 },
                 { 3, 8 }, { 3, -8 }, { -3, 8 }, { -3, -8 }

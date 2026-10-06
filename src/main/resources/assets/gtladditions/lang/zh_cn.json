@@ -1,4 +1,8 @@
 {
+  "config.jade.plugin_gtladditions.cloud_binding": "云网络绑定",
+  "config.jade.plugin_gtladditions.biosphere_iii_energy": "生物圈 III 能量",
+  "config.jade.plugin_gtladditions.wireless_energy_network_terminal": "无线能量终端",
+  "config.jade.plugin_gtceu.infinity_dual_hatch": "无限双重输入仓内容",
   "block.gtladditions.antientropy_condensation_center": "反熵冷凝中枢",
   "block.gtladditions.apocalyptic_torsion_quantum_matrix": "终焉曲折量子波动矩阵",
   "block.gtladditions.arcane_cache_vault": "密藏之匣",
@@ -139,8 +143,8 @@
   "gtladditions.machine.supratemporal_boosting_engine.overheated": "过热保护：[%s]",
   "gtladditions.machine.supratemporal_boosting_engine.temperature": "温度：%s K",
   "gtladditions.machine.time_space_distorter.bound": "已绑定终焉曲折量子波动矩阵：[%s]",
-  "gtladditions.machine.time_space_distorter.last_consumed": "\u4e0a\u4e00\u8f6e\u6d88\u8017\uff1a",
-  "gtladditions.machine.time_space_distorter.last_consumed_failed": "\u4e0a\u4e00\u8f6e\u6d88\u8017\uff08\u5931\u8d25\uff09\uff1a",
+  "gtladditions.machine.time_space_distorter.last_consumed": "上一轮消耗：",
+  "gtladditions.machine.time_space_distorter.last_consumed_failed": "上一轮消耗（失败）：",
   "gtladditions.machine.time_space_distorter.last_consumed_fluid_entry": "%1$s %2$s mB",
   "gtladditions.machine.time_space_distorter.last_consumed_item_entry": "%1$s x%2$s",
   "gtladditions.machine.time_space_distorter.level": "因果扭曲等级：%s，输出倍率：%sx",
@@ -316,8 +320,8 @@
   "item.gtladditions.extraordinary_soc": "超凡soc芯片",
   "item.gtladditions.extraordinary_soc_wafer": "超凡soc晶圆",
   "item.gtladditions.guide": "GTLAdditions 指南",
-  "item.gtladditions.hassium_boule": "\uD872\uDF76掺杂的单晶硅",
-  "item.gtladditions.hassium_wafer": "\uD872\uDF76掺杂的晶圆",
+  "item.gtladditions.hassium_boule": "𬭶掺杂的单晶硅",
+  "item.gtladditions.hassium_wafer": "𬭶掺杂的晶圆",
   "item.gtladditions.infinity_boule": "无尽掺杂的单晶硅",
   "item.gtladditions.infinity_wafer": "无尽掺杂的晶圆",
   "item.gtladditions.mining_essence_bucket": "采掘精华桶",
@@ -401,5 +405,11 @@
   "tooltip.gtladditions.stargate_structure.6": "◆■□□□■◆",
   "tooltip.gtladditions.stargate_structure.7": "□■◆★◆■□",
   "tooltip.gtladditions.stargate_structure.8": "§b■§r: 14x§6星门环块",
-  "tooltip.gtladditions.stargate_structure.9": "§b◆§r: 9x§6星门导标块"
+  "tooltip.gtladditions.stargate_structure.9": "§b◆§r: 9x§6星门导标块",
+  "gtladditions.subtitle.forgeofantichrist": "反基督锻炉",
+  "gtladditions.subtitle.quantumoscillation": "量子振荡",
+  "gtladditions.subtitle.genesisengine": "创世引擎",
+  "gtladditions.subtitle.interstellar": "星际航行",
+  "tooltip.gtladditions.astral_compression_collected": "已收集星阵：%s",
+  "tooltip.gtladditions.astral_compression_pending": "等待输出的压缩星阵：%s"
 }

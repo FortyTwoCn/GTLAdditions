@@ -1,242 +1,103 @@
-﻿package com.gtladd.gtladditions.common.machine.trait
+package com.gtladd.gtladditions.common.machine.trait
 
-import com.google.common.primitives.Ints
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
-import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.trait.ICapabilityTrait
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableRecipeHandlerTrait
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableRecipeHandlerTrait
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
-import com.gregtechceu.gtceu.utils.ItemStackHashStrategy
-import com.gtladd.gtladditions.utils.ComponentExtensions.literal
-import com.gtladd.gtladditions.utils.TransferHelper
-import com.lowdragmc.lowdraglib.side.item.IItemTransfer
-import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenCustomHashMap
 import it.unimi.dsi.fastutil.objects.Object2LongMap
-import it.unimi.dsi.fastutil.objects.Object2LongMaps
-import net.minecraft.ChatFormatting
 import net.minecraft.core.Direction
+import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Style
-import net.minecraft.world.item.ItemStack
-import net.minecraft.world.item.crafting.Ingredient
 import org.gtlcore.gtlcore.api.machine.trait.MEStock.IOptimizedMEList
-import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
-import org.gtlcore.gtlcore.integration.ae2.AEUtils
 import org.gtlcore.gtlcore.utils.NumberUtils
+import com.gtladd.gtladditions.utils.TransferHelper
 import kotlin.math.max
 import kotlin.math.min
+import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
+import com.gregtechceu.gtceu.utils.ItemStackHashStrategy
+import net.minecraft.world.item.ItemStack
+import net.neoforged.neoforge.common.crafting.SizedIngredient
+import net.neoforged.neoforge.items.IItemHandler
+import org.gtlcore.gtlcore.api.machine.trait.ILongItemStorage
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
 
-class FastNotifiableInputItemStack(machine: MetaMachine) :
-    NotifiableRecipeHandlerTrait<Ingredient>(machine),
-    ICapabilityTrait,
-    IItemTransfer,
-    IOptimizedMEList,
-    ITagSerializable<CompoundTag>,
-    IContentChangeAware {
-
-    private val itemInventory: Object2LongLinkedOpenCustomHashMap<ItemStack> =
-        Object2LongLinkedOpenCustomHashMap(ItemStackHashStrategy.comparingAllButCount())
-
-    init {
-        itemInventory.defaultReturnValue(0)
+/** Native input capability with exact long quantities; keys never own the caller's mutable stack. */
+class FastNotifiableInputItemStack : NotifiableRecipeHandlerTrait<SizedIngredient>(),
+    ICapabilityTrait, IItemHandler, IOptimizedMEList, ILongItemStorage {
+    // Declare both Map type arguments for native GT's generic map transformer.
+    @field:SaveField
+    @field:SyncToClient
+    private val savedInventory: MutableMap<ItemStack, Long> =
+        Object2LongLinkedOpenCustomHashMap<ItemStack>(ItemStackHashStrategy.comparingAllButCount())
+    private val inventory: Object2LongLinkedOpenCustomHashMap<ItemStack>
+        get() = savedInventory as Object2LongLinkedOpenCustomHashMap<ItemStack>
+    val realSize: Int get() = inventory.size
+    fun isEmpty(): Boolean = inventory.isEmpty()
+    fun getItemStorage(): Object2LongLinkedOpenCustomHashMap<ItemStack> = inventory
+    override fun getMEItemMap(): Object2LongMap<ItemStack> = inventory
+    override fun `gtlcore$getStoredAmount`(slot: Int): Long = inventory.object2LongEntrySet().elementAtOrNull(slot)?.longValue ?: 0
+    fun addDisplayText(textList: MutableList<Component>) {
+        inventory.object2LongEntrySet().forEach { textList.add(it.key.hoverName.copy().append(" " + NumberUtils.formatLong(it.longValue))) }
     }
-
-    val realSize: Int
-        get() = itemInventory.size
-
-    fun isEmpty(): Boolean = itemInventory.isEmpty()
-
-    fun getItemStorage() = itemInventory
-
-    fun addDisplayText(textList: MutableList<Component?>) {
-        for (entry in Object2LongMaps.fastIterable(itemInventory)) {
-            textList.add(
-                entry.key.displayName.copy().setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW))
-                    .append(
-                        NumberUtils.formatLong(entry.longValue).literal
-                            .setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA))
-                    )
-            )
-        }
-    }
-
     fun importFromNearby(vararg facings: Direction) {
         val level = machine.level ?: return
-        val pos = machine.pos
-
-        for (facing in facings) {
-            TransferHelper.importToTarget(
-                this,
-                machine.getItemCapFilter(facing),
-                level,
-                pos.relative(facing),
-                facing.opposite
-            )
-        }
+        facings.forEach { TransferHelper.importToTarget(this, machine.getItemCapFilter(it, IO.IN), level, machine.blockPos.relative(it), it.opposite) }
     }
-
     fun exportToNearby(vararg facings: Direction) {
-        if (isEmpty()) return
-
         val level = machine.level ?: return
-        val pos = machine.pos
-
-        for (facing in facings) {
-            TransferHelper.exportToTarget(
-                this,
-                machine.getItemCapFilter(facing),
-                level,
-                pos.relative(facing),
-                facing.opposite
-            )
-        }
+        facings.forEach { TransferHelper.exportToTarget(this, machine.getItemCapFilter(it, IO.OUT), level, machine.blockPos.relative(it), it.opposite) }
     }
-
     override fun getHandlerIO(): IO = IO.IN
-
-    override fun onContentsChanged() {
-        notifyListeners()
-    }
-
-    override fun getMEItemMap(): Object2LongMap<ItemStack> = itemInventory
-
-    override fun handleRecipeInner(
-        io: IO,
-        recipe: GTRecipe,
-        left: MutableList<Ingredient>,
-        slotName: String?,
-        simulate: Boolean
-    ): List<Ingredient>? {
-        if (io != IO.IN) return left.ifEmpty { null }
-
+    override fun getCapabilityIO(): IO = IO.IN
+    override fun getCapability(): RecipeCapability<SizedIngredient> = ItemRecipeCapability.CAP
+    fun onContentsChanged() { machine.setChanged(); syncDataHolder.markClientSyncFieldDirty("savedInventory"); notifyListeners() }
+    override fun handleRecipeInner(io: IO, recipe: GTRecipe?, left: MutableList<SizedIngredient>, simulate: Boolean): List<SizedIngredient> {
+        if (io != IO.IN) return left
+        val available = Object2LongLinkedOpenCustomHashMap<ItemStack>(ItemStackHashStrategy.comparingAllButCount()).apply { putAll(inventory) }
         var changed = false
         val iter = left.listIterator()
-        outer@ while (iter.hasNext()) {
+        while (iter.hasNext()) {
             val ingredient = iter.next()
-            if (ingredient.isEmpty) {
-                iter.remove()
-                continue
-            }
-
-            val items = ingredient.items
-            if (items.isEmpty()) {
-                iter.remove()
-                continue
-            }
-
-            var leftAmount = if (ingredient is LongIngredient) ingredient.actualAmount else items[0].count.toLong()
-            for (itemStack in items) {
-                val has = itemInventory.getLong(itemStack)
-                if (has <= 0) continue
-                val extracted = min(has, leftAmount)
-                leftAmount -= extracted
-                if (!simulate) {
-                    if (extracted == has) {
-                        itemInventory.removeLong(itemStack)
-                    } else {
-                        itemInventory.addTo(itemStack, -extracted)
-                    }
-                }
+            var remaining = LongIngredient.amount(ingredient)
+            if (remaining <= 0) { iter.remove(); continue }
+            val matching = LongIngredient.matchingIngredient(ingredient)
+            val entries = available.object2LongEntrySet().iterator()
+            while (entries.hasNext() && remaining > 0) {
+                val entry = entries.next()
+                if (!matching.test(entry.key)) continue
+                val used = min(entry.longValue, remaining)
+                if (used <= 0) continue
+                remaining -= used
+                val stored = entry.longValue - used
+                if (stored == 0L) entries.remove() else entry.setValue(stored)
                 changed = true
-
-                if (leftAmount <= 0L) {
-                    iter.remove()
-                    continue@outer
-                }
             }
-
-            if (ingredient is LongIngredient) {
-                ingredient.actualAmount = leftAmount
-            } else {
-                items[0].count = Ints.saturatedCast(leftAmount)
-            }
+            if (remaining == 0L) iter.remove() else iter.set(LongIngredient.create(matching, remaining))
         }
-
-        if (!simulate && changed) onContentsChanged()
-
-        return left.ifEmpty { null }
+        if (!simulate && changed) { inventory.clear(); inventory.putAll(available); onContentsChanged() }
+        return left
     }
-
-    override fun getContents(): List<Any> = itemInventory.map { entry ->
-        entry.key.copyWithCount(Ints.saturatedCast(entry.value))
-    }
-
-    override fun getTotalContentAmount(): Double = itemInventory.values.sum().toDouble()
-
-    override fun getCapability(): RecipeCapability<Ingredient> = ItemRecipeCapability.CAP
-
-    override fun getCapabilityIO(): IO = IO.IN
-
-    override fun getSlots(): Int = max(itemInventory.size, 1)
-
-    override fun getStackInSlot(slot: Int): ItemStack =
-        itemInventory.object2LongEntrySet().elementAtOrNull(slot)?.run {
-            key.copyWithCount(Ints.saturatedCast(longValue))
-        } ?: ItemStack.EMPTY
-
-    override fun insertItem(
-        slot: Int,
-        stack: ItemStack,
-        simulate: Boolean,
-        notifyChanges: Boolean
-    ): ItemStack {
+    override fun getContents(): List<Any> = inventory.object2LongEntrySet().map { it.key.copyWithCount(min(Int.MAX_VALUE.toLong(), it.longValue).toInt()) }
+    override fun getTotalContentAmount(): Double = inventory.values.sumOf { it.toDouble() }
+    override fun getSlots(): Int = max(realSize, 1)
+    override fun getStackInSlot(slot: Int): ItemStack = inventory.object2LongEntrySet().elementAtOrNull(slot)?.let {
+        it.key.copyWithCount(min(Int.MAX_VALUE.toLong(), it.longValue).toInt())
+    } ?: ItemStack.EMPTY
+    override fun insertItem(slot: Int, stack: ItemStack, simulate: Boolean): ItemStack {
         if (stack.isEmpty) return ItemStack.EMPTY
-
-        val count = stack.count
-        val existing = itemInventory.getLong(stack)
-        val realInsert = min(Long.MAX_VALUE - existing, count.toLong())
-
-        if (!simulate && realInsert > 0L) {
-            stack.count = 1
-            itemInventory.addTo(stack, realInsert)
-            if (notifyChanges) this.onContentsChanged()
-        }
-
-        return if (realInsert == count.toLong()) {
-            ItemStack.EMPTY
-        } else {
-            stack.copyWithCount(count - realInsert.toInt())
-        }
+        val inserted = min(Long.MAX_VALUE - inventory.getLong(stack), stack.count.toLong())
+        if (!simulate && inserted > 0) { inventory.addTo(stack.copyWithCount(1), inserted); onContentsChanged() }
+        return stack.copyWithCount(stack.count - inserted.toInt())
     }
-
-    override fun extractItem(slot: Int, amount: Int, simulate: Boolean, notifyChanges: Boolean): ItemStack =
-        ItemStack.EMPTY
-
+    // This input capability never allows automation to take the machine's paid recipe inputs back.
+    override fun extractItem(slot: Int, amount: Int, simulate: Boolean): ItemStack = ItemStack.EMPTY
     override fun getSlotLimit(slot: Int): Int = Int.MAX_VALUE
-
     override fun isItemValid(slot: Int, stack: ItemStack): Boolean = true
-
-    @Suppress("UnstableApiUsage")
-    override fun createSnapshot(): Any = throw UnsupportedOperationException("Why Fabric")
-
-    @Suppress("UnstableApiUsage")
-    override fun restoreFromSnapshot(snapshot: Any?): Unit = throw UnsupportedOperationException("Why Fabric")
-
-    override fun onConfigChanged() {}
-
-    override fun serializeNBT(): CompoundTag {
-        val tag = CompoundTag()
-
-        val itemsTag = AEUtils.createListTag(ItemStack::serializeNBT, itemInventory)
-        if (!itemsTag.isEmpty()) tag.put("inventory", itemsTag)
-
-        return tag
-    }
-
-    override fun deserializeNBT(tag: CompoundTag) {
-        itemInventory.clear()
-
-        val items = tag.getList("inventory", Tag.TAG_COMPOUND.toInt())
-        AEUtils.loadInventory(items, ItemStack::of, itemInventory)
-    }
-
-    override fun setOnContentsChanged(onContentChanged: Runnable?) {}
-
-    override fun getOnContentsChanged(): Runnable = Runnable { }
+    fun serializeNBT(registries: HolderLookup.Provider): CompoundTag = syncDataHolder.serializeNBT(registries)
+    fun deserializeNBT(registries: HolderLookup.Provider, tag: CompoundTag) { syncDataHolder.deserializeNBT(registries, tag); notifyListeners() }
 }

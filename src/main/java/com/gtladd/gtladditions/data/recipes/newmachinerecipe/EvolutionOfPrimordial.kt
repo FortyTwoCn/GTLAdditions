@@ -6,14 +6,14 @@ import com.gregtechceu.gtceu.common.data.GTItems.FERTILIZER
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.tags.ItemTags
 import org.gtlcore.gtlcore.common.data.GTLMaterials.Cyclopentadiene
 import java.util.function.Consumer
 
 object EvolutionOfPrimordial {
     @JvmStatic
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         GTLAddRecipesTypes.EVOLUTION_OF_PRIMORDIAL.recipeBuilder(GTLAdditions.id("evolution_of_primordial_wood_1"))
             .inputItems(ItemTags.LOGS, 90)
             .inputFluids(Steam.getFluid(1000))
@@ -119,7 +119,7 @@ object EvolutionOfPrimordial {
             .duration(200).EUt(GTValues.V[5]).save(provider)
 
         GTLAddRecipesTypes.EVOLUTION_OF_PRIMORDIAL.recipeBuilder(GTLAdditions.id("evolution_of_primordial_oil_heavy_1"))
-            .inputFluids(OilHeavy.getFluid(1000))
+            .inputFluids(HeavyOil.getFluid(1000))
             .inputFluids(Steam.getFluid(1000))
             .outputItems(dust, Sulfur)
             .outputFluids(Toluene.getFluid(240))
@@ -137,7 +137,7 @@ object EvolutionOfPrimordial {
             .duration(200).EUt(GTValues.V[5]).save(provider)
 
         GTLAddRecipesTypes.EVOLUTION_OF_PRIMORDIAL.recipeBuilder(GTLAdditions.id("evolution_of_primordial_oil_heavy_2"))
-            .inputFluids(OilHeavy.getFluid(1000))
+            .inputFluids(HeavyOil.getFluid(1000))
             .inputFluids(Hydrogen.getFluid(1000))
             .outputItems(dust, Sulfur)
             .outputFluids(Methane.getFluid(180))
@@ -183,7 +183,7 @@ object EvolutionOfPrimordial {
             .duration(200).EUt(GTValues.V[5]).save(provider)
 
         GTLAddRecipesTypes.EVOLUTION_OF_PRIMORDIAL.recipeBuilder(GTLAdditions.id("evolution_of_primordial_oil_light_1"))
-            .inputFluids(OilLight.getFluid(1000))
+            .inputFluids(LightOil.getFluid(1000))
             .inputFluids(Steam.getFluid(1000))
             .outputItems(dust, Sulfur)
             .outputFluids(Toluene.getFluid(20))
@@ -201,7 +201,7 @@ object EvolutionOfPrimordial {
             .duration(200).EUt(GTValues.V[5]).save(provider)
 
         GTLAddRecipesTypes.EVOLUTION_OF_PRIMORDIAL.recipeBuilder(GTLAdditions.id("evolution_of_primordial_oil_light_2"))
-            .inputFluids(OilLight.getFluid(1000))
+            .inputFluids(LightOil.getFluid(1000))
             .inputFluids(Hydrogen.getFluid(1000))
             .outputItems(dust, Sulfur)
             .outputFluids(Methane.getFluid(500))

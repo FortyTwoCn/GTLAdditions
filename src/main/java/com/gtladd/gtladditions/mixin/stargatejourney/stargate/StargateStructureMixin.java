@@ -14,6 +14,7 @@ import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -33,15 +34,15 @@ import org.spongepowered.asm.mixin.Unique;
 import java.util.List;
 import java.util.Optional;
 
-import static com.gtladd.gtladditions.utils.CommonUtils.isTargetDimension;
-import static com.gtladd.gtladditions.utils.CommonUtils.selectDisplayItem;
+import static com.gtladd.gtladditions.integration.sgjourney.StargateIntegration.isTargetDimension;
+import static com.gtladd.gtladditions.integration.sgjourney.StargateIntegration.selectDisplayItem;
 
 @SuppressWarnings("all")
 @Mixin(StargateStructure.class)
 public abstract class StargateStructureMixin extends SGJourneyStructure {
 
-    public StargateStructureMixin(StructureSettings config, Holder<StructureTemplatePool> startPool, Optional<ResourceLocation> startJigsawName, int size, HeightProvider startHeight, Optional<Heightmap.Types> projectStartToHeightmap, int maxDistanceFromCenter, Optional<Boolean> commonStargates) {
-        super(config, startPool, startJigsawName, size, startHeight, projectStartToHeightmap, maxDistanceFromCenter, commonStargates);
+    public StargateStructureMixin(StructureSettings config, Holder<StructureTemplatePool> startPool, Optional<ResourceLocation> startJigsawName, int size, HeightProvider startHeight, Optional<Heightmap.Types> projectStartToHeightmap, int maxDistanceFromCenter, Optional<Rotation> rotation, Optional<Boolean> commonStargates, Optional<TransporterModifiers> transporterModifiers, Optional<TransporterControllerModifiers> transporterControllerModifiers) {
+        super(config, startPool, startJigsawName, size, startHeight, projectStartToHeightmap, maxDistanceFromCenter, rotation, commonStargates, transporterModifiers, transporterControllerModifiers);
     }
 
     /**

@@ -10,7 +10,7 @@ import net.minecraft.world.item.CreativeModeTab
 import org.gtlcore.gtlcore.common.data.machines.AdvancedMultiBlockMachineA
 
 object GTLAddCreativeModeTabs {
-    val GTLADD_ITEMS: RegistryEntry<CreativeModeTab?> = REGISTRATE.defaultCreativeTab("item") { builder: CreativeModeTab.Builder? ->
+    val GTLADD_ITEMS: RegistryEntry<CreativeModeTab, CreativeModeTab> = REGISTRATE.defaultCreativeTab("item") { builder: CreativeModeTab.Builder? ->
         builder!!.displayItems(RegistrateDisplayItemsGenerator("item", REGISTRATE))
             .title(
                 REGISTRATE.addLang("itemGroup", GTLAdditions.id("item"), "GTLAdditions")
@@ -19,7 +19,7 @@ object GTLAddCreativeModeTabs {
             .build()
     }
         .register()
-    val GTLADD_MACHINE: RegistryEntry<CreativeModeTab?> = REGISTRATE.defaultCreativeTab("machine") { builder: CreativeModeTab.Builder? ->
+    val GTLADD_MACHINE: RegistryEntry<CreativeModeTab, CreativeModeTab> = REGISTRATE.defaultCreativeTab("machine") { builder: CreativeModeTab.Builder? ->
         builder!!.displayItems(RegistrateDisplayItemsGenerator("machine", REGISTRATE))
             .title(
                 REGISTRATE.addLang("itemGroup", GTLAdditions.id("machine"), "GTLAdditions")
@@ -29,7 +29,7 @@ object GTLAddCreativeModeTabs {
     }
         .register()
 
-    val GTLADD_BLOCKS: RegistryEntry<CreativeModeTab?> = REGISTRATE.defaultCreativeTab("block") { builder: CreativeModeTab.Builder? ->
+    val GTLADD_BLOCKS: RegistryEntry<CreativeModeTab, CreativeModeTab> = REGISTRATE.defaultCreativeTab("block") { builder: CreativeModeTab.Builder? ->
         builder!!.displayItems(RegistrateDisplayItemsGenerator("block", REGISTRATE))
             .title(
                 REGISTRATE.addLang("itemGroup", GTLAdditions.id("block"), "GTLAdditions")
@@ -38,6 +38,12 @@ object GTLAddCreativeModeTabs {
             .build()
     }
         .register()
+
+    init {
+        // GT's generator fills tabs from its entry mapping. Registrate's automatic default-tab
+        // insertion would add the same item a second time on NeoForge.
+        REGISTRATE.defaultCreativeTab(null as net.minecraft.resources.ResourceKey<CreativeModeTab>?)
+    }
 
     fun init() {}
 }

@@ -1,0 +1,46 @@
+{
+  "config.jade.plugin_gtceu.infinity_dual_hatch": {
+    "en_us": "Infinity dual hatch contents",
+    "zh_cn": "无限双重输入仓内容"
+  },
+  "config.jade.plugin_gtladditions.biosphere_iii_energy": {
+    "en_us": "Biosphere III energy",
+    "zh_cn": "生物圈 III 能量"
+  },
+  "config.jade.plugin_gtladditions.cloud_binding": {
+    "en_us": "Cloud binding",
+    "zh_cn": "云网络绑定"
+  },
+  "config.jade.plugin_gtladditions.wireless_energy_network_terminal": {
+    "en_us": "Wireless energy terminal",
+    "zh_cn": "无线能量终端"
+  },
+  "gtladditions.subtitle.forgeofantichrist": {
+    "en_us": "Forge of the Antichrist",
+    "zh_cn": "反基督锻炉"
+  },
+  "gtladditions.subtitle.genesisengine": {
+    "en_us": "Genesis Engine",
+    "zh_cn": "创世引擎"
+  },
+  "gtladditions.subtitle.interstellar": {
+    "en_us": "Interstellar",
+    "zh_cn": "星际航行"
+  },
+  "gtladditions.subtitle.quantumoscillation": {
+    "en_us": "Quantum Oscillation",
+    "zh_cn": "量子振荡"
+  },
+  "tooltip.gtladditions.astral_compression_collected": {
+    "en_us": "Collected astral arrays: %s",
+    "zh_cn": "已收集星阵：%s"
+  },
+  "tooltip.gtladditions.astral_compression_pending": {
+    "en_us": "Compressed arrays awaiting output: %s",
+    "zh_cn": "等待输出的压缩星阵：%s"
+  },
+  "item.gtceu.neutronium_credit": {
+    "en_us": "Neutronium Credit",
+    "zh_cn": "中子素币"
+  }
+}

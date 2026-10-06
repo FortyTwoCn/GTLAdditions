@@ -2,9 +2,8 @@ package com.gtladd.gtladditions.common.machine.hatch
 
 import com.gregtechceu.gtceu.api.capability.IDataAccessHatch
 import com.gregtechceu.gtceu.api.capability.IOpticalDataAccessHatch
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
@@ -12,39 +11,38 @@ import com.gregtechceu.gtceu.common.machine.multiblock.electric.research.DataBan
 import com.gregtechceu.gtceu.common.recipe.condition.ResearchCondition
 import com.gtladd.gtladditions.utils.CloudNetworkManager
 import com.gtladd.gtladditions.utils.CloudTeamUtil
-import com.hepdd.gtmthings.api.capability.IBindable
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gtladd.gtladditions.api.machine.ICloudTeamBindable
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.world.InteractionHand
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.phys.BlockHitResult
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
 import java.util.UUID
 
-class CloudOpticalDataHatchMachine(holder: IMachineBlockEntity) :
+class CloudOpticalDataHatchMachine(holder: BlockEntityCreationInfo) :
     MultiblockPartMachine(holder),
     IOpticalDataAccessHatch,
-    IMachineLife,
     IDataStickInteractable,
-    IBindable {
+    ICloudTeamBindable, IMuiMachine {
 
-    @Persisted
-    @DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var teamId: UUID? = null
         private set
 
-    override fun onMachinePlaced(player: LivingEntity?, stack: ItemStack) {
-        CloudTeamUtil.bindOnPlacement(this, player)
+    override fun setOwnerUUID(uuid: UUID) {
+        super.setOwnerUUID(uuid)
+        if (!isRemote) setUUID(uuid)
     }
 
-    override fun onDataStickRightClick(player: Player, stack: ItemStack): InteractionResult =
+    override fun onDataStickUse(player: Player, stack: ItemStack): InteractionResult =
         CloudTeamUtil.bindFromDataStick(this, player)
 
-    override fun onDataStickLeftClick(player: Player, stack: ItemStack): Boolean =
+    override fun onDataStickShiftUse(player: Player, stack: ItemStack): InteractionResult =
         CloudTeamUtil.unbindFromDataStick(this, player)
 
     override fun isRecipeAvailable(recipe: GTRecipe, seen: MutableCollection<IDataAccessHatch>): Boolean {
@@ -73,17 +71,10 @@ class CloudOpticalDataHatchMachine(holder: IMachineBlockEntity) :
     override fun getUUID(): UUID? = teamId
 
     override fun setUUID(uuid: UUID?) {
+        if (teamId == uuid) return
         teamId = uuid
+        markAsChanged()
+        syncDataHolder.markClientSyncFieldDirty("teamId")
     }
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
-    companion object {
-
-        @JvmField
-        val MANAGED_FIELD_HOLDER = ManagedFieldHolder(
-            CloudOpticalDataHatchMachine::class.java,
-            MultiblockPartMachine.MANAGED_FIELD_HOLDER
-        )
-    }
 }

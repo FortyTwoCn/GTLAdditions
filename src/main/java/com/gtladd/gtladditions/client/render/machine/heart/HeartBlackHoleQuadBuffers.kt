@@ -23,8 +23,7 @@ internal object HeartBlackHoleQuadBuffers {
 
     private fun buildSphereVolumeBuffer(): VertexBuffer {
         val buffer = VertexBuffer(VertexBuffer.Usage.STATIC)
-        val builder = Tesselator.getInstance().builder
-        builder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION)
 
         for (latitude in 0 until SPHERE_LATITUDE_SEGMENTS) {
             val latitude0 = -PI / 2.0 + PI * latitude / SPHERE_LATITUDE_SEGMENTS
@@ -49,7 +48,7 @@ internal object HeartBlackHoleQuadBuffers {
         }
 
         buffer.bind()
-        buffer.upload(builder.end())
+        buffer.upload(builder.buildOrThrow())
         VertexBuffer.unbind()
         return buffer
     }
@@ -65,13 +64,12 @@ internal object HeartBlackHoleQuadBuffers {
     }
 
     private fun addVertex(builder: BufferBuilder, vertex: SphereVertex) {
-        builder.vertex(vertex.x.toDouble(), vertex.y.toDouble(), vertex.z.toDouble()).endVertex()
+        builder.addVertex(vertex.x, vertex.y, vertex.z)
     }
 
     private fun buildScreenQuadBuffer(): VertexBuffer {
         val buffer = VertexBuffer(VertexBuffer.Usage.STATIC)
-        val builder = Tesselator.getInstance().builder
-        builder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX)
 
         addScreenVertex(builder, -1.0f, -1.0f, 0.0f, 0.0f)
         addScreenVertex(builder, 1.0f, -1.0f, 1.0f, 0.0f)
@@ -81,13 +79,13 @@ internal object HeartBlackHoleQuadBuffers {
         addScreenVertex(builder, -1.0f, 1.0f, 0.0f, 1.0f)
 
         buffer.bind()
-        buffer.upload(builder.end())
+        buffer.upload(builder.buildOrThrow())
         VertexBuffer.unbind()
         return buffer
     }
 
     private fun addScreenVertex(builder: BufferBuilder, x: Float, y: Float, u: Float, v: Float) {
-        builder.vertex(x.toDouble(), y.toDouble(), 0.0).uv(u, v).endVertex()
+        builder.addVertex(x, y, 0.0f).setUv(u, v)
     }
 
     private data class SphereVertex(

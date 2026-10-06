@@ -1,6 +1,6 @@
 ﻿package com.gtladd.gtladditions.api.machine
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.common.data.DataModuleBindingRecord
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import net.minecraft.core.BlockPos
@@ -20,7 +20,7 @@ interface IWirelessBindableTarget {
 
     fun unbindSource()
 
-    fun getPos(): BlockPos?
+    fun getBlockPos(): BlockPos
 
     fun getBindingTargetName(): Component = bindingTargetType.toLanguageKey("block").toComponent
 
@@ -43,7 +43,7 @@ interface IWirelessBindableTarget {
             )
         }
 
-        val source = (level.getBlockEntity(record.sourcePos) as? MetaMachineBlockEntity)?.metaMachine as? IWirelessBindableSource<*>
+        val source = MetaMachine.getMachine(level, record.sourcePos) as? IWirelessBindableSource<*>
         if ((source == null) || (source.bindingType != record.bindingType)) {
             return DataModuleBindingResult.Failure(
                 DataModuleBindingError.SOURCE_UNLOADED,

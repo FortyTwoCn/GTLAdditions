@@ -1,0 +1,30 @@
+{
+  "reason": "Minecraft 1.21.1 NativeImage validates PNG headers; these original .png files contained JPEG data. Preserve the resource paths and exact decoded RGBA pixels.",
+  "baseline": "8caff5e93a5e65914d10dd176d48d66e7ec8c329",
+  "textures": {
+    "src/main/resources/assets/gtladditions/textures/block/obj/heartofuniverse.png": {
+      "original_format": "JPEG",
+      "original_sha256": "ca2a5379da66420a41bbac76b16ffcb83e8829390da799e79eb7bfcc214b4b11",
+      "png_sha256": "1e2f494077082fe934415ab68d6a5f539d326d23550a9312eea52a9aae2495f3",
+      "decoded_rgba_sha256": "28445025c3a9f9017c11dbeef9fd8a1f561df726c9be35988b252ea4c76e3cf1",
+      "width": 8192,
+      "height": 4096
+    },
+    "src/main/resources/assets/gtladditions/textures/block/multiblock/forge_of_antichrist/space_layer.png": {
+      "original_format": "JPEG",
+      "original_sha256": "ec28e645863d55d4c0513a07fc846eaf06fc4f4b2246e4a6b10535f990309360",
+      "png_sha256": "8a39f67f117ec643db5bb53c04c04c09e4c422a183471a5d761836e7b87c9f83",
+      "decoded_rgba_sha256": "1d36775cc8d1fd6645b0bb2390b697dd3873f2c50a4abba9863bab42ca5fdfbd",
+      "width": 8192,
+      "height": 4096
+    },
+    "src/main/resources/assets/gtladditions/textures/block/multiblock/forge_of_antichrist/star_layer_0.png": {
+      "original_format": "JPEG",
+      "original_sha256": "f22b1cfb306ddce72a7e3b628668a0175b745038ce6268557cb2f7f1bdf98b9d",
+      "png_sha256": "849f0ffcd0cb57e0dd7a4c99e432e4bd2e0b295ecd0306d7fa4d844e0ec82aed",
+      "decoded_rgba_sha256": "eee8a5667060560355204c06c7e61455e75675e5b913da52929d2f34e7f92dab",
+      "width": 4096,
+      "height": 2048
+    }
+  }
+}

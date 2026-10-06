@@ -1,7 +1,7 @@
 package com.gtladd.gtladditions.common.items.behavior
 
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import net.minecraft.core.BlockPos
@@ -43,7 +43,7 @@ object ModuleConnectionBehavior : IInteractionItem {
         }
 
         val blockEntity = level.getBlockEntity(pos)
-        val controller = ((blockEntity as? IMachineBlockEntity)?.metaMachine as? MultiblockControllerMachine)
+        val controller = (blockEntity as? MultiblockControllerMachine)
         val front: Direction
         val up: Direction
 
@@ -58,7 +58,7 @@ object ModuleConnectionBehavior : IInteractionItem {
             up = if (controller.allowExtendedFacing() && controller.frontFacing.axis == Direction.Axis.Y) controller.upwardsFacing else Direction.UP
         }
 
-        val tag = itemStack.orCreateTag
+        val tag = itemStack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY).copyTag()
 
         if (!tag.getBoolean(NBT_HAS_HOST)) {
             tag.putInt(NBT_HOST_X, pos.x)
@@ -104,12 +104,13 @@ object ModuleConnectionBehavior : IInteractionItem {
             )
         }
 
+        itemStack.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag))
         return InteractionResult.SUCCESS
     }
 
     @Suppress("DuplicatedCode")
     override fun use(
-        item: Item,
+        item: ItemStack,
         level: Level,
         player: Player,
         hand: InteractionHand
@@ -118,7 +119,7 @@ object ModuleConnectionBehavior : IInteractionItem {
 
         val serverPlayer = player as? ServerPlayer ?: return InteractionResultHolder.pass(player.getItemInHand(hand))
         val itemStack = player.getItemInHand(hand)
-        val tag = itemStack.orCreateTag
+        val tag = itemStack.getOrDefault(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.EMPTY).copyTag()
 
         if (!tag.getBoolean(NBT_HAS_HOST)) {
             serverPlayer.sendSystemMessage(
@@ -245,6 +246,7 @@ object ModuleConnectionBehavior : IInteractionItem {
         tag.remove(NBT_MODULES)
         tag.remove(NBT_HAS_HOST)
 
+        itemStack.set(net.minecraft.core.component.DataComponents.CUSTOM_DATA, net.minecraft.world.item.component.CustomData.of(tag))
         return InteractionResultHolder.success(itemStack)
     }
 

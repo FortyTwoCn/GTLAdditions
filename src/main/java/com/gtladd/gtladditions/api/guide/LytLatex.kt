@@ -61,7 +61,7 @@ class LytLatex(
 
             val baos = ByteArrayOutputStream()
             ImageIO.write(image, "png", baos)
-            texture = GuidePageTexture.load(ResourceLocation("latex", UUID.randomUUID().toString()), baos.toByteArray())
+            texture = GuidePageTexture.load(ResourceLocation.fromNamespaceAndPath("latex", UUID.randomUUID().toString()), baos.toByteArray())
         } catch (_: Exception) {
             texture = GuidePageTexture.missing()
         }

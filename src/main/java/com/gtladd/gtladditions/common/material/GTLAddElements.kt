@@ -5,7 +5,7 @@ import com.gregtechceu.gtceu.common.data.GTElements
 
 object GTLAddElements {
 
-    val CREON: Element? = GTElements.createAndRegister(1000, 1000, -1, null, "creon", "⸎", false)
+    val CREON: Element? = GTElements.createAndRegister(1000, 1000, -1.0, null, "creon", "⸎", false)
 
     fun init() {}
 }

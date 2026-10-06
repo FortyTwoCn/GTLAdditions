@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.mutable
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.FusionReactorMachine
 import com.gtladd.gtladditions.api.machine.IWirelessThreadModifierParallelMachine
@@ -11,20 +11,20 @@ import com.gtladd.gtladditions.api.machine.logic.MutableRecipesLogic
 import org.gtlcore.gtlcore.api.machine.trait.IRecipeCapabilityMachine
 import java.util.function.BiPredicate
 
-class MutableFusionReactorMachine(holder: IMachineBlockEntity, tier: Int) :
+class MutableFusionReactorMachine(holder: BlockEntityCreationInfo, tier: Int) :
     FusionReactorMachine(holder, tier),
     IWirelessThreadModifierParallelMachine {
     private var threadPartMachine: IThreadModifierPart? = null
 
+    // Core supplies the original one-amp overclock voltage independently of the native tier cap.
     override fun getMaxVoltage(): Long = super.getOverclockVoltage()
-
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = MutableRecipesLogic<MutableFusionReactorMachine>(this, START_CHECK)
 
     @Suppress("UNCHECKED_CAST")
     override fun getRecipeLogic(): MutableRecipesLogic<MutableFusionReactorMachine> = super.getRecipeLogic() as MutableRecipesLogic<MutableFusionReactorMachine>
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         threadPartMachine = null
         getRecipeLogic().setUseMultipleRecipes(false)
     }
@@ -36,7 +36,7 @@ class MutableFusionReactorMachine(holder: IMachineBlockEntity, tier: Int) :
     }
 
     @Suppress("CAST_NEVER_SUCCEEDS")
-    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch?.currentParallel ?: 1
+    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch.map { it.currentParallel }.orElse(1)
 
     override fun setThreadPartMachine(threadModifierPart: IThreadModifierPart) {
         this.threadPartMachine = threadModifierPart
@@ -45,22 +45,15 @@ class MutableFusionReactorMachine(holder: IMachineBlockEntity, tier: Int) :
     override fun getThreadPartMachine(): IThreadModifierPart? = this.threadPartMachine
 
     companion object {
-        private val START_CHECK = BiPredicate { recipe: GTRecipe, recipeLogicMachine: IRecipeLogicMachine ->
-            if (recipeLogicMachine is MutableFusionReactorMachine && recipe.data.contains("eu_to_start")) {
-                val startEu = recipe.data.getLong("eu_to_start")
-                val heatDiff = startEu - recipeLogicMachine.heat
-                if (heatDiff <= 0L) {
-                    return@BiPredicate true
-                } else if (recipeLogicMachine.energyContainer.getEnergyStored() < heatDiff) {
-                    return@BiPredicate false
-                } else {
-                    recipeLogicMachine.energyContainer.removeEnergy(heatDiff)
-                    recipeLogicMachine.heat += heatDiff
-                    recipeLogicMachine.updatePreHeatSubscription()
-                    return@BiPredicate true
-                }
+        fun newRecipeLogic(): RecipeLogic = MutableRecipesLogic<MutableFusionReactorMachine>(
+            BiPredicate { recipe, machine ->
+                val transaction = machine as? org.gtlcore.gtlcore.api.machine.trait.IFusionHeatTransaction
+                    ?: return@BiPredicate false
+                org.gtlcore.gtlcore.api.recipe.NativeFusionStartup.canStart(
+                    transaction.`gtlcore$getFusionEnergy`(), transaction.`gtlcore$getFusionHeat`(),
+                    org.gtlcore.gtlcore.api.recipe.NativeFusionStartup.requiredHeat(recipe)
+                )
             }
-            false
-        }
+        )
     }
 }

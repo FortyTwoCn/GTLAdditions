@@ -3,11 +3,12 @@ package com.gtladd.gtladditions.client.render.machine.heart
 import com.gtladd.gtladditions.GTLAdditions
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import net.minecraft.client.renderer.ShaderInstance
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.event.RegisterShadersEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.event.RegisterShadersEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 
 @OnlyIn(Dist.CLIENT)
 internal object HeartBlackHoleShaders {
@@ -40,9 +41,9 @@ internal object HeartBlackHoleShaders {
 }
 
 @Suppress("unused")
-@Mod.EventBusSubscriber(
+@EventBusSubscriber(
     modid = GTLAdditions.MOD_ID,
-    bus = Mod.EventBusSubscriber.Bus.MOD,
+    bus = EventBusSubscriber.Bus.MOD,
     value = [Dist.CLIENT]
 )
 internal object HeartBlackHoleShaderEvents {

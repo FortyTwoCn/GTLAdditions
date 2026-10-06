@@ -1,40 +1,30 @@
 package com.gtladd.gtladditions.mixin.gtceu.common.machine;
 
-import com.gregtechceu.gtceu.api.capability.IObjectHolder;
+import com.gregtechceu.gtceu.api.capability.recipe.IO;
+import com.gregtechceu.gtceu.api.recipe.ActionResult;
+import com.gregtechceu.gtceu.api.recipe.GTRecipe;
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.research.ResearchStationMachine;
-
-import net.minecraft.world.item.ItemStack;
-
+import com.gtladd.gtladditions.api.machine.ICloudTeamBindable;
 import com.gtladd.gtladditions.utils.CloudNetworkManager;
-import com.hepdd.gtmthings.api.capability.IBindable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.UUID;
-
-@Mixin(targets = "com.gregtechceu.gtceu.common.machine.multiblock.electric.research.ResearchStationMachine$ResearchStationRecipeLogic")
+/** Upload only after the native object holder has accepted the finished research item. */
+@Mixin(ResearchStationMachine.ResearchStationRecipeLogic.class)
 public abstract class ResearchStationRecipeLogicMixin {
-
-    @Shadow(remap = false)
-    public abstract ResearchStationMachine getMachine();
-
-    @Inject(method = "onRecipeFinish", at = @At("TAIL"), require = 1, remap = false)
-    private void gtladditions$uploadResearchData(CallbackInfo ci) {
-        ResearchStationMachine machine = getMachine();
-        if (!(machine instanceof IBindable bindable)) return;
-
-        UUID teamId = bindable.getUUID();
-        if (teamId == null) return;
-
-        IObjectHolder holder = machine.getObjectHolder();
-        ItemStack dataStack = holder.getDataItem(false);
-        if (dataStack.isEmpty()) return;
-
-        if (CloudNetworkManager.INSTANCE.tryUploadResearchData(dataStack, teamId)) {
-            holder.setDataItem(ItemStack.EMPTY);
-        }
+    @Shadow(remap = false) public abstract ResearchStationMachine getMachine();
+    @Inject(method = "handleRecipeIO", at = @At("RETURN"), remap = false, require = 1)
+    private void gtladditions$uploadResearchData(GTRecipe recipe, IO io, CallbackInfoReturnable<ActionResult> cir) {
+        if (io != IO.OUT || !cir.getReturnValue().isSuccess()) return;
+        var machine = getMachine();
+        if (!(machine instanceof ICloudTeamBindable bindable) || bindable.getUUID() == null || machine.isRemote()) return;
+        var holder = machine.getObjectHolder();
+        if (holder == null) return;
+        var stack = holder.getDataItem(false);
+        if (!stack.isEmpty() && CloudNetworkManager.INSTANCE.tryUploadResearchData(stack, bindable.getUUID()))
+            holder.setDataItem(net.minecraft.world.item.ItemStack.EMPTY);
     }
 }

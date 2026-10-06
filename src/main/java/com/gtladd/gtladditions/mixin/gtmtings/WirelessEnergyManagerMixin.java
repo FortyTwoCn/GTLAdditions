@@ -1,52 +1,38 @@
 package com.gtladd.gtladditions.mixin.gtmtings;
 
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
-
-import com.hepdd.gtmthings.api.misc.GlobalVariableStorage;
-import com.hepdd.gtmthings.api.misc.WirelessEnergyManager;
-import com.hepdd.gtmthings.data.WirelessEnergySavaedData;
+import com.hepdd.gtmthings.api.misc.WirelessEnergyContainer;
+import com.gtladd.gtladditions.api.machine.wireless.NativeBigTransferData;
+import com.gtladd.gtladditions.utils.WirelessEnergyManagerData;
 import it.unimi.dsi.fastutil.Pair;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
-
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.math.BigInteger;
 import java.util.UUID;
 
-import static com.gtladd.gtladditions.utils.WirelessEnergyManagerData.BIG_MACHINE_DATA;
-import static com.hepdd.gtmthings.utils.TeamUtil.getTeamUUID;
-
-@Mixin(WirelessEnergyManager.class)
+/** Observe accepted native transfers; the saved account and rate policy remain owned by GTMThings. */
+@Mixin(value = WirelessEnergyContainer.class, remap = false)
 public abstract class WirelessEnergyManagerMixin {
+    @Shadow @Final private UUID uuid;
 
-    /**
-     * @author Dragons
-     * @reason Fix MachineData
-     */
-    @Overwrite(remap = false)
-    public static boolean addEUToGlobalEnergyMap(UUID user_uuid, BigInteger EU, MetaMachine machine) {
-        try {
-            WirelessEnergySavaedData.INSTANCE.setDirty(true);
-        } catch (Exception exception) {
-            System.out.println("COULD NOT MARK GLOBAL ENERGY AS DIRTY IN ADD EU");
-            exception.printStackTrace();
-        }
+    @Inject(method = "addEnergy", at = @At("RETURN"), require = 1)
+    private void gtladditions$recordInput(long requested, @Nullable MetaMachine machine, CallbackInfoReturnable<Long> cir) {
+        gtladditions$record(machine, cir.getReturnValueJ(), false);
+    }
 
-        UUID teamUUID = getTeamUUID(user_uuid);
-        BIG_MACHINE_DATA.put(machine, Pair.of(user_uuid, EU));
+    @Inject(method = "removeEnergy", at = @At("RETURN"), require = 1)
+    private void gtladditions$recordOutput(long requested, @Nullable MetaMachine machine, CallbackInfoReturnable<Long> cir) {
+        gtladditions$record(machine, cir.getReturnValueJ(), true);
+    }
 
-        BigInteger totalEU = GlobalVariableStorage.GlobalEnergy.getOrDefault(teamUUID, BigInteger.ZERO);
-        if (totalEU.signum() < 0) {
-            totalEU = BigInteger.ZERO;
-            GlobalVariableStorage.GlobalEnergy.put(getTeamUUID(user_uuid), totalEU);
-        }
-
-        totalEU = totalEU.add(EU);
-
-        if (totalEU.signum() >= 0) {
-            GlobalVariableStorage.GlobalEnergy.put(teamUUID, totalEU);
-            return true;
-        }
-
-        return false;
+    @Unique
+    private void gtladditions$record(@Nullable MetaMachine machine, long accepted, boolean debit) {
+        if (machine == null || accepted <= 0) return;
+        var amount = BigInteger.valueOf(accepted);
+        if (debit) amount = amount.negate();
+        WirelessEnergyManagerData.BIG_MACHINE_DATA.put(machine, Pair.of(uuid, amount));
+        WirelessEnergyContainer.TRANSFER_DATA.put(machine, new NativeBigTransferData(uuid, amount, machine));
     }
 }

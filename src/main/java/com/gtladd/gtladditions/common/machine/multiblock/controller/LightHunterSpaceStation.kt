@@ -1,7 +1,6 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine
 import com.gtladd.gtladditions.api.machine.IAstralArrayInteractionMachine
@@ -13,9 +12,8 @@ import com.gtladd.gtladditions.utils.CommonUtils.createLanguageRainbowComponentO
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.LightHunterSpaceStationPosHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
@@ -25,16 +23,20 @@ import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineHost
 import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 import org.gtlcore.gtlcore.utils.datastructure.ModuleRenderInfo
 
-class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
-    WorkableElectricMultiblockMachine(holder, *args),
+class LightHunterSpaceStation(holder: BlockEntityCreationInfo, vararg args: Any?) :
+    WorkableElectricMultiblockMachine(holder),
     IModularMachineHost<LightHunterSpaceStation>,
-    IAstralArrayInteractionMachine,
-    IMachineLife {
+    IAstralArrayInteractionMachine {
     private val modules: MutableSet<IModularMachineModule<LightHunterSpaceStation, *>> =
         ReferenceOpenHashSet<IModularMachineModule<LightHunterSpaceStation, *>>()
 
-    @field:Persisted
-    @field:DescSynced
+    override fun modifyDrops(drops: MutableList<net.minecraft.world.item.ItemStack>) {
+        super.modifyDrops(drops)
+        addAstralArrayDrops(drops)
+    }
+
+    @field:SaveField
+    @field:SyncToClient
     override var astralArrayCount: Int = 0
     private var mam = 0
 
@@ -58,8 +60,16 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
         return actualIncrease
     }
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("LightHunterSpaceStationStatus", syncManager, {
+            mutableListOf<Component>().also(::collectLightHunterSpaceStationStatusText)
+        }, 130)
+    )
+
+    private fun collectLightHunterSpaceStationStatusText(textList: MutableList<Component>) {
+        
         if (!isFormed) return
         textList.add(
             if (unlockParadoxical()) {
@@ -79,7 +89,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
 
     override fun getModuleSet(): Set<IModularMachineModule<LightHunterSpaceStation, *>> = modules
 
-    override fun getModuleScanPositions(): Array<out BlockPos> = LightHunterSpaceStationPosHelper.calculateModulePositions(pos, frontFacing)
+    override fun getModuleScanPositions(): Array<out BlockPos> = LightHunterSpaceStationPosHelper.calculateModulePositions(blockPos, frontFacing)
 
     override fun getModulesForRendering(): List<ModuleRenderInfo> = listOf(
         ModuleRenderInfo(
@@ -88,7 +98,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-49, 0, -9),
@@ -96,7 +106,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-57, 0, -9),
@@ -104,7 +114,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKII
+            NEXUS_SATELLITE_FACTORY_MKII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-65, 0, -9),
@@ -112,7 +122,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-73, 0, -9),
@@ -120,7 +130,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIV
+            NEXUS_SATELLITE_FACTORY_MKIV.get()
         ),
         ModuleRenderInfo(
             BlockPos(-81, 0, -9),
@@ -128,7 +138,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKII
+            NEXUS_SATELLITE_FACTORY_MKII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-89, 0, -9),
@@ -136,7 +146,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-97, 0, -9),
@@ -144,7 +154,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-105, 0, -9),
@@ -152,7 +162,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKII
+            NEXUS_SATELLITE_FACTORY_MKII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-113, 0, -9),
@@ -160,7 +170,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIV
+            NEXUS_SATELLITE_FACTORY_MKIV.get()
         ),
         ModuleRenderInfo(
             BlockPos(-113, 0, 9),
@@ -168,7 +178,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKII
+            NEXUS_SATELLITE_FACTORY_MKII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-105, 0, 9),
@@ -176,7 +186,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIV
+            NEXUS_SATELLITE_FACTORY_MKIV.get()
         ),
         ModuleRenderInfo(
             BlockPos(-97, 0, 9),
@@ -184,7 +194,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-89, 0, 9),
@@ -192,7 +202,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIV
+            NEXUS_SATELLITE_FACTORY_MKIV.get()
         ),
         ModuleRenderInfo(
             BlockPos(-81, 0, 9),
@@ -200,7 +210,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIII
+            NEXUS_SATELLITE_FACTORY_MKIII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-73, 0, 9),
@@ -208,7 +218,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKII
+            NEXUS_SATELLITE_FACTORY_MKII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-65, 0, 9),
@@ -216,7 +226,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIV
+            NEXUS_SATELLITE_FACTORY_MKIV.get()
         ),
         ModuleRenderInfo(
             BlockPos(-57, 0, 9),
@@ -224,7 +234,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIII
+            NEXUS_SATELLITE_FACTORY_MKIII.get()
         ),
         ModuleRenderInfo(
             BlockPos(-49, 0, 9),
@@ -232,7 +242,7 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKI
+            NEXUS_SATELLITE_FACTORY_MKI.get()
         ),
         ModuleRenderInfo(
             BlockPos(-41, 0, 9),
@@ -240,32 +250,29 @@ class LightHunterSpaceStation(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.UP,
-            NEXUS_SATELLITE_FACTORY_MKIII
+            NEXUS_SATELLITE_FACTORY_MKIII.get()
         )
     )
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         safeClearModules()
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         safeClearModules()
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         safeClearModules()
         scanAndConnectModules()
     }
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
         private const val MAX_ASTRAL_ARRAY_COUNT = 64
-        private val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            LightHunterSpaceStation::class.java,
-            WorkableMultiblockMachine.MANAGED_FIELD_HOLDER
-        )
+
     }
 }

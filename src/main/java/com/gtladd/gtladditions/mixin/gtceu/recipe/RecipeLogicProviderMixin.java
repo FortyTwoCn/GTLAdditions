@@ -1,127 +1,31 @@
 package com.gtladd.gtladditions.mixin.gtceu.recipe;
 
-import org.gtlcore.gtlcore.api.machine.ISteamMachine;
-import org.gtlcore.gtlcore.integration.gtmt.NewGTValues;
-import org.gtlcore.gtlcore.utils.NumberUtils;
-
-import com.gregtechceu.gtceu.api.GTValues;
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity;
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic;
-import com.gregtechceu.gtceu.integration.jade.provider.RecipeLogicProvider;
-import com.gregtechceu.gtceu.utils.FormattingUtil;
-import com.gregtechceu.gtceu.utils.GTUtil;
-
-import net.minecraft.ChatFormatting;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.entity.BlockEntity;
-
 import com.gtladd.gtladditions.api.recipe.IWirelessGTRecipe;
-import com.gtladd.gtladditions.utils.CommonUtils;
+import com.gtladd.gtladditions.integration.jade.NativeWirelessEnergyTooltip;
+import org.gtlcore.gtlcore.integration.jade.NativeRecipeLogicTooltip;
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic;
+import com.gregtechceu.gtceu.integration.jade.provider.RecipeLogicProvider;
+import net.minecraft.nbt.CompoundTag;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import snownee.jade.api.BlockAccessor;
-import snownee.jade.api.ITooltip;
-import snownee.jade.api.config.IPluginConfig;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-
-import static net.minecraft.ChatFormatting.*;
-import static org.gtlcore.gtlcore.utils.TextUtil.GTL_CORE$VC;
-
+/** Add the wireless line to Core's native status provider without replacing its tooltip hook. */
 @Mixin(value = RecipeLogicProvider.class, priority = 1500)
 public abstract class RecipeLogicProviderMixin {
-
-    @Inject(method = "write(Lnet/minecraft/nbt/CompoundTag;Lcom/gregtechceu/gtceu/api/machine/trait/RecipeLogic;)V", at = @At("HEAD"), remap = false)
-    protected void write(CompoundTag data, RecipeLogic capability, CallbackInfo ci) {
-        if (capability.getLastRecipe() instanceof IWirelessGTRecipe recipe) {
-            var bigIntInput = recipe.getWirelessEuTickInputs();
-            if (bigIntInput != null && bigIntInput.signum() != 0) {
-                data.putByteArray("wirelessTickInputs", bigIntInput.toByteArray());
-            }
-        }
-    }
-
-    /**
-     * @author Dragons
-     * @reason 提供无线跨配方机器的Tooltip
-     */
-    @Overwrite(remap = false)
-    protected void addTooltip(CompoundTag capData, ITooltip tooltip, Player player, BlockAccessor block,
-                              BlockEntity blockEntity, IPluginConfig config) {
-        if (capData.getBoolean("Working")) {
-            var recipeInfo = capData.getCompound("Recipe");
-            if (!recipeInfo.isEmpty()) {
-                var eut = recipeInfo.getLong("EUt");
-
-                if (eut != 0) {
-                    long absEUt = Math.abs(eut);
-
-                    if (blockEntity instanceof MetaMachineBlockEntity mbe &&
-                            mbe.getMetaMachine() instanceof ISteamMachine steamMachine) {
-                        long stream = (long) Math.ceil(absEUt * steamMachine.getConversionRate());
-                        Component text = Component.literal(FormattingUtil.formatNumbers(stream) + " mB/t")
-                                .withStyle(ChatFormatting.GREEN);
-                        tooltip.add(Component.translatable("gtceu.jade.steam_consumption").append(" ").append(text));
-                    } else {
-                        boolean isInput = recipeInfo.getBoolean("isInput");
-                        var tier = GTUtil.getTierByVoltage(absEUt);
-                        Component text = Component.literal(NumberUtils.formatLong(absEUt)).withStyle(RED)
-                                .append(Component.literal(" EU/t").withStyle(RESET)
-                                        .append(Component.literal(" (").withStyle(GREEN)
-                                                .append(Component
-                                                        .translatable("gtceu.top.electricity",
-                                                                FormattingUtil.formatNumber2Places(absEUt / ((float) GTValues.V[tier])),
-                                                                GTValues.VNF[tier])
-                                                        .withStyle(style -> style.withColor(GTL_CORE$VC[tier])))
-                                                .append(Component.literal(")").withStyle(GREEN))));
-
-                        if (isInput) {
-                            tooltip.add(Component.translatable("gtceu.top.energy_consumption").append(" ").append(text));
-                        } else {
-                            tooltip.add(Component.translatable("gtceu.top.energy_production").append(" ").append(text));
-                        }
-                    }
-                } else if (capData.contains("wirelessTickInputs", Tag.TAG_BYTE_ARRAY)) {
-                    BigInteger wirelessEut = new BigInteger(capData.getByteArray("wirelessTickInputs"));
-                    BigInteger abs = wirelessEut.abs();
-                    long longEu = NumberUtils.getLongValue(abs);
-                    var tier = longEu == Long.MAX_VALUE ? GTValues.MAX_TRUE : NumberUtils.getFakeVoltageTier(longEu);
-                    Component text = Component.literal(CommonUtils.formatDouble(abs.doubleValue())).withStyle(RED)
-                            .append(Component.literal(" EU/t").withStyle(RESET)
-                                    .append(Component.literal(" (").withStyle(GREEN)
-                                            .append(Component
-                                                    .translatable("gtceu.top.electricity",
-                                                            FormattingUtil.DECIMAL_FORMAT_2F.format(new BigDecimal(abs).divide(BigDecimal.valueOf(GTValues.VEX[tier]), 3, RoundingMode.DOWN).doubleValue()),
-                                                            NewGTValues.VNF[tier])
-                                                    .withStyle(style -> style.withColor(GTL_CORE$VC[Math.min(tier, 14)])))
-                                            .append(Component.literal(")").withStyle(GREEN))));
-
-                    if (wirelessEut.signum() < 0) {
-                        tooltip.add(Component.translatable("gtceu.top.energy_consumption").append(" ").append(text));
-                    } else {
-                        tooltip.add(Component.translatable("gtceu.top.energy_production").append(" ").append(text));
-                    }
-                }
-            }
-            String reason = capData.getString("work_reason");
-            if (reason.isEmpty()) return;
-            Component reasonComponent = Component.Serializer.fromJson(reason);
-            if (reasonComponent == null) return;
-            tooltip.add(Component.translatable("gtceu.recipe.fail.reason", reasonComponent).withStyle(RED));
-        } else {
-            String reason = capData.getString("reason");
-            if (reason.isEmpty()) return;
-            Component reasonComponent = Component.Serializer.fromJson(reason);
-            if (reasonComponent == null) return;
-            tooltip.add(Component.translatable("gtceu.recipe.fail.reason", reasonComponent).withStyle(RED));
-        }
+    @Inject(method = "write(Lcom/gregtechceu/gtceu/api/machine/trait/recipe/RecipeLogic;)Lnet/minecraft/nbt/CompoundTag;",
+            at = @At("RETURN"), remap = false, require = 1)
+    private void gtladditions$wirelessEnergy(RecipeLogic logic, CallbackInfoReturnable<CompoundTag> cir) {
+        var active = logic.getLastUnrolledRecipe();
+        var recipe = active instanceof IWirelessGTRecipe wireless ? wireless :
+                logic.getLastRecipe() instanceof IWirelessGTRecipe wireless ? wireless : null;
+        if (recipe == null) return;
+        var amount = recipe.getWirelessEuTickInputs();
+        if (amount == null || amount.signum() == 0) return;
+        var data = cir.getReturnValue();
+        data.putByteArray("wirelessTickInputs", amount.toByteArray());
+        NativeRecipeLogicTooltip.writeAlternateEnergy(data, NativeWirelessEnergyTooltip.energyLine(amount),
+                logic.getMachine().getLevel().registryAccess());
     }
 }

@@ -1,0 +1,537 @@
+{
+  "schema": 1,
+  "baseline_revision": "8caff5e93a5e65914d10dd176d48d66e7ec8c329",
+  "scope": "Explicit reviewed native resource transformations; missing resources and registration literals still fail. These checksums do not prove runtime behavior.",
+  "resources": {
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/antientropy_condensation_center.md": {
+      "original_normalized_sha256": "5204e2657f872c20e632e50690787eef176e8cd8e6cf12580968f016e211c760",
+      "native_normalized_sha256": "84814c73ae3b33b5c9250713d2db114dd126154d780d820d9a1feb27a3dc7106",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/apocalyptic_torsion_quantum_matrix.md": {
+      "original_normalized_sha256": "b5ba7ee1ac68c0cf33edba2c072dff7a22bd0adb4ba2ddcd2580476068d2e70a",
+      "native_normalized_sha256": "e3059be2c5f6570bba03b45fbd26a3328b344cda3b0c6475786ca5c8d534e5bb",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/arcane_cache_vault.md": {
+      "original_normalized_sha256": "d9e57faf636421bbb9546ab49c80e8a8a38b36039366306d3879aaa1afb54aa8",
+      "native_normalized_sha256": "46e5135abd10c3e377d42b51b9f8c2e1c1d0d6bdbd588cb92e5be4fdbcc05e58",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/arcanic_astrograph.md": {
+      "original_normalized_sha256": "460c3d959479dad9369535f129eee4a8ad6efcfc6d8457a88a769e4908e8e85f",
+      "native_normalized_sha256": "4e03aec6f41e67dc4abdc7abc1a432cf8319564a175c56220a9378a61df10103",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/astral_convergence_nexus.md": {
+      "original_normalized_sha256": "34df52abe43bbd0a3e5af5af03ec22bea41006adec2eafe2cf7c07e5d09cbad9",
+      "native_normalized_sha256": "0b88dc1dc103e86640c5a832a5a96221f47f09d155b258d40e1e753854373d58",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/atomic_transmutation_core.md": {
+      "original_normalized_sha256": "f41fff14430a416de1e08707ae08a4566bea684151ff2d2066d9d444c9ddfdd9",
+      "native_normalized_sha256": "62a9490b90462730612cffe7cf5a9fad5c7774487e4ebaebfe55a71286d68d69",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/biological_simulation_laboratory.md": {
+      "original_normalized_sha256": "9f3d338c5bab2d9382aaf1814ccedd388cdaa47e926ae85f712a3bd0da140f3a",
+      "native_normalized_sha256": "5800d391643cc31534a0e1f2c92ea0303b154fc2d9fa09aa64a2e514f01ff1d0",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/biosphere_iii.md": {
+      "original_normalized_sha256": "69dbde52d775009dbc77f1f559db3cc98c25db73ec60b964631dba870b3017f0",
+      "native_normalized_sha256": "7bd451006ec9b52c6bc0cbdd6436300cab93a6b35c84b573943e06fddc2ef339",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/dimension_focus_infinity_crafting_array.md": {
+      "original_normalized_sha256": "fa007feb3e5228a8f6ca0cb43686f6f0381ec7db8746219657d6041744e60b24",
+      "native_normalized_sha256": "88dac03d1b2fa7c7a99ecb5cb9001775491c75024f1cc0dc18794469cb95e957",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/dimensionally_transcendent_chemical_plant.md": {
+      "original_normalized_sha256": "2df6940ab9fda40031425c200ec70e9b4c756c4803e63475d9fa5feb5accb7fc",
+      "native_normalized_sha256": "00fc0bd81332d5d8ad16dc19684bdbc5ec5bc5ea7ee3300fe450db61541b7669",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/draconic_collapse_core.md": {
+      "original_normalized_sha256": "ab1b2a28a5345d4df74029144cba2b672f2d214d0b0648f2e1ac6b18a76ac3cd",
+      "native_normalized_sha256": "00f83fc1c733805c6f5b5431b3064d90b4ba957f62d236ea4b7784035ed545a7",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/forge_of_the_antichrist.md": {
+      "original_normalized_sha256": "5f875a2c713d6c1835ae2312cc0000c73ad6c85ee87aeec0e3a421debe84d735",
+      "native_normalized_sha256": "45332acffbd32c27025b1b57737ead02289853d29eb0a9c7acc2387b7724ba9c",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/fuxi_bagua_heaven_forging_furnace.md": {
+      "original_normalized_sha256": "62bfc82f45648eef27ab770adcb8b4263121da01eea3ae583559cd44633c7fbe",
+      "native_normalized_sha256": "7b2f26020c4722a2c6fed702cc382a42be51743930ba985a1b81859cddb408d8",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/heart_of_the_universe.md": {
+      "original_normalized_sha256": "df4f50173510bc8c7727581ca140beec4609065594c88c23e86c36d057be7e49",
+      "native_normalized_sha256": "aac011618831b70ef34cd894597ee1f3f485f159d0ec15e2d5729ba0689c0879",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/helio_forge_modules.md": {
+      "original_normalized_sha256": "25221af63a6bdcbc62be9b40c149e5d3490862165b214cffc8161040962b86e6",
+      "native_normalized_sha256": "4548e1f0277545bd60584df4ce30c66330b3bdedb024750a209382f2b4330e6b",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/inferno_cleft_smelting_vault.md": {
+      "original_normalized_sha256": "802146cfad93e56b44e36c0a110e42967ff109be171549299eb1528c46486b53",
+      "native_normalized_sha256": "9047626610c9b88dd4fcf7fdc20fd91e98697a32a74c9e7dc1c66513db2f2419",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/light_hunter_space_station.md": {
+      "original_normalized_sha256": "76c8b0db4f1a7b8cbf6026e46ddb9ef53284745d48f960f93897a2cc0692b05f",
+      "native_normalized_sha256": "d82b84068ae42ec30e7ad7c33a127864e0797fc3fd4cf9ccd15820bfab464db8",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/lucid_etchdreamer.md": {
+      "original_normalized_sha256": "c80f3d9f5a1f25235012e805c25d33a613d1c0f94147b717c416fcc3cb0e7bd9",
+      "native_normalized_sha256": "37577f8b0c4c67dc774705da388ee637154d3525914bc832a9ee29d69ca00dd0",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/macro_atomic_resonant_fragment_stripper.md": {
+      "original_normalized_sha256": "ec4277d8c182ba3595403f91e6daa6954f83665e8d6d4cfe2ad65ba15331106f",
+      "native_normalized_sha256": "7ab4586e69d04dddef6c5c79adb572db39a5ad7b23ba06d8d79b70e77eea90ff",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/nebula_reaper.md": {
+      "original_normalized_sha256": "5806f929e9fb941e527a34f58e0a9efe38ad7cfef5a3541e7c882713edd0942c",
+      "native_normalized_sha256": "196a52259fcd04ca9bc53abd2fbfd27cba796ccccd49108f5dbe16328d832ee9",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/nexus_satellite_factory.md": {
+      "original_normalized_sha256": "5ed1a7a4c6455450f3b1894c3221bb09d9940ec9c02a86ec76f315475890d556",
+      "native_normalized_sha256": "e1e43e26a477f6a4b12a2710cb933e1534fd5f8847d1cb0f31d007b9acfb72da",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/planetary_ionisation_convergence_tower.md": {
+      "original_normalized_sha256": "a6579952cf9cfb7545ad1eeae5e6a2cce172ddb98ddfe0cc3f5cb4bb906ddae6",
+      "native_normalized_sha256": "cfc8c8cb1683205838e4902fc57a30fb9251a760ac066e8d3568e39cc7e6cdc7",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/primordial_evolution_nexus.md": {
+      "original_normalized_sha256": "107b66c5e0daec88ce4485c4907d034d5f5f248b9220eee347c1f2401543713e",
+      "native_normalized_sha256": "b2bb0c3285a5b0ca0e6a92bd930ab66478d5480ee9184bfa089d3f707c131105",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/quantum_syphon_matrix.md": {
+      "original_normalized_sha256": "64c05b159367835b0dfebd901d365bb561df827e42b66405e6f505d4f9b1b637",
+      "native_normalized_sha256": "032a236c3a4395f6f34ce9a2184216f51b7cc0b7fba9b9ad46b3659287eda076",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/skeleton_shift_rift_engine.md": {
+      "original_normalized_sha256": "e67dc5ce3d7b04c287f2a4d6a2f13b9a1b16496baffb0b44820a8eb04b939889",
+      "native_normalized_sha256": "a45839b3114510ed5c475f40409b5bf77f5b9247e977163be14afb6c23970836",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/space_elevator_mkii.md": {
+      "original_normalized_sha256": "354baf98df20eefa13830309a376d6d54424ff2f43a3948d9c65d5d60873d3c6",
+      "native_normalized_sha256": "c3e9b1827a5aa1ba4de0208d5baa74bf654fed84e5051ad7a24157016159a3e0",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/space_infinity_integrated_ore_processor.md": {
+      "original_normalized_sha256": "a0ca72d86159ebc478949a09df48b73afd30c25b95cede529d44463fb953728c",
+      "native_normalized_sha256": "4f146865d04b03e32e6bcd3e0a3556e139c8224c1ea69fd93d34816647caccc7",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/space_scaling_instrument.md": {
+      "original_normalized_sha256": "9eedead40007e3ed2dc5c058d23eb5a615f67aedd88402f03a2e0d7b3fdc9b43",
+      "native_normalized_sha256": "8715ffd2883cf91c43a183ea98aca4690af3f94609bb1850203624aaf4024eef",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/subatomic_transmutatioon_core.md": {
+      "original_normalized_sha256": "b132cb98467316eda2c544007b2af85fd49c20f7b54a36b4879620facf409b61",
+      "native_normalized_sha256": "e02d6c608b794395e021ed46c07f8977f000f33d105edfcbfdcb068ce273ecc9",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/taixu_turbid_array.md": {
+      "original_normalized_sha256": "01f512bdfa943e8bd504e7b10946343f5311eb4e5fec4dc7e2f24ece1323d166",
+      "native_normalized_sha256": "cfc8d0b5beb54e7db39d902f5eb3d41795fe345658a0869493a1668258052ca5",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/time_space_distorter.md": {
+      "original_normalized_sha256": "27f3e6b185fb4a7d734f3c4286540017c221a1d61ed04ac84092bf6ec864fe79",
+      "native_normalized_sha256": "41287e3b7395c88ed12e15943135c804ddc483ff9161a278a5a7a3b151673bc3",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/controller/titan_crip_earthbore.md": {
+      "original_normalized_sha256": "32fca1d8335ed56175608af04b0796f3c250d26f075c67dae797d0e4ccf2e81c",
+      "native_normalized_sha256": "6b4d3c361f7428eb506a5b49f9a4ad1545a68ab2dc7157daf3e0ce81fbfeb6cc",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/cloud_system.md": {
+      "original_normalized_sha256": "0cb4c53c799e4d7240659c4a26f30a5fe96e46856b033483ffd4eed3313991a6",
+      "native_normalized_sha256": "a3f2abed1ad1f9a7b8b9f17530944a624eb22e78bc00e63feadf53089541b40e",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/huge_output_dual_hatch.md": {
+      "original_normalized_sha256": "a04e0b543b8239e05da19809d40ea8517a0f0c77ecbc5393cb84835fda763fa5",
+      "native_normalized_sha256": "74d1eea4fb0d1191c88739d140e48914ff39864e940c14a26f27c164df7ea970",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/huge_steam_hatch_part_machine.md": {
+      "original_normalized_sha256": "be5d887cd7a220b284860341bf6ec990579c275168bb46833170724e86aa1aaf",
+      "native_normalized_sha256": "fc2dca5cb67ff5b71b90be3346c827246eec31dd689eacd13bf2443b972a538e",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/infinity_input_dual_hatch.md": {
+      "original_normalized_sha256": "d76965488e3a56ad315af3d9915543d2f5ced05d66cc8238016132305b2fb7b6",
+      "native_normalized_sha256": "d421c5db7784c02fb0b94712e68a6a31ebed49b8621840c20cef298372cc5963",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/laser_hatch.md": {
+      "original_normalized_sha256": "54462c04e8ad9f12201b46ef27e6eff8a16365733cb7c080e7e54143ec53d842",
+      "native_normalized_sha256": "80c7801745f095171349c1196d35fbf490f2a44e8f222bc57391f868964ea220",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/me_block_conservation.md": {
+      "original_normalized_sha256": "b276d49317ef71a8d4503923b54feb4e28fd2cd5fd5c3e2276d16878819d30bb",
+      "native_normalized_sha256": "f28eeb5c439fad59153f964ab94a431b6b6c47c3f996629155c146551053281a",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/me_super_pattern_buffer.md": {
+      "original_normalized_sha256": "ba53f63d97a152c4a715350e67998e37eda779938aa1871f626036291ac3aa6e",
+      "native_normalized_sha256": "d61474a3fd5517933af042b6d95bd4fdeadd3baadf5d342837138a07a42ff9d7",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/spectral_analysis_hatch.md": {
+      "original_normalized_sha256": "06edff71c635fd42dafbb74aef66785bcee810d0376ee2ee67818641eb404005",
+      "native_normalized_sha256": "7ea8c01e5698b43a7b11a20af8f698d4308b8e33e4638971d787eafa62eea2f5",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/super_input_dual_hatch.md": {
+      "original_normalized_sha256": "91ef4254bd1fe706f19baf5dd2877356a167d2c3ced48cfa92976257bfb1cf97",
+      "native_normalized_sha256": "07a3cac85a9c35f8310749e184973ea27da477bdeae85492e7977e86e664ea88",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/super_parallel_hatch.md": {
+      "original_normalized_sha256": "e1b2062b3fd842c192f390b78f5d89e70c1cf8df6eddc4d5fdc193d859245232",
+      "native_normalized_sha256": "7fe0a28507457e12f377857274da3084fde86e1e53dd11f8516c011156d6614c",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/thread_modifier_hatch.md": {
+      "original_normalized_sha256": "8efb116029cc731504afb4f6f9c43c2348e884fca15ca68037d973d1eb8e8020",
+      "native_normalized_sha256": "a6f5269e6acc28095ca3cc528f686df3e54ef187948d21a6f2e5ddf011256510",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/vientiane_transcription_node.md": {
+      "original_normalized_sha256": "30d237d769c22aa85c7c1917f54183c58f3ba3183b207a1b5044177ad48882f5",
+      "native_normalized_sha256": "5b23b0e5af1b6e58e819f68325169c3f455fde0a2872d48e4179b4f3e20a0bfa",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/machine/part/wireless_energy_network_terminal.md": {
+      "original_normalized_sha256": "d8f06b35832e199834b337546ad1d40e07fe4690013f5c4f3a4ac6589de344b6",
+      "native_normalized_sha256": "26a467bbbb9025b1944e197ef3680e4876ba6d4d6617b4bcedce69c392bc1a0d",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/_zh_cn/recipe/nightmare_crafting_recipe.md": {
+      "original_normalized_sha256": "12c88060f83810f1fa77a49f480938adaa444484a292720e328627e6f4d5fada",
+      "native_normalized_sha256": "c2804d9104877ada5681650d912f34884dc8aebeb9b0a19963542ab67c7ad611",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/antientropy_condensation_center.md": {
+      "original_normalized_sha256": "9f5084c7331f1c07c42c555a9f5ce21b575374a1a013c7dd6cbc0f4a37fd3fd9",
+      "native_normalized_sha256": "e613f71dffd22167db11cde66e3282dd6c81c7eb5f19185cbf786bb8c0b06736",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/apocalyptic_torsion_quantum_matrix.md": {
+      "original_normalized_sha256": "2dc6ccf18bcf4b8fc038abc4f3007f6c38ec87f87d56472e5155b36a9fd2c247",
+      "native_normalized_sha256": "a7b8c18621efa76614c6d1f5646054366c465a7627a3c3701d4ad49022bfda05",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/arcane_cache_vault.md": {
+      "original_normalized_sha256": "e27e92ad4d43bff26505962584145930dc14e6ad930c64bc9b4d5633a0a5d683",
+      "native_normalized_sha256": "377ab4defc8a0770d3de6250b8e5bffc48d463dc38963e895ef920efd35efdea",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/arcanic_astrograph.md": {
+      "original_normalized_sha256": "a59a4aa8ab869ce286885f152e5f6be115629c952348d4cd5ace95a034dbbf01",
+      "native_normalized_sha256": "6db8cf3f7b36f5a9f0c2e3acb0be66444a795600038e92cf0e879860108ab027",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/astral_convergence_nexus.md": {
+      "original_normalized_sha256": "21378c8b30b885357c3cffa9d07dd0ccf608dddf25a92638586ecd60942aea68",
+      "native_normalized_sha256": "88b3e5f0ff1d08d59831a69e98fafbc6822a8ec4624cc8c5d0fae8268cd36123",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/atomic_transmutation_core.md": {
+      "original_normalized_sha256": "813c7f4bf7cfc5fb40234adfb8c9066d948e03346dcb49e52cf3d3d450b4a2a9",
+      "native_normalized_sha256": "00ad91c3c952acdf74a4ab510e236088290452ee19fef1b7666da8cdcaf09f68",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/biological_simulation_laboratory.md": {
+      "original_normalized_sha256": "7bec9bfc7473985066ec019085a0a33b8872724fa57fc2a8a65945be7c3f9ec4",
+      "native_normalized_sha256": "645c69ce15b77df254d487204027c16cfc0ae7e2bd16c23e337238fb1bb5a60b",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/biosphere_iii.md": {
+      "original_normalized_sha256": "679b0b433b22be9c6320a5627b22bc4d3ef57f3da509e5a8f63506fd0355d592",
+      "native_normalized_sha256": "0e7d28d465e90f81d8e685a8356ef5477c46d82d9b028092919711eee0599e19",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/dimension_focus_infinity_crafting_array.md": {
+      "original_normalized_sha256": "7761954bdbdd7625349db294d74cffee03bae71eb7ffb31a31ae93a0168c0c41",
+      "native_normalized_sha256": "754a6bff99881aa4e604406251dc3c60878e5f71385aae458fdcacd23b8e3c5a",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/dimensionally_transcendent_chemical_plant.md": {
+      "original_normalized_sha256": "02348d16a6c9c4a2bc9c6a5eb06c664c77c1d675a01aca9abea5ad60e1583ac7",
+      "native_normalized_sha256": "9298d19f0eccc751de4e856f50dd8f8d72216581f1f4c5b104f32e09acef6cb6",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/draconic_collapse_core.md": {
+      "original_normalized_sha256": "d513b206d57cdcee48b6113ccccf9eb7d67b2b54e3ba63051051bc82acdfcc82",
+      "native_normalized_sha256": "63cadbb617264681aaefd827dbaa8e0bd07eba18efed9ae8be5d6c83aab3b204",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/forge_of_the_antichrist.md": {
+      "original_normalized_sha256": "0175c11fce056171c6b324fc1415478a71e89144edcdc1c0e39f519c0f6d7b5c",
+      "native_normalized_sha256": "fe3f5962df660b151d3ee485a16236cb868de6abb99e380b71bbd2b62bf4d38b",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/fuxi_bagua_heaven_forging_furnace.md": {
+      "original_normalized_sha256": "db5f96fc9b419a40079ebcb0a42b350e3f9240e8036555e1f451f5502d3ae784",
+      "native_normalized_sha256": "99200320a90ab3914b2dff4783041c630e1144368ac26d253b13edff7edc3cc6",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/heart_of_the_universe.md": {
+      "original_normalized_sha256": "2cf208084ea023056eb00e6d8ecf91562098a67f3803b0505a62fc91419adf6a",
+      "native_normalized_sha256": "2ae0206cd6f08543ceb66fb93143f6457327ff02ce73d75ed35a669e0dfd5288",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/helio_forge_modules.md": {
+      "original_normalized_sha256": "387a232b55207b4dfe1a6c66e55ef4bc550636fc9d2cdbbfe1c0a7c911c74dfd",
+      "native_normalized_sha256": "55efc118ebd119fa2d61b8016b7c7ca5228b8a9b7b6e41d62b75f8c266a4850c",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/inferno_cleft_smelting_vault.md": {
+      "original_normalized_sha256": "2e27d43b41fceebc233d243aa551da7be24f5bad363c73a8be81e5a8ab57920b",
+      "native_normalized_sha256": "8849efaaceeb2308fc610e506871d081d352fc37fdcaf1dbe990f490810a88bc",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/light_hunter_space_station.md": {
+      "original_normalized_sha256": "87a9a40e7d9848dc7dd29fc73a6a86055562c6b5630db3461c5591cd958109e2",
+      "native_normalized_sha256": "bfca5dd68169ea1026bebed2657287fa1e0312c6407452bdb909295933c472f2",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/lucid_etchdreamer.md": {
+      "original_normalized_sha256": "7a625dd888c84d3c853e0d70ca4f5a7f3d7107e79130d50eaf25e8e5e36cc675",
+      "native_normalized_sha256": "4eb07a569e80ae8ece9b3542314e313faaf27f5121683deeb5b7c9eed08618b4",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/macro_atomic_resonant_fragment_stripper.md": {
+      "original_normalized_sha256": "4b3aca9e00766bd239bc73591960857fd8d0ca6501e7aa9eaf8973e52752f4a5",
+      "native_normalized_sha256": "323b85e0f022a1a6cc40cfe374dea795aee32d90fca5f6b6869fbde8ac851cc9",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/nebula_reaper.md": {
+      "original_normalized_sha256": "cd5176d2838659e97848e3c0b9ce3cd4fe132e5ebb99c451a3e317faecf1a11a",
+      "native_normalized_sha256": "989cbb59c9876e070b86f224cc1f35bd594441cfdf5086c805b04601593e5e07",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/nexus_satellite_factory.md": {
+      "original_normalized_sha256": "2ab77686a7dbb74aa3e3ba154ada4365be5ca4b748ef08daa57f5e2e081604e6",
+      "native_normalized_sha256": "d9e201731bed1e6a05ad991a91ed5444e6336b90a33c4668fa434fe70c3e1f41",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/planetary_ionisation_convergence_tower.md": {
+      "original_normalized_sha256": "2b5f9bad35b7aec128108cccbe86208a91a6c49926d70844e5f1ab8449f148dd",
+      "native_normalized_sha256": "1261c215e8d4421b519b0af8267c76a24b9fbd48d5432200ac95236bdc000a1b",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/primordial_evolution_nexus.md": {
+      "original_normalized_sha256": "d5fcc4ffce810ab1691a87fca1417b2f59c4c85f5fe52721342b8a7cc42ef357",
+      "native_normalized_sha256": "dce4eb07f9f9533205d11a915613e8467e6c10f6901824ce65ef4eed3f0b4aae",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/quantum_syphon_matrix.md": {
+      "original_normalized_sha256": "4e3b998b77295a3c4051e78e9db520afcabc96e70a8967e3468e82cfc6061d7d",
+      "native_normalized_sha256": "027b0fb58fb54a1bf0517d7fd50232c5e7fdd05befc0065270f3d96fcb2e9531",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/skeleton_shift_rift_engine.md": {
+      "original_normalized_sha256": "b7dcd69184471b472b04fbb9e4d3038c1fc17ba713845359a41a6f0e1393a789",
+      "native_normalized_sha256": "bba13e14b52353548a55f9fe55317607e4c85a7737fcbb8e97430a50b6b46020",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/space_elevator_mkii.md": {
+      "original_normalized_sha256": "a8040736d73886ea80fa16407219313f82fc0e76522d60307e08708992d3558f",
+      "native_normalized_sha256": "f08263dcb5ec1f1d00d28b6c02c23cd9816fe762190c6efa9347df687d30dcba",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/space_infinity_integrated_ore_processor.md": {
+      "original_normalized_sha256": "e631d1fd34c6b506d673e43db161d84ebe6fcbf1f1548714b1615565821fa382",
+      "native_normalized_sha256": "e1469117ea9ed32e9c3c767a154c2d2cdec6fbc115d486aa7446a143b2f1b2c9",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/space_scaling_instrument.md": {
+      "original_normalized_sha256": "b7037217ac32c9544e4f2a9c631e9bf43ac1333301625460b587faa339a7f7d6",
+      "native_normalized_sha256": "182cf2a36b36dbb29af8df02229c4a110b6612bee863ab2511dcaf0f2cb9cc58",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/subatomic_transmutatioon_core.md": {
+      "original_normalized_sha256": "cd33b4acd3e812de62310645bc721867855b7e9fc78c951fee9ae0d09586b6e1",
+      "native_normalized_sha256": "ee93e540f00f5c7c050de62b2453360c9e5915ad7199a6041296cd68b9e99c6e",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/taixu_turbid_array.md": {
+      "original_normalized_sha256": "917da7afd8b156ac44cb2980e24546dd856d2208e98cf75f44ee174e029d93b8",
+      "native_normalized_sha256": "336870a8b1b6cecf54a910b539d5f0b74e86fb4425677902138040ad214abde3",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/time_space_distorter.md": {
+      "original_normalized_sha256": "34abfd6dbf383a5d72318dcc886d82bedcfdf5297ebbbf861d3510481af3bd2d",
+      "native_normalized_sha256": "e69cc8b9ff9dbfc9a7825594438d11b869f99f69a15b809865d88062497f1cbe",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/controller/titan_crip_earthbore.md": {
+      "original_normalized_sha256": "13d2cfd2682c5ec2b16fdb5fc1924dda58412638ae8311ed57d85bf8e8324c0d",
+      "native_normalized_sha256": "8a0bc981bf317037738e492127a2d958078171721acc0bafcbe9a1986b210aad",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/cloud_system.md": {
+      "original_normalized_sha256": "55a1305823552d765360d7481910e8407ad0a70081a0e6dba22b7f5c79d4d994",
+      "native_normalized_sha256": "c019aad2affd16a555533e9179eeb9cbce04ed2a8133974a5f6dfbcf1eacd2c0",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/huge_output_dual_hatch.md": {
+      "original_normalized_sha256": "597e399b86d89576b1621bea7dd0652e047dce277c86f7d045dd17cab1c3b31a",
+      "native_normalized_sha256": "8bb63d299f81f0a8173a11cde41acb9adbb77612c2e85983634e0de4d9688a5f",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/huge_steam_hatch_part_machine.md": {
+      "original_normalized_sha256": "58f4c9a289d888d0d322ce4e6afcc9a7a1e274d3726ab3dbf335f63a3a70e525",
+      "native_normalized_sha256": "23ad28ed5e1e819904a6496fe414fe3d812f467bc1591be4e9c1e1862c710230",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/infinity_input_dual_hatch.md": {
+      "original_normalized_sha256": "654187ff7fba812931db4097e23d5a4bb2fc63c174460d2dcb938af1ac34c8f0",
+      "native_normalized_sha256": "d653285ea532b31f04626150dd5be5a210750a3261fe2925bebebcee291e476f",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/laser_hatch.md": {
+      "original_normalized_sha256": "b1451aa950af5054c7fde02ee3299da511b329282a46ff47fc30b65e93c083a3",
+      "native_normalized_sha256": "0f37ef0afc8a80a3ca6e3cad5a677c6d7deaf5c4b49f19d1faeb94b41ec06894",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/me_block_conservation.md": {
+      "original_normalized_sha256": "c439bee270888c3ac9cd23ad18cc7897fe65fb4724c1391edf43b0a197840a6f",
+      "native_normalized_sha256": "08baeb5a0110a7cdb5f7ce906fff28a6ba509654007c2a7054f3b4d2896f2ab8",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/me_super_pattern_buffer.md": {
+      "original_normalized_sha256": "b3a536a4e7827a84693e58af4795ea69aedd4582dc6443ffa2b00089d3af14b3",
+      "native_normalized_sha256": "897298923c8d64ad577d5376a977146537c3e187f10f9fb015c3702a855b30bb",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/spectral_analysis_hatch.md": {
+      "original_normalized_sha256": "abf376913c91aaa887b1817cc78632613ad2071afe687f2d6b3ec56cea03497d",
+      "native_normalized_sha256": "34bcca3c9ac0cacd1dac827b54fa6b8b5d0cc2f2c286bcc43125150fbe79219e",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/super_input_dual_hatch.md": {
+      "original_normalized_sha256": "9311ce1defdd6978897652420fc63238825b44601aa02934808c08c511fb551a",
+      "native_normalized_sha256": "0c64d50955139e71050245e497d5b16f7615a38d062ea30dfda0ed28db229990",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/super_parallel_hatch.md": {
+      "original_normalized_sha256": "763c8423b3732eb462233a8f752b3e90b7b44f667f11214527a99a9bb91291b6",
+      "native_normalized_sha256": "7ba046f6bf68e5f5d145d9156d6b1d2f77d8fb703b450d8b03e87505c9dbd625",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/thread_modifier_hatch.md": {
+      "original_normalized_sha256": "207570feb2791535422087b874a4fe470fb53cb3dd2848e9cb113d7fc1626bed",
+      "native_normalized_sha256": "ec83120b671c1382f695a6f151241984a6dd8eb5b10c75b429d0657b1a02ab7a",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/vientiane_transcription_node.md": {
+      "original_normalized_sha256": "6f9be65d2e066e5ecf048f22d6dc8ff8ed6583f7b36f0563fdace165f9440eaa",
+      "native_normalized_sha256": "4da30cd1b7a0474bfd439bfd5f7b847f7504ff0726ab449301a96c589fdc8c52",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/machine/part/wireless_energy_network_terminal.md": {
+      "original_normalized_sha256": "2677642d28a22d4b8b5796adccd0cbe7cccca015e82a33eb7465c6e1ba90662f",
+      "native_normalized_sha256": "494cafebf5092c62431fd86ce34c6a462cc0fd21882e2465a99651144e0168e3",
+      "reason": "Original guide prose retained; correct native relative parent links, native ExtendedAE fishbig ID and the two actual machine icons. Exact transformations checked for every original guide."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/recipe/nightmare_crafting_recipe.md": {
+      "original_normalized_sha256": "812d716516f1092ea091f422f4389dd913f7535f3c9afca8c9afe53d9ad9d803",
+      "native_normalized_sha256": "ab2d1d1d8f41aebb709a8e5d9e061325fe2eaeded3f3a859677ef76d71e3df2b",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/cloud_computation_monitor.json": {
+      "original_normalized_sha256": "96c5d700f3888a3d88bed3680df5225626a5d4ac30115f63cbc76571fd322ece",
+      "native_normalized_sha256": "3272a8b263fa59889d8898f294ca6744db0dd17bed2f1969a0d8e054151b2671",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/cloud_computation_receiver_hatch.json": {
+      "original_normalized_sha256": "55b098b7c91573afc5ab19f33a86d4bf00134e00a4ec6358d5218445d83cfe1f",
+      "native_normalized_sha256": "3a46ad62fc793732ef0b531b8d27e71f7d3be54979c6a59599108979999386cb",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/cloud_computation_transmitter_hatch.json": {
+      "original_normalized_sha256": "d4255c75ab728e7ecafd6a13522755833354126ae2c61f488ebc64519d59b485",
+      "native_normalized_sha256": "ee1136403202d6bb6f2c15cb6f24e625fd13337af69c34830a2883d414e3e5c3",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/cloud_data_hatch.json": {
+      "original_normalized_sha256": "1a63ed280dd06409787e29c198ebae9a730d4dbda7818edeb0583d06c97ba88f",
+      "native_normalized_sha256": "950d8dbb4253bd8f4b1d7a7b7037c7be2a4db1c5f47f16f70bb6ed05c8626f02",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/cloud_data_machine.json": {
+      "original_normalized_sha256": "b00eaf35322f4eaa72715231917cce98958d4641f50d17fc8db9e071e6098da7",
+      "native_normalized_sha256": "03fd36304bc2b3eb315418cb7dd5398fb4d20cb3c4b0bf9625101e27401950dd",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/op_hatch.json": {
+      "original_normalized_sha256": "cfe8562bcc3dc1453e7dea0e56e0f24cc4f16d698df245a8d631478792c363e8",
+      "native_normalized_sha256": "118a870f8df00e9f5ae7f6add2f8bc8b9aac798b9c49d97c787432c710e2d6e3",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/super_input_dual_hatch.import.json": {
+      "original_normalized_sha256": "db613a796c6a21eb71523d6d1f2920b17562b524397047650aa14ad91c3586d7",
+      "native_normalized_sha256": "1a013f47be5dd08aa3779217e4f7a4176777af5485c069492e5355a64a3ff7a5",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/assets/gtladditions/models/block/machine/part/vientiane_transcription_node.json": {
+      "original_normalized_sha256": "ef7be8901ff7c643d8ca6035b0a89615101a5e3163db9e017ff403f201e84bb7",
+      "native_normalized_sha256": "4983c983e2b718f68125514412104613cd7d642eed83d5ce64b7c6a4637b0d6d",
+      "reason": "Native GT 8 machine model includes the original overlay and a complete tintable casing; native face layers and light metadata preserve overlay/emissive behavior. Complete client model baking and every owned machine model checked."
+    },
+    "src/main/resources/data/gtladditions/recipe/classic_stargate_base_block.json": {
+      "original_normalized_sha256": "bfcbad64db7de3cc8e4e0a104fa03fc49ddc7da42c44df9afa194d72e3a54ca5",
+      "native_normalized_sha256": "b1936ecaab19d74713c16892953022ac0133c56235cb7593b5ad2a9703b4c28b",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/data/gtladditions/recipe/classic_stargate_chevron_block.json": {
+      "original_normalized_sha256": "10ebdc48a847435ead0e8952b4dd3a312f4e0db31cb9b3c3d9cc0d0b46133c36",
+      "native_normalized_sha256": "dcf63977d407b918174118d5f1fcd4833e6a8ea4b08f748cb055f5d13d804a27",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/data/gtladditions/recipe/classic_stargate_ring_block.json": {
+      "original_normalized_sha256": "e3b24c19d4dfa6b3c89024fc2a5da67d277b0fe1ae2cdd63374923201dd77207",
+      "native_normalized_sha256": "84e2f0848a1b24b67e69de3647f88f9b77a40c4eeb6c3eb09a5c4f84ad6b5c56",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/data/gtladditions/recipe/pegasus_dhd.json": {
+      "original_normalized_sha256": "c88a01bee98a6d2112adfc3f45052536196edabeb744f7b2cc90eda12acbc4ff",
+      "native_normalized_sha256": "99da4447ed74125f8c836b571acb1ddcbecf93f8fd1dccc63ef4dacee78f35d5",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/data/gtladditions/recipe/stargate_chevron_upgrade.json": {
+      "original_normalized_sha256": "f38bb9b182b8610cf4cb32b7628bab3cb1013688f0a94987ce247a836cec6313",
+      "native_normalized_sha256": "db31693f78406c38628224dde8e4cfb479ba041cef9960168c90f6fae86da115",
+      "reason": "Original Avaritia Tier 4 recipe ID, ingredients and result retained using native 1.21.1 shaped-table serialization. All five actual production recipes matched and crafted on a native 9x9 table, with negative tier/missing-input checks."
+    },
+    "src/main/resources/assets/gtladditions/guides/gtladditions/guide/index.md": {
+      "original_normalized_sha256": "73bc51caecdaa45b34a10ac2f36ff47f07f95dc5581354d366bc37ae75449fb3",
+      "native_normalized_sha256": "500ff55c0f6c62769567f4230d9507f8b207d80851e8ee4dd8d1cabceed88bbd",
+      "reason": "Describe the player-facing guide contents without migration implementation details."
+    }
+  }
+}

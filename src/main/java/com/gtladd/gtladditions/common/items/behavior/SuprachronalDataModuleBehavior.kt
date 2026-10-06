@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.common.items.behavior
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.item.component.IAddInformation
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem
 import com.gtladd.gtladditions.api.machine.DataModuleBindingResult
@@ -30,7 +30,7 @@ object SuprachronalDataModuleBehavior : IInteractionItem, IAddInformation {
     private fun handleMachineUse(context: UseOnContext, stack: ItemStack): InteractionResult {
         val player = context.player ?: return InteractionResult.PASS
         val level = context.level
-        when (val machine = (level.getBlockEntity(context.clickedPos) as? MetaMachineBlockEntity)?.metaMachine) {
+        when (val machine = MetaMachine.getMachine(level, context.clickedPos)) {
             is IWirelessBindableSource<*> -> {
                 if (level.isClientSide) return InteractionResult.SUCCESS
 
@@ -95,7 +95,7 @@ object SuprachronalDataModuleBehavior : IInteractionItem, IAddInformation {
         }
     }
 
-    override fun use(item: Item, level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
+    override fun use(item: ItemStack, level: Level, player: Player, hand: InteractionHand): InteractionResultHolder<ItemStack> {
         val stack = player.getItemInHand(hand)
         if (!player.isShiftKeyDown) return InteractionResultHolder.pass(stack)
         if (!level.isClientSide && DataModuleBindingRecord.hasRecord(stack)) {
@@ -106,7 +106,7 @@ object SuprachronalDataModuleBehavior : IInteractionItem, IAddInformation {
         return InteractionResultHolder.pass(stack)
     }
 
-    override fun appendHoverText(stack: ItemStack, level: Level?, tooltipComponents: MutableList<Component>, isAdvanced: TooltipFlag) {
+    override fun appendHoverText(stack: ItemStack, context: Item.TooltipContext, tooltipComponents: MutableList<Component>, isAdvanced: TooltipFlag) {
         tooltipComponents.add("gtladditions.item.suprachronal_data_module.tooltips.0".toComponent)
         tooltipComponents.add("gtladditions.item.suprachronal_data_module.tooltips.1".toComponent)
 

@@ -1,20 +1,14 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 
-class SpacetimeStasisDevice(holder: IMachineBlockEntity, vararg args: Any?) : RRFWorkableModuleMachine(holder, *args) {
+class SpacetimeStasisDevice(holder: BlockEntityCreationInfo, vararg args: Any?) : RRFWorkableModuleMachine(holder) {
 
     // ========================================
     // Metadata
     // ========================================
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            SpacetimeStasisDevice::class.java,
-            RRFWorkableModuleMachine.MANAGED_FIELD_HOLDER
-        )
+
     }
 }

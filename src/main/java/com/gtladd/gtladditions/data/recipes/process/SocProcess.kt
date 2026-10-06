@@ -13,7 +13,7 @@ import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.common.material.GTLAddMaterial
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
 import com.tterrag.registrate.util.entry.ItemEntry
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.world.item.Item
 import org.gtlcore.gtlcore.api.machine.multiblock.GTLCleanroomType.LAW_CLEANROOM
 import org.gtlcore.gtlcore.common.data.GTLMaterials.*
@@ -23,7 +23,7 @@ import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object SocProcess {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         ElectricBlastFurnace.init(provider)
         Cutter.init(provider)
         EngravingArray.init(provider)
@@ -31,7 +31,7 @@ object SocProcess {
         generatedRecipe(provider)
     }
 
-    private fun generatedRecipe(provider: Consumer<FinishedRecipe?>) {
+    private fun generatedRecipe(provider: RecipeOutput) {
         CHEMICAL_BATH_RECIPES.recipeBuilder(id("bioware_echo_shard_wafer"))
             .inputItems(GTLAddItems.ECHO_SHARD_WAFER.asStack())
             .inputFluids(BiohmediumSterilized.getFluid(250))
@@ -96,7 +96,7 @@ object SocProcess {
     }
 
     internal object ElectricBlastFurnace {
-        fun init(provider: Consumer<FinishedRecipe?>) {
+        fun init(provider: RecipeOutput) {
             BLAST_RECIPES.recipeBuilder(id("echo_shard_boule"))
                 .inputItems(GTItems.SILICON_BOULE, 64)
                 .inputItems(dust, GTLAddMaterial.GALLIUM_OXIDE, 16)
@@ -166,9 +166,9 @@ object SocProcess {
             eut: Int,
             duration: Int,
             temperature: Int,
-            provider: Consumer<FinishedRecipe?>
+            provider: RecipeOutput
         ) {
-            BLAST_RECIPES.recipeBuilder(id(output.asItem().toString()))
+            BLAST_RECIPES.recipeBuilder(output.id)
                 .inputItems(GTItems.SILICON_BOULE, 64)
                 .inputItems(dust, GTLAddMaterial.GALLIUM_OXIDE, 16)
                 .inputItems(dust, input, 16)
@@ -179,7 +179,7 @@ object SocProcess {
     }
 
     internal object Cutter {
-        fun init(provider: Consumer<FinishedRecipe?>) {
+        fun init(provider: RecipeOutput) {
             addCutterRecipe(
                 "echo_shard_wafer",
                 GTLAddItems.ECHO_SHARD_BOULE,
@@ -279,14 +279,14 @@ object SocProcess {
             outputItem: ItemEntry<Item?>,
             eut: Int,
             cleanroomType: CleanroomType,
-            provider: Consumer<FinishedRecipe?>
+            provider: RecipeOutput
         ) {
             val builder = CUTTER_RECIPES.recipeBuilder(id(id + "_0"))
                 .inputItems(input)
                 .outputItems(outputItem, output)
                 .EUt(eut.toLong()).cleanroom(cleanroomType)
             if (eut > VA[UEV]) {
-                builder.inputFluids(GradePurifiedWater16.getFluid((if (eut > VA[UXV]) 1000 else 500).toLong()))
+                builder.inputFluids(GradePurifiedWater16.getFluid(if (eut > VA[UXV]) 1000 else 500))
                     .duration(450).save(provider)
                 return
             }
@@ -297,7 +297,7 @@ object SocProcess {
     }
 
     internal object EngravingArray {
-        fun init(provider: Consumer<FinishedRecipe?>) {
+        fun init(provider: RecipeOutput) {
             addEngravingRecipe(
                 GTLAddItems.BIOWARE_ECHO_SHARD_BOULE,
                 Photoresist,
@@ -358,14 +358,14 @@ object SocProcess {
             eut: Int,
             duration: Int,
             cleanroomType: CleanroomType,
-            provider: Consumer<FinishedRecipe?>
+            provider: RecipeOutput
         ) {
-            DIMENSIONAL_FOCUS_ENGRAVING_ARRAY_RECIPES.recipeBuilder(id(output.asItem().toString()))
+            DIMENSIONAL_FOCUS_ENGRAVING_ARRAY_RECIPES.recipeBuilder(output.id)
                 .inputItems(input).notConsumable(getItemStack(noInput))
                 .inputFluids(fluid.getFluid(100))
                 .outputItems(output).EUt(eut.toLong()).duration(duration)
                 .cleanroom(cleanroomType).save(provider)
-            GTLAddRecipesTypes.PHOTON_MATRIX_ETCH.recipeBuilder(id(output.asItem().toString()))
+            GTLAddRecipesTypes.PHOTON_MATRIX_ETCH.recipeBuilder(output.id)
                 .inputItems(input).notConsumable(getItemStack(noInput))
                 .inputFluids(fluid.getFluid(75))
                 .outputItems(output).EUt((eut / 4).toLong()).duration((duration * 0.75).toInt())
@@ -374,7 +374,7 @@ object SocProcess {
     }
 
     internal object CircuitAssembler {
-        fun init(provider: Consumer<FinishedRecipe?>) {
+        fun init(provider: RecipeOutput) {
             addCircuitRecipe(
                 "bioware_processor",
                 "kubejs:bioware_printed_circuit_board", GTLAddItems.OUTSTANDING_SOC,
@@ -408,7 +408,7 @@ object SocProcess {
             output: String,
             eut: Int,
             cleanroomType: CleanroomType,
-            provider: Consumer<FinishedRecipe?>
+            provider: RecipeOutput
         ) {
             val builder = CIRCUIT_ASSEMBLER_RECIPES.recipeBuilder(id(id + "_0"))
                 .inputItems(getItemStack(inputs))
@@ -429,7 +429,7 @@ object SocProcess {
                 .duration(if (eut <= VA[UEV]) 200 else 150).save(provider)
         }
 
-        private fun generateCircuitRecipes(provider: Consumer<FinishedRecipe?>) {
+        private fun generateCircuitRecipes(provider: RecipeOutput) {
             CIRCUIT_ASSEMBLER_RECIPES.recipeBuilder(id("cosmic_processor"))
                 .inputItems(getItemStack("kubejs:cosmic_printed_circuit_board"))
                 .inputItems(GTLAddItems.SPACETIME_SOC)

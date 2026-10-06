@@ -1,7 +1,7 @@
 package com.gtladd.gtladditions.mixin.gtceu.integration;
 
 import com.gregtechceu.gtceu.api.capability.GTCapabilityHelper;
-import com.gregtechceu.gtceu.api.capability.IEnergyContainer;
+import com.gregtechceu.gtceu.api.capability.IEnergyInfoProvider;
 import com.gregtechceu.gtceu.integration.jade.provider.ElectricContainerBlockProvider;
 
 import net.minecraft.core.BlockPos;
@@ -22,8 +22,8 @@ public abstract class ElectricContainerBlockProviderMixin {
      */
     @Nullable
     @Overwrite(remap = false)
-    protected IEnergyContainer getCapability(Level level, BlockPos pos, @Nullable Direction side) {
-        var container = GTCapabilityHelper.getEnergyContainer(level, pos, side);
+    protected IEnergyInfoProvider getCapability(Level level, BlockPos pos, @Nullable Direction side) {
+        var container = GTCapabilityHelper.getEnergyInfoProvider(level, pos, side);
         return container instanceof NetworkEnergyContainer ? null : container;
     }
 }

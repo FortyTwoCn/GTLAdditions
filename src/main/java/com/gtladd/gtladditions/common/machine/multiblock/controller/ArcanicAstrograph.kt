@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.google.common.primitives.Ints
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.common.data.GTRecipeModifiers
@@ -13,11 +13,13 @@ import com.gtladd.gtladditions.common.machine.trait.AstralArrayCompressionTrait
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
+import net.minecraft.core.component.DataComponentMap
+import net.minecraft.core.component.DataComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.world.item.component.CustomData
 import org.gtlcore.gtlcore.api.machine.ISuspendableMachine
 import org.gtlcore.gtlcore.api.machine.trait.IRecipeStatus
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
@@ -30,37 +32,67 @@ import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.pow
 
-class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
-    HarmonyMachine(holder, *args),
+class ArcanicAstrograph(holder: BlockEntityCreationInfo, vararg args: Any?) :
+    HarmonyMachine(holder, ArcanicAstrographRecipeLogic()),
     IAstralArrayInteractionMachine,
     IHarmonyMachineAccessor {
 
-    @field:Persisted
-    @field:DescSynced
+    override fun modifyDrops(drops: MutableList<net.minecraft.world.item.ItemStack>) {
+        super.modifyDrops(drops)
+        addAstralArrayDrops(drops)
+    }
+
+    override fun collectImplicitComponents(components: DataComponentMap.Builder) {
+        super.collectImplicitComponents(components)
+        val state = astralArrayCompression.saveOwnedItemState()
+        if (state.getLong("collected") == 0L && state.getLong("pending") == 0L) return
+        val custom = components.build().getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag()
+        custom.put("gtladditions:astral_compression", state)
+        components.set(DataComponents.CUSTOM_DATA, CustomData.of(custom))
+    }
+
+    override fun applyImplicitComponents(input: DataComponentInput) {
+        super.applyImplicitComponents(input)
+        val custom = input.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag()
+        if (custom.contains("gtladditions:astral_compression", 10))
+            astralArrayCompression.loadOwnedItemState(custom.getCompound("gtladditions:astral_compression"))
+    }
+
+    @field:SaveField
+    @field:SyncToClient
     override var astralArrayCount: Int = 0
 
-    @field:Persisted
-    @field:DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var parallelAmount: Int = BASE_PARALLEL_AMOUNT
         private set
 
-    @field:Persisted
-    val astralArrayCompression: AstralArrayCompressionTrait = AstralArrayCompressionTrait(this)
+    @field:SaveField
+    val astralArrayCompression: AstralArrayCompressionTrait = attachTrait(AstralArrayCompressionTrait())
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = ArcanicAstrographRecipeLogic(this)
 
     override fun getRecipeLogic(): ArcanicAstrographRecipeLogic = super.getRecipeLogic() as ArcanicAstrographRecipeLogic
 
-    override fun getRecipeType(): GTRecipeType = COSMOS_SIMULATION_RECIPES
+    override fun getRecipeType(): GTRecipeType = COSMOS_SIMULATION_RECIPES.get()
 
     override fun setWorkingEnabled(workingEnabled: Boolean) {
-        if (!workingEnabled) astralArrayCompression.resetCompression()
+        if (!workingEnabled) astralArrayCompression.pauseCompression()
         super.setWorkingEnabled(workingEnabled)
     }
 
-    override fun addDisplayText(textList: MutableList<Component>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("ArcanicAstrographStatus", syncManager, {
+            mutableListOf<Component>().also(::addAstrographDisplayText)
+        }, 130)
+    )
+
+    private fun addAstrographDisplayText(textList: MutableList<Component>) {
+        
         if (isFormed) {
+            textList.add("tooltip.gtladditions.astral_compression_collected".toComponent(astralArrayCompression.compressionAstralArrayCount))
+            textList.add("tooltip.gtladditions.astral_compression_pending".toComponent(astralArrayCompression.pendingCompressedAstralArrays))
             textList.add(
                 "tooltip.gtladditions.astral_array_count".toComponent(astralArrayCount.toString().literal.withStyle(ChatFormatting.GOLD))
             )
@@ -85,7 +117,7 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
 
     override fun onWorking(): Boolean {
         if (!super.onWorking()) return false
-        if (recipeLogic.lastRecipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY &&
+        if (recipeLogic.lastRecipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get() &&
             recipeLogic.progress % 10 == 0
         ) {
             astralArrayCompression.handleCompressionWorking()
@@ -95,13 +127,11 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
 
     override fun afterWorking() {
         val recipe = recipeLogic.lastRecipe
-        if (recipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY) {
+        if (recipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get()) {
             astralArrayCompression.finishCompression()
         }
         super.afterWorking()
     }
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     companion object {
         private const val BASE_PARALLEL_AMOUNT = 2048
@@ -127,13 +157,8 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
             return floor(ln(8.0 * count) / ln(1.7)).toInt()
         }
 
-        private val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            ArcanicAstrograph::class.java,
-            HarmonyMachine.MANAGED_FIELD_HOLDER
-        )
-
-        class ArcanicAstrographRecipeLogic(machine: ArcanicAstrograph) :
-            RecipeLogic(machine),
+        class ArcanicAstrographRecipeLogic :
+            RecipeLogic(),
             IRecipeStatus {
             override fun getMachine(): ArcanicAstrograph = super.getMachine() as ArcanicAstrograph
 
@@ -141,15 +166,15 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
                 lastRecipe = null
                 recipeStatus = null
                 val match = getRecipe()
-                val isCompress = match?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY
+                val isCompress = match?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get()
 
-                if (!isCompress) getMachine().astralArrayCompression.resetCompression()
+                if (!isCompress) getMachine().astralArrayCompression.pauseCompression()
                 if (match == null) return
 
                 RecipeResult.of(machine, RecipeResult.SUCCESS)
                 if (!matchRecipeOutput(machine, match)) {
                     if (isCompress) {
-                        getMachine().astralArrayCompression.resetCompression()
+                        getMachine().astralArrayCompression.pauseCompression()
                     }
                     return
                 }
@@ -157,21 +182,21 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
             }
 
             override fun onRecipeFinish() {
-                val finishedCompressedRecipe = lastRecipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY
+                val finishedCompressedRecipe = lastRecipe?.recipeType == GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get()
                 machine.afterWorking()
                 lastRecipe?.let { handleRecipeOutput(machine, it) }
 
                 val suspendableMachine = machine as? ISuspendableMachine
                 if (suspendableMachine?.`gtlcore$isSuspendAfterFinish`() == true) {
-                    if (finishedCompressedRecipe) getMachine().astralArrayCompression.resetCompression()
+                    if (finishedCompressedRecipe) getMachine().astralArrayCompression.pauseCompression()
                     status = Status.SUSPEND
                     suspendableMachine.`gtlcore$setSuspendAfterFinish`(false)
                 } else {
                     val nextRecipe = getRecipe()?.takeIf { matchRecipeOutput(machine, it) }
                     if (finishedCompressedRecipe &&
-                        nextRecipe?.recipeType != GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY
+                        nextRecipe?.recipeType != GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get()
                     ) {
-                        getMachine().astralArrayCompression.resetCompression()
+                        getMachine().astralArrayCompression.pauseCompression()
                     }
                     nextRecipe?.let {
                         setupRecipe(it)
@@ -184,26 +209,26 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
             }
 
             private fun getRecipe(): GTRecipe? {
-                if (!machine.hasProxies()) return null
+                if (machine.capabilitiesProxy.isEmpty()) return null
                 val astrograph = getMachine()
                 return findCosmosSimulationRecipe(astrograph) ?: findCompressedAstralArrayRecipe(astrograph)
             }
 
             private fun findCompressedAstralArrayRecipe(astrograph: ArcanicAstrograph): GTRecipe? {
-                val recipe = GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.lookup.find(astrograph, this::checkRecipe) ?: return null
+                val recipe = GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY.get().searchRecipe(astrograph, this::matchesSourceRecipe).asSequence().firstOrNull() ?: return null
                 if (!astrograph.consumeAstralStartup()) return null
                 return recipe
             }
 
             private fun findCosmosSimulationRecipe(astrograph: ArcanicAstrograph): GTRecipe? {
-                val recipe = COSMOS_SIMULATION_RECIPES.lookup.find(astrograph, this::checkRecipe) ?: return null
+                val recipe = COSMOS_SIMULATION_RECIPES.get().searchRecipe(astrograph, this::matchesSourceRecipe).asSequence().firstOrNull() ?: return null
                 if (!astrograph.consumeCosmosStartup()) return null
 
                 val harmonyRecipe = astrograph.applyCreateDataOutput(recipe).also {
                     it.duration = astrograph.getHarmonyDuration()
                 }
 
-                return GTRecipeModifiers.accurateParallel(
+                return org.gtlcore.gtlcore.api.recipe.CoreRecipeModifiers.accurateParallel(
                     astrograph,
                     harmonyRecipe,
                     astrograph.parallelAmount,
@@ -211,7 +236,7 @@ class ArcanicAstrograph(holder: IMachineBlockEntity, vararg args: Any?) :
                 ).getFirst()
             }
 
-            private fun checkRecipe(recipe: GTRecipe): Boolean = matchRecipe(machine, recipe)
+            private fun matchesSourceRecipe(recipe: GTRecipe): Boolean = matchRecipe(machine, recipe)
         }
     }
 }

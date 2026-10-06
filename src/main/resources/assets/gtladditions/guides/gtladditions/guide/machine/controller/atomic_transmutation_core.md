@@ -2,7 +2,7 @@
 navigation:
   title: Atomic Transmutation Core
   icon: atomic_transmutation_core
-  parent: controller/multiblock_controller.md
+  parent: machine/controller/multiblock_controller.md
   position: 21
 categories:
   - multiblock controller

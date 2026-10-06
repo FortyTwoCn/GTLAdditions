@@ -2,15 +2,27 @@ package com.gtladd.gtladditions.common.machine
 
 import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.value.sync.SyncHandlers
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widget.scroll.VerticalScrollData
+import brachy.modularui.widgets.layout.Flow
+import brachy.modularui.widgets.layout.Grid
+import brachy.modularui.widgets.slot.ItemSlot
+import brachy.modularui.widgets.slot.SlotGroup
+import com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler
+import com.gregtechceu.gtceu.common.data.item.GTDataComponents
+import com.gtladd.gtladditions.api.machine.ICloudTeamBindable
+import com.gtladd.gtladditions.api.gui.NativeHatchUI
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
 import com.gregtechceu.gtceu.api.machine.TieredEnergyMachine
 import com.gregtechceu.gtceu.api.machine.feature.IDataStickInteractable
-import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableEnergyContainer
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableEnergyContainer
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.client.util.TooltipHelper
 import com.gregtechceu.gtceu.common.data.machines.GTResearchMachines
@@ -18,63 +30,49 @@ import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gregtechceu.gtceu.utils.ResearchManager
 import com.gtladd.gtladditions.utils.CloudNetworkManager
 import com.gtladd.gtladditions.utils.CloudTeamUtil
-import com.hepdd.gtmthings.api.capability.IBindable
 import com.hepdd.gtmthings.utils.TeamUtil
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import net.minecraft.network.chat.Component
 import net.minecraft.world.InteractionResult
-import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.entity.player.Player
 import net.minecraft.world.item.ItemStack
 import org.gtlcore.gtlcore.utils.TextUtil
 import java.util.UUID
 
-class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
-    TieredEnergyMachine(holder, GTValues.UIV),
-    IMachineLife,
-    IFancyUIMachine,
+class CloudOpticalDataMachine(holder: BlockEntityCreationInfo) :
+    TieredEnergyMachine(holder, GTValues.UIV, NotifiableEnergyContainer.receiverContainer(
+        64L * GTValues.V[GTValues.UIV], GTValues.V[GTValues.UIV], 16
+    )),
+    IMuiMachine,
     IDataStickInteractable,
-    IBindable {
+    ICloudTeamBindable {
 
     companion object {
-
-        @JvmField
-        val MANAGED_FIELD_HOLDER = ManagedFieldHolder(
-            CloudOpticalDataMachine::class.java,
-            TieredEnergyMachine.MANAGED_FIELD_HOLDER
-        )
 
         private val ENERGY_PER_DATA = GTValues.V[GTValues.UV] * 3 / 4
     }
 
-    @Persisted
-    @DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var teamId: UUID? = null
         private set
 
-    @Persisted
-    protected val importItems = NotifiableItemStackHandler(this, 90, IO.BOTH)
+    @SaveField
+    protected val importItems = attachTrait(NotifiableItemStackHandler(90, IO.NONE, IO.BOTH))
 
-    @Persisted
-    protected val createItem = NotifiableItemStackHandler(this, 1, IO.NONE, IO.BOTH) {
-        object : ItemStackTransfer(1) {
+    @SaveField
+    protected val createItem = attachTrait(NotifiableItemStackHandler(1, IO.NONE, IO.BOTH) { slots ->
+        object : CustomItemStackHandler(slots) {
             override fun getSlotLimit(slot: Int): Int = 1
         }
-    }
+    }.shouldDropInventoryInWorld(false))
 
     private val recipes: MutableSet<GTRecipe> = ObjectOpenHashSet()
     private var recipesDirty = true
 
-    @Persisted
+    @SaveField
     private var isCreate = false
 
     private var hasPower = true
@@ -83,36 +81,29 @@ class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
     init {
         importItems
             .setFilter { stack ->
-                ResearchManager.isStackDataItem(stack, true) && ResearchManager.hasResearchTag(stack)
+                ResearchManager.isStackDataItem(stack, true) && stack.has(GTDataComponents.RESEARCH_ITEM)
             }
             .addChangedListener(::markRecipesDirty)
         createItem
-            .setFilter { stack -> stack.`is`(GTResearchMachines.CREATIVE_DATA_ACCESS_HATCH.item) }
+            .setFilter { stack -> stack.`is`(GTResearchMachines.CREATIVE_DATA_ACCESS_HATCH.asItem()) }
             .addChangedListener {
-                isCreate = createItem.getStackInSlot(0).`is`(GTResearchMachines.CREATIVE_DATA_ACCESS_HATCH.item)
+                isCreate = createItem.getStackInSlot(0).`is`(GTResearchMachines.CREATIVE_DATA_ACCESS_HATCH.asItem())
             }
     }
-
-    override fun createEnergyContainer(vararg args: Any): NotifiableEnergyContainer =
-        NotifiableEnergyContainer.receiverContainer(
-            this,
-            64L * GTValues.V[GTValues.UIV],
-            GTValues.V[GTValues.UIV],
-            16
-        )
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     override fun isRemote(): Boolean = super<TieredEnergyMachine>.isRemote
 
     override fun getUUID(): UUID? = teamId
 
     override fun setUUID(uuid: UUID?) {
+        if (teamId == uuid) return
         teamId = uuid
+        markAsChanged()
+        syncDataHolder.markClientSyncFieldDirty("teamId")
     }
 
     override fun onLoad() {
-        super.onLoad()
+        super<TieredEnergyMachine>.onLoad()
         if (!isRemote) {
             CloudNetworkManager.registerDataMachine(this)
             markRecipesDirty()
@@ -127,24 +118,21 @@ class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
         energySubs = null
     }
 
-    override fun onMachinePlaced(player: LivingEntity?, stack: ItemStack) {
-        CloudTeamUtil.bindOnPlacement(this, player)
-        if (!isRemote) {
-            CloudNetworkManager.registerDataMachine(this)
-            markRecipesDirty()
-        }
+    override fun setOwnerUUID(uuid: UUID) {
+        super.setOwnerUUID(uuid)
+        if (!isRemote) setUUID(uuid)
     }
 
-    override fun onDataStickRightClick(player: Player, stack: ItemStack): InteractionResult =
+    override fun onDataStickUse(player: Player, stack: ItemStack): InteractionResult =
         CloudTeamUtil.bindFromDataStick(this, player)
 
-    override fun onDataStickLeftClick(player: Player, stack: ItemStack): Boolean =
+    override fun onDataStickShiftUse(player: Player, stack: ItemStack): InteractionResult =
         CloudTeamUtil.unbindFromDataStick(this, player)
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         if (!isRemote) CloudNetworkManager.unregisterDataMachine(this)
-        clearInventory(importItems)
         createItem.setStackInSlot(0, ItemStack.EMPTY)
+        super.onMachineDestroyed()
     }
 
     fun getDataCount(): Long {
@@ -173,10 +161,9 @@ class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
         for (slot in 0 until importItems.slots) {
             val stack = importItems.getStackInSlot(slot)
             if (stack.isEmpty) continue
-            val researchId = ResearchManager.readResearchId(stack) ?: continue
+            val research = stack.get(GTDataComponents.RESEARCH_ITEM) ?: continue
             if (!ResearchManager.isStackDataItem(stack, true)) continue
-            val entries = researchId.first.getDataStickEntry(researchId.second)
-            if (entries != null) recipes.addAll(entries)
+            research.recipeType().getDataStickEntry(research.researchId())?.let(recipes::addAll)
         }
     }
 
@@ -201,7 +188,7 @@ class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
         if (
             dataStack.isEmpty ||
             !ResearchManager.isStackDataItem(dataStack, true) ||
-            !ResearchManager.hasResearchTag(dataStack)
+            !dataStack.has(GTDataComponents.RESEARCH_ITEM)
         ) {
             return false
         }
@@ -214,27 +201,26 @@ class CloudOpticalDataMachine(holder: IMachineBlockEntity) :
         return false
     }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 176, 145)
-        group.addWidget(ComponentPanelWidget(5, 5, ::addDisplayText).setMaxWidthLimit(136))
-        val slotScroll = DraggableScrollableWidgetGroup(5, 84, 168, 54)
-        for (row in 0 until 10) {
-            for (column in 0 until 9) {
-                slotScroll.addWidget(
-                    object : SlotWidget(importItems, row * 9 + column, 2 + column * 18, row * 18) {
-                        override fun isEnabled(): Boolean = true
-                    }.setBackgroundTexture(GuiTextures.SLOT)
-                )
-            }
-        }
-        group.addWidget(slotScroll)
-        group.addWidget(
-            SlotWidget(createItem, 0, group.sizeWidth - 30, 20)
-                .setBackgroundTexture(GuiTextures.SLOT)
-                .appendHoverTooltips(Component.translatable("gui.gtladditions.cloud_data_machine.create"))
-        )
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE)
-        return group
+    override fun buildMainUI(
+        mainWidget: ParentWidget<*>, guiData: PosGuiData,
+        syncManager: PanelSyncManager, settings: UISettings
+    ) {
+        val dataGroup = SlotGroup("cloudResearchData", 9, false)
+        val creativeGroup = SlotGroup("cloudCreativeData", 1, false)
+        syncManager.registerSlotGroup(dataGroup)
+        syncManager.registerSlotGroup(creativeGroup)
+        val contents = Flow.column().width(166).coverChildrenHeight().childPadding(4)
+        contents.child(com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("cloudDataStatus", syncManager, {
+            mutableListOf<Component>().also(::addDisplayText)
+        }, 78))
+        contents.child(ItemSlot().slot(SyncHandlers.itemSlot(createItem.storage, 0).slotGroup(creativeGroup))
+            .tooltipDynamic { it.addLine(Component.translatable("gui.gtladditions.cloud_data_machine.create")) })
+        contents.child(Grid().size(162, 54).scrollable(VerticalScrollData())
+            .minElementMargin(0, 0).minColWidth(18).minRowHeight(18)
+            .gridOfSizeWidth(90, 9) { _, _, slot ->
+                ItemSlot().slot(SyncHandlers.itemSlot(importItems.storage, slot).slotGroup(dataGroup))
+            })
+        mainWidget.child(contents)
     }
 
     private fun addDisplayText(textList: MutableList<Component>) {

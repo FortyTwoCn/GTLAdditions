@@ -12,11 +12,15 @@ import java.math.BigInteger
 
 class WirelessGTRecipeBuilder : GTRecipeBuilder {
 
+    @JvmField
     var wirelessEut: BigInteger? = null
 
     constructor(id: ResourceLocation, recipeType: GTRecipeType) : super(id, recipeType)
 
     constructor(toCopy: GTRecipe, recipeType: GTRecipeType) : super(toCopy, recipeType)
+    {
+        wirelessEut = (toCopy as? IWirelessGTRecipe)?.getWirelessEuTickInputs()
+    }
 
     fun setWirelessEut(wirelessEut: BigInteger?): WirelessGTRecipeBuilder {
         this.wirelessEut = wirelessEut
@@ -24,7 +28,7 @@ class WirelessGTRecipeBuilder : GTRecipeBuilder {
     }
 
     fun output(cap: RecipeCapability<*>, contents: List<Content>): WirelessGTRecipeBuilder {
-        output[cap] = contents
+        output[cap] = ArrayList(contents)
         return this
     }
 
@@ -33,27 +37,30 @@ class WirelessGTRecipeBuilder : GTRecipeBuilder {
         return this
     }
 
-    override fun buildRawRecipe(): WirelessGTRecipe = WirelessGTRecipe(
-        recipeType,
-        id.withPrefix("${recipeType.registryName.path}/"),
-        input,
-        output,
-        tickInput,
-        tickOutput,
-        inputChanceLogic,
-        outputChanceLogic,
-        tickInputChanceLogic,
-        tickOutputChanceLogic,
-        conditions,
-        listOf<Any>(),
-        data,
-        duration,
-        isFuel,
-        wirelessEut
-    )
+    override fun build(): WirelessGTRecipe = WirelessGTRecipe(super.build(), wirelessEut)
+
+    override fun copy(id: String): WirelessGTRecipeBuilder = copy(GTCEu.id(id))
+
+    override fun copy(id: ResourceLocation): WirelessGTRecipeBuilder {
+        val native = super.copy(id)
+        val result = WirelessGTRecipeBuilder(native.build(), recipeType)
+        result.id = id
+        result.chance = native.chance
+        result.maxChance = maxChance
+        result.perTick = native.perTick
+        result.onSave = native.onSave
+        result.recipeCategory = native.recipeCategory
+        result.keepSpoilingProgress = native.keepSpoilingProgress
+        result.wirelessEut = wirelessEut
+        return result
+    }
+
+    fun copy(): WirelessGTRecipeBuilder = copy(id)
+
+    fun buildRawRecipe(): WirelessGTRecipe = build()
 
     companion object {
-        fun ofRaw(): WirelessGTRecipeBuilder = ofRaw(GTRecipeTypes.DUMMY_RECIPES)
+        fun ofRaw(): WirelessGTRecipeBuilder = ofRaw(GTRecipeTypes.DUMMY_RECIPES.value())
 
         fun ofRaw(recipeType: GTRecipeType): WirelessGTRecipeBuilder = WirelessGTRecipeBuilder(GTCEu.id("raw"), recipeType)
     }

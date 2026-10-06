@@ -1,0 +1,40 @@
+{
+  "type": "avaritia:shaped_table",
+  "category": "misc",
+  "pattern": [
+    "AAABCBBDD",
+    "AAABBBDEE",
+    "AAABBDE  ",
+    "FFFBBDE  ",
+    "FFFBCDE  ",
+    "FFFBBDE  ",
+    "AAABBDE  ",
+    "AAABBBDEE",
+    "AAABCBBDD"
+  ],
+  "key": {
+    "A": {
+      "item": "gtladditions:heliophase_leyline_crystallizer"
+    },
+    "B": {
+      "item": "gtladditions:stargate_frame_part"
+    },
+    "C": {
+      "item": "sgjourney:universe_stargate_chevron"
+    },
+    "D": {
+      "item": "gtladditions:stargate_shielding_foil"
+    },
+    "E": {
+      "item": "sgjourney:reaction_chamber"
+    },
+    "F": {
+      "item": "gtladditions:recursive_reverse_array"
+    }
+  },
+  "result": {
+    "id": "sgjourney:classic_stargate_ring_block"
+  },
+  "show_notification": true,
+  "tier": 4
+}

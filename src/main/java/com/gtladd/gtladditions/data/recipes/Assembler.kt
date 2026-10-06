@@ -18,7 +18,7 @@ import com.gtladd.gtladditions.common.items.GTLAddItems.THERMAL_SUPERCONDUCTOR
 import com.gtladd.gtladditions.common.machine.GTLAddMachines
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.PHONON_MEDIUM
 import com.hepdd.gtmthings.GTMThings
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLBlocks.*
 import org.gtlcore.gtlcore.common.data.GTLItems.FAST_INFINITY_CELL
 import org.gtlcore.gtlcore.common.data.GTLItems.FLUID_INFINITY_CELL
@@ -31,7 +31,7 @@ import java.util.function.Consumer
 
 object Assembler {
 
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         addHugeOutput(provider)
         ASSEMBLER_RECIPES.recipeBuilder(id("naquadria_charge_more"))
             .inputItems(QUANTUM_STAR)
@@ -74,7 +74,7 @@ object Assembler {
             .inputItems(LAPOTRON_CRYSTAL, 4)
             .inputItems(CustomTags.LuV_CIRCUITS, 2)
             .inputItems(POWER_INTEGRATED_CIRCUIT, 2)
-            .outputItems(POWER_SUBSTATION.asStack())
+            .outputItems(com.gregtechceu.gtceu.common.data.machines.GTMultiMachines.POWER_SUBSTATION.asStack())
             .EUt(480).duration(1200).save(provider)
         ASSEMBLER_RECIPES.recipeBuilder(id("quantum_glass"))
             .inputItems(DIMENSIONALLY_TRANSCENDENT_CASING.asStack())
@@ -124,13 +124,13 @@ object Assembler {
             .EUt(VA[UHV].toLong()).duration(100).save(provider)
     }
 
-    private fun addHugeOutput(provider: Consumer<FinishedRecipe?>) {
+    private fun addHugeOutput(provider: RecipeOutput) {
         for (tier in 1..13) {
             val s = VN[tier].lowercase(Locale.getDefault())
             ASSEMBLER_RECIPES.recipeBuilder(GTMThings.id("huge_output_dual_hatch_$s"))
                 .inputItems(GTLMachines.HUGE_FLUID_EXPORT_HATCH[tier].asStack())
                 .inputItems(if (tier > 4) QUANTUM_CHEST[tier] else SUPER_CHEST[tier])
-                .inputFluids(SolderingAlloy.getFluid(144L))
+                .inputFluids(SolderingAlloy.getFluid(144))
                 .outputItems(GTLAddMachines.HUGE_OUTPUT_DUAL_HATCH[tier]!!.asStack())
                 .duration(200).EUt(VA[tier].toLong()).save(provider)
         }

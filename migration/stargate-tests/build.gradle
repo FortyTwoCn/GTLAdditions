@@ -1,0 +1,94 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.141'
+}
+repositories {
+    mavenCentral()
+    maven { url = 'https://api.modrinth.com/maven' }
+}
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+// Isolated validation of actual production mixins while the full mod is being ported.
+// Main production sources are neither excluded from the real build nor copied here.
+sourceSets.main.java {
+    srcDir '../../src/main/java'
+    include 'com/gtladd/gtladditions/mixin/stargatejourney/**'
+    include 'com/gtladd/gtladditions/integration/sgjourney/**'
+    include 'com/gtladd/gtladditions/migration/StargateMigrationHarness.java'
+    include 'com/gtladd/gtladditions/mixin/mc/RecipeManagerMixin.java'
+}
+tasks.named('processResources') {
+    from('../../src/main/resources/data/sgjourney') { into 'data/sgjourney' }
+}
+neoForge {
+    version = '21.1.248'
+    parchment {
+        minecraftVersion = '1.21.1'
+        mappingsVersion = '2024.11.17'
+    }
+    mods {
+        gtladditions_stargate_test { sourceSet(sourceSets.main) }
+    }
+    runs {
+        client {
+            client()
+            gameDirectory = file('run/client')
+            systemProperty 'mixin.debug.verify', 'true'
+            systemProperty 'mixin.debug.strict.unique', 'true'
+            systemProperty 'mixin.checks', 'true'
+        }
+    }
+    unitTest {
+        enable()
+        testedMod = mods.gtladditions_stargate_test
+    }
+}
+dependencies {
+    implementation('maven.modrinth:sgjourney:mZTmQ1wW')
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+test {
+    useJUnitPlatform()
+    systemProperty 'mixin.debug.verify', 'true'
+    systemProperty 'mixin.debug.strict.unique', 'true'
+    systemProperty 'mixin.checks', 'true'
+}
+
+// Derive targets from actual production annotations, so a successful test cannot
+// silently omit newly added Stargate mixins or validate different test-only targets.
+def targetResources = layout.buildDirectory.dir('generated/stargate-targets')
+def generateStargateTargets = tasks.register('generateStargateTargets') {
+    inputs.file('../../src/main/resources/gtladditions.mixin.json')
+    inputs.dir('../../src/main/java/com/gtladd/gtladditions/mixin/stargatejourney')
+    inputs.file('src/main/resources/gtladditions.stargate-test.mixins.json')
+    outputs.dir(targetResources)
+    doLast {
+        def main = new groovy.json.JsonSlurper().parse(file('../../src/main/resources/gtladditions.mixin.json'))
+        def focus = new groovy.json.JsonSlurper().parse(file('src/main/resources/gtladditions.stargate-test.mixins.json'))
+        def names = (main.mixins + main.client).findAll { it.startsWith('stargatejourney.') }
+                .collect { it.substring('stargatejourney.'.length()) }
+        if (names.toSet() != (focus.mixins + focus.client).toSet()) {
+            throw new GradleException('Stargate test configuration must cover every production Stargate mixin')
+        }
+        def targets = names.collect { name ->
+            // NeoForge's official JUnit launcher loads the dedicated server. Client
+            // mixins are compiled here and validated through runClient separately.
+            if (focus.client.contains(name)) return null
+            def source = file('../../src/main/java/com/gtladd/gtladditions/mixin/stargatejourney/' +
+                    name.replace('.', '/') + '.java').text
+            def match = source =~ /@Mixin\((\w+)\.class\)/
+            if (!match.find()) throw new GradleException('Cannot resolve target of ' + name)
+            def simple = match.group(1)
+            def imports = source =~ /import ([\w.]+);/
+            def target = imports.collect { it[1] }.find { it.endsWith('.' + simple) }
+            if (target == null) throw new GradleException('Cannot resolve import of ' + name)
+            target
+        }
+        def output = targetResources.get().asFile.toPath().resolve('stargate-mixin-targets.txt')
+        java.nio.file.Files.createDirectories(output.parent)
+        java.nio.file.Files.writeString(output, targets.findAll { it != null }.join('\n') + '\n')
+    }
+}
+sourceSets.test.resources.srcDir(generateStargateTargets)

@@ -1,13 +1,13 @@
 package com.gtladd.gtladditions.integration.jade.provider
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.machine.multiblock.part.WirelessEnergyNetworkTerminalPartMachineBase
 import com.gtladd.gtladditions.utils.CommonUtils
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.hepdd.gtmthings.api.misc.WirelessEnergyManager
+import com.gtladd.gtladditions.api.machine.wireless.NativeWirelessEnergyAccount
 import net.minecraft.ChatFormatting.*
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.resources.ResourceLocation
@@ -27,8 +27,8 @@ class WirelessEnergyNetworkTerminalProvider :
     IBlockComponentProvider,
     IServerDataProvider<BlockAccessor> {
     override fun appendTooltip(tooltip: ITooltip, blockAccessor: BlockAccessor, iPluginConfig: IPluginConfig) {
-        val blockEntity = blockAccessor.blockEntity as? IMachineBlockEntity ?: return
-        if (blockEntity.metaMachine !is WirelessEnergyNetworkTerminalPartMachineBase) return
+        val blockEntity = blockAccessor.blockEntity as? MetaMachine ?: return
+        if (blockEntity !is WirelessEnergyNetworkTerminalPartMachineBase) return
 
         val serverData = blockAccessor.serverData
         JadeTeamBindingHelper.appendTooltip(tooltip, blockAccessor.level, serverData)
@@ -76,12 +76,12 @@ class WirelessEnergyNetworkTerminalProvider :
 
     override fun appendServerData(compoundTag: CompoundTag, blockAccessor: BlockAccessor) {
         val blockEntity = blockAccessor.blockEntity
-        if (blockEntity is IMachineBlockEntity) {
-            val machine = blockEntity.metaMachine
+        if (blockEntity is MetaMachine) {
+            val machine = blockEntity
             if (machine is WirelessEnergyNetworkTerminalPartMachineBase) {
                 machine.uuid?.let {
                     JadeTeamBindingHelper.writeBinding(compoundTag, it)
-                    compoundTag.putByteArray("totalEu", WirelessEnergyManager.getUserEU(it).toByteArray())
+                    compoundTag.putByteArray("totalEu", NativeWirelessEnergyAccount.balance(it).toByteArray())
                 }
             }
         }

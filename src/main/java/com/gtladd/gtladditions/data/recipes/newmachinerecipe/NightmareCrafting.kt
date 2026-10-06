@@ -1,11 +1,11 @@
-﻿package com.gtladd.gtladditions.data.recipes.newmachinerecipe
+package com.gtladd.gtladditions.data.recipes.newmachinerecipe
 
 import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.common.data.GTItems
 import com.gregtechceu.gtceu.common.data.GTMaterials.Milk
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.NIGHTMARE_CRAFTING
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.common.data.GTLItems.COMPRESSED_PUFFERFISH
 import org.gtlcore.gtlcore.common.data.GTLItems.SUPER_GLUE
@@ -15,7 +15,7 @@ import org.gtlcore.gtlcore.utils.Registries
 import java.util.function.Consumer
 
 object NightmareCrafting {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         NIGHTMARE_CRAFTING.recipeBuilder(GTLAdditions.id("fish_big"))
             .inputItems(COMPRESSED_PUFFERFISH, 32)
             .inputItems(SUPER_GLUE, 24)
@@ -28,7 +28,7 @@ object NightmareCrafting {
             .inputItems(Registries.getItemStack("kubejs:fishbig_rhand", 1))
             .inputItems(Registries.getItemStack("kubejs:fishbig_lleg", 1))
             .inputItems(Registries.getItemStack("kubejs:fishbig_rleg", 1))
-            .outputItems(Registries.getItemStack("expatternprovider:fishbig"))
+            .outputItems(Registries.getItemStack("extendedae:fishbig"))
             .duration(288000)
             .EUt(GTValues.VEX[22])
             .save(provider)
@@ -84,7 +84,7 @@ object NightmareCrafting {
             .inputItems(Registries.getItemStack("minecraft:wheat", 3146000))
             .inputItems(Registries.getItemStack("minecraft:dragon_egg", 512000))
             .inputItems(Registries.getItemStack("avaritia:infinity_ingot", 144000))
-            .inputFluids(Milk.getFluid(11760000000))
+            .inputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Milk, 11760000000L))
             .outputItems(Registries.getItemStack("avaritia:endless_cake"))
             .duration(32000)
             .EUt(GTValues.VA[GTValues.MAX].toLong())

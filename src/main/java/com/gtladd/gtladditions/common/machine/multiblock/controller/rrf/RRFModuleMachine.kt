@@ -1,27 +1,15 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.FancyMachineUIWidget
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator
-import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IDisplayUIMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
 import com.gregtechceu.gtceu.api.sound.AutoReleasedSound
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.gregtechceu.gtceu.config.ConfigHolder
 import com.gtladd.gtladditions.api.machine.gui.MultiblockDisplayText
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.modular.ModularUI
-import com.lowdragmc.lowdraglib.gui.widget.*
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -29,18 +17,17 @@ import net.minecraft.world.entity.player.Player
 import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 import java.util.function.Consumer
 
-abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
+abstract class RRFModuleMachine(holder: BlockEntityCreationInfo) :
     MultiblockControllerMachine(holder),
     IModularMachineModule<RecursiveReverseArray, RRFModuleMachine>,
-    IFancyUIMachine,
-    IDisplayUIMachine,
-    IMachineLife {
+    com.gregtechceu.gtceu.api.machine.feature.IMuiMachine,
+    com.gregtechceu.gtceu.api.capability.IControllable {
 
-    @Persisted
-    @DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var enabled: Boolean = true
 
-    @Persisted
+    @field:SaveField
     private var hostPosition: BlockPos? = null
 
     private var host: RecursiveReverseArray? = null
@@ -72,10 +59,10 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
     override fun getHostType(): Class<RecursiveReverseArray> = RecursiveReverseArray::class.java
 
     override fun getHostScanPositions(): Array<BlockPos> = arrayOf(
-        pos.offset(33, 7, 0),
-        pos.offset(-33, 7, 0),
-        pos.offset(0, 7, 33),
-        pos.offset(0, 7, -33)
+        blockPos.offset(33, 7, 0),
+        blockPos.offset(-33, 7, 0),
+        blockPos.offset(0, 7, 33),
+        blockPos.offset(0, 7, -33)
     )
 
     override fun onConnected(host: RecursiveReverseArray) {
@@ -90,14 +77,16 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) removeFromHost(host)
         updateTickSubscription()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(host)
         updateTickSubscription()
     }
@@ -107,7 +96,7 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
         removeFromHost(host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(host)
     }
 
@@ -141,7 +130,7 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
             if (currentSound?.soundEntry == sound && !currentSound.isStopped) return
 
             currentSound?.release()
-            workingSound = sound.playAutoReleasedSound(::shouldKeepWorkingSound, pos, true, 0, 1.0f, 1.0f)
+            workingSound = sound.playAutoReleasedSound(::shouldKeepWorkingSound, blockPos, true, 0, 1.0f, 1.0f)
         } else {
             (workingSound as? AutoReleasedSound)?.release()
             workingSound = null
@@ -152,9 +141,9 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
         val currentLevel = level ?: return false
         return ConfigHolder.INSTANCE.machines.machineSounds &&
             shouldPlayWorkingSound() &&
-            !isInValid &&
-            currentLevel.isLoaded(pos) &&
-            getMachine(currentLevel, pos) === this
+            !isRemoved &&
+            currentLevel.isLoaded(blockPos) &&
+            getMachine(currentLevel, blockPos) === this
     }
 
     open fun startupUpdate() = Unit
@@ -167,7 +156,15 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("RRFModuleMachineStatus", syncManager, {
+            mutableListOf<Component>().also(::collectRRFModuleMachineStatusText)
+        }, 130)
+    )
+
+    private fun collectRRFModuleMachineStatusText(textList: MutableList<Component>) {
         MultiblockDisplayText.builder(textList, isFormed())
             .setWorkingStatus(enabled, enabled)
             .addComponent(
@@ -178,39 +175,28 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
             )
     }
 
-    override fun attachSideTabs(sideTabs: TabsWidget) {
-        sideTabs.setMainTab(this)
-        CombinedDirectionalFancyConfigurator.of(self(), self())?.let { sideTabs.attachSubTab(it) }
+
+
+
+
+
+
+
+    override fun isWorkingEnabled(): Boolean = enabled
+
+    override fun setWorkingEnabled(workingEnabled: Boolean) {
+        if (enabled == workingEnabled) return
+        enabled = workingEnabled
+        setChanged()
+        updateTickSubscription()
     }
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { enabled },
-                { _, pressed -> enabled = pressed }
-            ).setTooltipsSupplier { listOf((if (it) "behaviour.soft_hammer.enabled" else "behaviour.soft_hammer.disabled").toComponent) }
-        )
+    override fun buildMainUI(main: brachy.modularui.widget.ParentWidget<*>, data: brachy.modularui.factory.PosGuiData,
+                             manager: brachy.modularui.value.sync.PanelSyncManager, settings: brachy.modularui.screen.UISettings) {
+        val column = brachy.modularui.widgets.layout.Flow.column().widthRel(1f).coverChildrenHeight()
+        getWidgetsForDisplay(manager).forEach { column.child(it) }
+        main.child(com.gtladd.gtladditions.api.gui.NativeHatchUI.scroll(column))
     }
-
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 190, 125)
-        group.addWidget(
-            DraggableScrollableWidgetGroup(4, 4, 182, 117).setBackground(screenTexture)
-                .addWidget(LabelWidget(4, 5, self().blockState.block.descriptionId))
-                .addWidget(
-                    ComponentPanelWidget(4, 17) { addDisplayText(it) }
-                        .textSupplier(if (level!!.isClientSide) null else Consumer { addDisplayText(it) })
-                        .setMaxWidthLimit(150)
-                )
-        )
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE)
-        return group
-    }
-
-    override fun createUI(entityPlayer: Player): ModularUI = ModularUI(198, 208, this, entityPlayer)
-        .widget(FancyMachineUIWidget(this, 198, 208))
 
     // ========================================
     // Metadata
@@ -220,12 +206,7 @@ abstract class RRFModuleMachine(holder: IMachineBlockEntity) :
 
     override fun isRemote(): Boolean = super<MultiblockControllerMachine>.isRemote
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            RRFModuleMachine::class.java,
-            MultiblockControllerMachine.MANAGED_FIELD_HOLDER
-        )
+
     }
 }

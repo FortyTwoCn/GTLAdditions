@@ -1,25 +1,42 @@
 package com.gtladd.gtladditions.api.machine.multiblock
 
 import com.gregtechceu.gtceu.api.block.ICoilType
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.common.block.CoilBlock
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import com.gtladd.gtladditions.api.machine.EBFChecks
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import kotlin.math.min
 import kotlin.math.pow
 
-open class GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder: IMachineBlockEntity) : GTLAddWorkableElectricMultipleRecipesMachine(holder) {
+open class GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder: BlockEntityCreationInfo, logic: GTLAddMultipleRecipesLogic = GTLAddMultipleRecipesLogic(EBFChecks.EBF_CHECK)) : GTLAddWorkableElectricMultipleRecipesMachine(holder, logic) {
     var coilType: ICoilType = CoilBlock.CoilType.CUPRONICKEL
+        private set
+    @field:SyncToClient private var coilTemperature: Int = coilType.coilTemperature
+    @field:SyncToClient private var coilTier: Int = coilType.tier
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = GTLAddMultipleRecipesLogic(this, EBFChecks.EBF_CHECK)
 
-    override fun getMaxParallel(): Int = min(Int.MAX_VALUE, 2.0.pow(this.coilType.coilTemperature / 900.0).toInt())
+    override fun getMaxParallel(): Int = maxOf(1, 2.0.pow(coilTemperature / 900.0).toInt())
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
-        (this.multiblockState.matchContext["CoilType"] as? ICoilType)?.let { coilType = it }
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
+        NativeCoilStructure.match(this, substructureName)?.let(::updateCoil)
     }
 
-    fun getCoilTier(): Int = coilType.tier
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName == DEFAULT_STRUCTURE) updateCoil(CoilBlock.CoilType.CUPRONICKEL)
+    }
+
+    private fun updateCoil(coil: ICoilType) {
+        coilType = coil
+        coilTemperature = coil.coilTemperature
+        coilTier = coil.tier
+        syncDataHolder.markClientSyncFieldDirty("coilTemperature")
+        syncDataHolder.markClientSyncFieldDirty("coilTier")
+    }
+
+    fun getCoilTier(): Int = coilTier
 }

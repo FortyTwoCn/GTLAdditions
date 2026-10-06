@@ -2,9 +2,9 @@ package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.google.common.primitives.Ints
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfigurator
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gtladd.gtladditions.api.machine.gui.LimitedDurationConfigurator
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
@@ -17,16 +17,15 @@ import net.minecraft.network.chat.HoverEvent
 import org.gtlcore.gtlcore.api.recipe.RecipeRunnerHelper
 import org.gtlcore.gtlcore.integration.gtmt.NewGTValues
 
-class HeartOfTheUniverse(holder: IMachineBlockEntity, vararg args: Any?) : GTLAddWorkableElectricMultipleRecipesMachine(holder, *args) {
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = HeartOfTheUniverseLogic(this)
+class HeartOfTheUniverse(holder: BlockEntityCreationInfo, vararg args: Any?) : GTLAddWorkableElectricMultipleRecipesMachine(holder, HeartOfTheUniverseLogic()) {
 
     override fun getMaxParallel(): Int = 1
 
     override fun getLimitedDuration(): Int = 20
 
-    override fun createConfigurators(): IFancyConfigurator? = null
+    override fun createConfigurators(): LimitedDurationConfigurator? = null
 
-    override fun addEnergyDisplay(textList: MutableList<Component?>) {
+    override fun addEnergyDisplay(textList: MutableList<Component>) {
         getWirelessNetworkEnergyHandler()?.let { it ->
             textList.add(
                 "gtceu.multiblock.max_energy_per_tick".toComponent(
@@ -54,7 +53,7 @@ class HeartOfTheUniverse(holder: IMachineBlockEntity, vararg args: Any?) : GTLAd
     }
 
     companion object {
-        class HeartOfTheUniverseLogic(parallel: HeartOfTheUniverse) : GTLAddMultipleRecipesLogic(parallel) {
+        class HeartOfTheUniverseLogic() : GTLAddMultipleRecipesLogic() {
             override fun getGTRecipe(): GTRecipe? {
                 if (!checkBeforeWorking()) return null
 
@@ -65,11 +64,11 @@ class HeartOfTheUniverse(holder: IMachineBlockEntity, vararg args: Any?) : GTLAd
                 return buildFinalWirelessRecipe(parallelData, wirelessTrait)
             }
 
-            override fun getWirelessRecipeEut(recipe: GTRecipe): Long = RecipeHelper.getOutputEUt(recipe)
+            override fun getWirelessRecipeEut(recipe: GTRecipe): Long = recipe.outputEUt.totalEU
 
             override fun isEnergyConsumer(): Boolean = false
 
-            override fun checkRecipe(recipe: GTRecipe): Boolean = RecipeRunnerHelper.matchRecipe(machine, recipe) &&
+            override fun matchesSourceRecipe(recipe: GTRecipe): Boolean = RecipeRunnerHelper.matchRecipe(machine, recipe) &&
                 recipe.tickOutputs.isNotEmpty() &&
                 recipe.tickInputs.isEmpty()
 

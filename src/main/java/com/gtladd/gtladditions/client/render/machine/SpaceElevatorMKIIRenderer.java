@@ -7,39 +7,39 @@ import org.gtlcore.gtlcore.common.machine.multiblock.electric.SpaceElevatorMachi
 import org.gtlcore.gtlcore.utils.RenderUtil;
 
 import com.gregtechceu.gtceu.GTCEu;
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
 import com.gregtechceu.gtceu.api.machine.MetaMachine;
 import com.gregtechceu.gtceu.client.renderer.GTRenderTypes;
-import com.gregtechceu.gtceu.client.renderer.machine.WorkableCasingMachineRenderer;
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender;
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType;
+import com.mojang.serialization.MapCodec;
+import net.minecraft.world.phys.AABB;
 
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import net.minecraftforge.client.model.data.ModelData;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
+import net.neoforged.neoforge.client.model.data.ModelData;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 
 import java.util.function.Consumer;
 
-public class SpaceElevatorMKIIRenderer extends WorkableCasingMachineRenderer {
+public class SpaceElevatorMKIIRenderer extends DynamicRender<SpaceElevatorMachine, SpaceElevatorMKIIRenderer> {
 
     private static final ResourceLocation CLIMBER_MODEL = GTLCore.id("obj/climber");
 
-    public SpaceElevatorMKIIRenderer() {
-        super(GTLCore.id("block/space_elevator_mechanical_casing"), GTCEu.id("block/multiblock/data_bank"));
-    }
+    public static final MapCodec<SpaceElevatorMKIIRenderer> CODEC = MapCodec.unit(SpaceElevatorMKIIRenderer::new);
+    public static final DynamicRenderType<SpaceElevatorMachine, SpaceElevatorMKIIRenderer> TYPE = new DynamicRenderType<>(CODEC);
+    @Override public DynamicRenderType<SpaceElevatorMachine, SpaceElevatorMKIIRenderer> getType() { return TYPE; }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public void render(BlockEntity blockEntity, float partialTicks, PoseStack poseStack, MultiBufferSource buffer,
+    public void render(SpaceElevatorMachine machine, float partialTicks, PoseStack poseStack, MultiBufferSource buffer,
                        int combinedLight, int combinedOverlay) {
-        if (!(blockEntity instanceof IMachineBlockEntity machineBlockEntity)) return;
-        MetaMachine metaMachine = machineBlockEntity.getMetaMachine();
-        if (!(metaMachine instanceof SpaceElevatorMachine machine) || !machine.isFormed()) return;
+        if (!machine.isFormed()) return;
 
         float tick = RenderUtil.getSmoothTick(machine, partialTicks);
         double x = 0.5F;
@@ -55,7 +55,7 @@ public class SpaceElevatorMKIIRenderer extends WorkableCasingMachineRenderer {
         poseStack.pushPose();
         RenderBufferHelper.renderCylinder(
                 poseStack,
-                buffer.getBuffer(GTRenderTypes.getLightRing()),
+                buffer.getBuffer(GTRenderTypes.lightRing()),
                 (float) x,
                 (float) (y - 2.0F),
                 (float) z,
@@ -89,21 +89,19 @@ public class SpaceElevatorMKIIRenderer extends WorkableCasingMachineRenderer {
         poseStack.popPose();
     }
 
-    @Override
     public void onAdditionalModel(Consumer<ResourceLocation> registry) {
-        super.onAdditionalModel(registry);
         registry.accept(CLIMBER_MODEL);
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean hasTESR(BlockEntity blockEntity) {
+    public boolean isBlockEntityRenderer() {
         return true;
     }
 
     @Override
     @OnlyIn(Dist.CLIENT)
-    public boolean isGlobalRenderer(BlockEntity blockEntity) {
+    public boolean shouldRenderOffScreen(SpaceElevatorMachine machine) {
         return true;
     }
 
@@ -112,4 +110,5 @@ public class SpaceElevatorMKIIRenderer extends WorkableCasingMachineRenderer {
     public int getViewDistance() {
         return 512;
     }
+    @Override public AABB getRenderBoundingBox(SpaceElevatorMachine machine) { return new AABB(machine.getBlockPos()).inflate(getViewDistance()); }
 }

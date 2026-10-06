@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.google.common.math.IntMath
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
@@ -13,12 +13,13 @@ import com.gtladd.gtladditions.utils.RecipeCalculationHelper
 import it.unimi.dsi.fastutil.longs.LongLongPair
 import org.gtlcore.gtlcore.utils.NumberUtils
 
-class OreProcessorMachine(holder: IMachineBlockEntity) : GTLAddWorkableElectricMultipleRecipesMachine(holder) {
+class OreProcessorMachine(holder: BlockEntityCreationInfo) : GTLAddWorkableElectricMultipleRecipesMachine(holder, OreProcessorRecipeLogic()) {
 
     private var opHatch: OreProcessorHatch? = null
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         parts.forEach {
             if (it is OreProcessorHatch) {
                 opHatch = it
@@ -27,12 +28,12 @@ class OreProcessorMachine(holder: IMachineBlockEntity) : GTLAddWorkableElectricM
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         opHatch = null
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = OreProcessorRecipeLogic(this)
 
     override fun getRecipeLogic(): OreProcessorRecipeLogic = super.getRecipeLogic() as OreProcessorRecipeLogic
 
@@ -45,7 +46,7 @@ class OreProcessorMachine(holder: IMachineBlockEntity) : GTLAddWorkableElectricM
     )
 
     companion object {
-        class OreProcessorRecipeLogic(oreProcessor: OreProcessorMachine) : GTLAddMultipleRecipesLogic(oreProcessor) {
+        class OreProcessorRecipeLogic() : GTLAddMultipleRecipesLogic() {
             override fun getMachine(): OreProcessorMachine = super.getMachine() as OreProcessorMachine
 
             @Suppress("UnstableApiUsage")
@@ -58,7 +59,7 @@ class OreProcessorMachine(holder: IMachineBlockEntity) : GTLAddWorkableElectricM
                     getMultipleThreads().toLong()
                 ).let { if (hatch?.matchAll == true) NumberUtils.saturatedMultiply(it, 2) else it }
 
-                val recipes = lookupRecipeIterator().map { getMachine().modifyRecipe(it) }
+                val recipes = lookupRecipeSet().map { getMachine().modifyRecipe(it) }
                 return RecipeCalculationHelper.calculateParallelsWithGreedyAllocation(
                     recipes,
                     totalParallel,

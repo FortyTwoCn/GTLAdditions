@@ -6,7 +6,7 @@ import com.gregtechceu.gtceu.api.data.tag.TagPrefix.*
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
 import com.gregtechceu.gtceu.api.recipe.ResearchRecipeBuilder.StationRecipeBuilder
 import com.gregtechceu.gtceu.common.data.GTItems.*
-import com.gregtechceu.gtceu.common.data.GTMachines.POWER_SUBSTATION
+import com.gregtechceu.gtceu.common.data.machines.GTMultiMachines.POWER_SUBSTATION
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes.ASSEMBLY_LINE_RECIPES
 import com.gregtechceu.gtceu.data.recipe.CustomTags
@@ -23,7 +23,7 @@ import com.gtladd.gtladditions.common.material.GTLAddMaterial.MELLION
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.PHONON_MEDIUM
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.PROTO_HALKONITE
 import com.hepdd.gtmthings.data.CreativeMachines.CREATIVE_LASER_INPUT_HATCH
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.common.data.GTLBlocks.*
 import org.gtlcore.gtlcore.common.data.GTLItems.ELECTRIC_MOTOR_MAX
@@ -39,13 +39,13 @@ object AssemblyLine {
     private val wire = arrayOf<Material>(SamariumIronArsenicOxide, IndiumTinBariumTitaniumCuprate, UraniumRhodiumDinaquadide, EnrichedNaquadahTriniumEuropiumDuranide, RutheniumTriniumAmericiumNeutronate, Enderite, Echoite, Legendarium, DraconiumAwakened, Infinity)
     private val cable = arrayOf<Material>(Graphene, NiobiumTitanium, Trinium, NaquadahAlloy, Mendelevium, Mithril, Adamantine, NaquadriaticTaranium, Starmetal, CosmicNeutronium)
 
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         addLaserHatchRecipe(provider)
         addAntichristForgeRecipe(provider)
         addOtherRecipe(provider)
     }
 
-    private fun addLaserHatchRecipe(provider: Consumer<FinishedRecipe?>) {
+    private fun addLaserHatchRecipe(provider: RecipeOutput) {
         for (i in IV..14) {
             val tier = VN[i].lowercase(Locale.getDefault())
             ASSEMBLY_LINE_RECIPES.recipeBuilder(GTLAdditions.id(tier + "_16777216a_laser_source_hatch"))
@@ -155,7 +155,7 @@ object AssemblyLine {
         }
     }
 
-    private fun addAntichristForgeRecipe(provider: Consumer<FinishedRecipe?>) {
+    private fun addAntichristForgeRecipe(provider: RecipeOutput) {
         ASSEMBLY_LINE_RECIPES.recipeBuilder("spatially_transcendent_gravitational_lens_assembly_line")
             .inputItems(GTLAddBlocks.QUANTUM_GLASS.asStack(64))
             .inputItems(INFINITY_GLASS.asStack(64))
@@ -181,7 +181,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.QUANTUM_GLASS.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("suprachronal_magnetic_confinement_casing_assembly_line")
@@ -205,7 +205,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:transcendentmetal_frame"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("god_forge_support_casing_assembly_line")
@@ -228,7 +228,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.SUPRACHRONAL_MAGNETIC_CONFINEMENT_CASING.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("god_forge_inner_casing_assembly_line")
@@ -247,7 +247,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.GOD_FORGE_SUPPORT_CASING.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("god_forge_energy_casing_assembly_line")
@@ -263,15 +263,15 @@ object AssemblyLine {
             .inputItems(getItemStack("kubejs:chaotic_energy_core", 512))
             .inputItems(plateDense, CREON, 48)
             .inputItems(plateDense, Hypogen, 48)
-            .inputFluids(SuperMutatedLivingSolder.getFluid(2304000000))
-            .inputFluids(Echoite.getFluid(3638400000))
+            .inputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(SuperMutatedLivingSolder, 2304000000L))
+            .inputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Echoite, 3638400000L))
             .inputFluids(ExcitedDtec.getFluid(1024000000))
             .outputItems(GTLAddBlocks.GOD_FORGE_ENERGY_CASING.asStack())
             .EUt(VA[UXV].toLong()).duration(3200)
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.GOD_FORGE_INNER_CASING.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("god_forge_trim_casing_assembly_line")
@@ -292,7 +292,7 @@ object AssemblyLine {
             .inputItems(plateDense, CosmicNeutronium, 16)
             .inputItems(frameGt, AbyssalAlloy, 32)
             .inputFluids(SuperMutatedLivingSolder.getFluid(18432000))
-            .inputFluids(BedrockGas.getFluid(FluidStorageKeys.GAS, 2359296000))
+            .inputFluids(org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient.create(BedrockGas.getFluid(FluidStorageKeys.GAS), 2359296000L))
             .inputFluids(CelestialTungsten.getFluid(294912000))
             .inputFluids(Neutronium.getFluid(494912000))
             .outputItems(GTLAddBlocks.GOD_FORGE_TRIM_CASING.asStack())
@@ -300,7 +300,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:transcendentmetal_block"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("remote_graviton_flow_regulator_assembly_line")
@@ -322,7 +322,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("kubejs:graviton_transducer"))
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("mediary_graviton_flow_regulator_assembly_line")
@@ -345,7 +345,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.REMOTE_GRAVITON_FLOW_REGULATOR.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(16384, 96000000)
+                    .EUt(VA[MAX].toLong()).CWUt(16384, 96000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("central_graviton_flow_regulator_assembly_line")
@@ -372,7 +372,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GTLAddBlocks.MEDIARY_GRAVITON_FLOW_REGULATOR.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(32767, 192000000)
+                    .EUt(VA[MAX].toLong()).CWUt(32767, 192000000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("phonon_conduit")
@@ -397,12 +397,12 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(RELATIVISTIC_HEAT_CAPACITOR.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(8192, 48000000)
+                    .EUt(VA[MAX].toLong()).CWUt(8192, 48000000)
             }
             .save(provider)
     }
 
-    private fun addOtherRecipe(provider: Consumer<FinishedRecipe?>) {
+    private fun addOtherRecipe(provider: RecipeOutput) {
         ASSEMBLY_LINE_RECIPES.recipeBuilder("gravity_stabilization_casing")
             .inputItems(MANIPULATOR.asStack(4))
             .inputItems(EMITTER_UIV, 4)
@@ -419,7 +419,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(GRAVI_STAR.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[UXV]).CWUt(1024, 2048000)
+                    .EUt(VA[UXV].toLong()).CWUt(1024, 2048000)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("power_module_6")
@@ -438,7 +438,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(POWER_MODULE_5.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[OpV]).CWUt(1024)
+                    .EUt(VA[OpV].toLong()).CWUt(1024)
             }
             .save(provider)
         ASSEMBLY_LINE_RECIPES.recipeBuilder("power_module_7")
@@ -457,7 +457,7 @@ object AssemblyLine {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(POWER_MODULE_6.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
     }

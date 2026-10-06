@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.client.render
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 
 @OnlyIn(Dist.CLIENT)
 inline fun <T> PoseStack.withPose(block: PoseStack.() -> T): T {

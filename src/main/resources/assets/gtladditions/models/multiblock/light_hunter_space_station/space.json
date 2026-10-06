@@ -1,6 +1,6 @@
 {
   "flip_v": true,
-  "loader": "forge:obj",
+  "loader": "neoforge:obj",
   "model": "gtlcore:models/obj/space.obj",
   "textures": {
     "texture0": "gtladditions:block/obj/heartofuniverse",

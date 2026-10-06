@@ -2,7 +2,7 @@
 navigation:
   title: 原子置换核心
   icon: atomic_transmutation_core
-  parent: controller/multiblock_controller.md
+  parent: machine/controller/multiblock_controller.md
   position: 21
 categories:
   - 多方块结构主机

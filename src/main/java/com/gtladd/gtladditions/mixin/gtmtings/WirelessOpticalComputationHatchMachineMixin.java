@@ -12,7 +12,7 @@ public abstract class WirelessOpticalComputationHatchMachineMixin {
      * @reason .
      */
     @Overwrite(remap = false)
-    public boolean canShared() {
+    public boolean canShared(com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine controller, String substructureName) {
         return true;
     }
 }

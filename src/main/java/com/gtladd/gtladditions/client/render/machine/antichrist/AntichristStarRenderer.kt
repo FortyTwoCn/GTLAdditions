@@ -13,8 +13,8 @@ import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.resources.ResourceLocation
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import kotlin.math.PI
@@ -96,8 +96,7 @@ object AntichristStarRenderer {
 
     private fun buildSphereBuffer(slices: Int, stacks: Int): VertexBuffer {
         val buffer = VertexBuffer(VertexBuffer.Usage.STATIC)
-        val builder = Tesselator.getInstance().builder
-        builder.begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, DefaultVertexFormat.POSITION_TEX)
 
         for (stack in 0 until stacks) {
             val v0 = stack.toDouble() / stacks.toDouble()
@@ -137,12 +136,12 @@ object AntichristStarRenderer {
         }
 
         buffer.bind()
-        buffer.upload(builder.end())
+        buffer.upload(builder.buildOrThrow())
         VertexBuffer.unbind()
         return buffer
     }
 
     private fun addVertex(builder: BufferBuilder, x: Double, y: Double, z: Double, u: Double, v: Double) {
-        builder.vertex(x, y, z).uv(u.toFloat(), v.toFloat()).endVertex()
+        builder.addVertex(x.toFloat(), y.toFloat(), z.toFloat()).setUv(u.toFloat(), v.toFloat())
     }
 }

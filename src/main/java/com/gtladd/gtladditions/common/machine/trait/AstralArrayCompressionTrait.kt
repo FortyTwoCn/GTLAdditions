@@ -1,48 +1,106 @@
 package com.gtladd.gtladditions.common.machine.trait
 
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait
+import com.gregtechceu.gtceu.api.machine.TickableSubscription
 import com.gtladd.gtladditions.api.machine.IAstralArrayInteractionMachine
 import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.common.machine.multiblock.controller.ArcanicAstrograph
 import com.gtladd.gtladditions.utils.CommonUtils.getRotatedRenderPosition
 import com.gtladd.gtladditions.utils.MachineUtil
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import net.minecraft.core.Direction
+import net.minecraft.nbt.CompoundTag
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.entity.item.ItemEntity
 import net.minecraft.world.item.crafting.Ingredient
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
-import kotlin.math.floor
+import java.math.BigDecimal
 import kotlin.math.pow
 
-class AstralArrayCompressionTrait(
-    machine: ArcanicAstrograph
-) : MachineTrait(machine) {
+class AstralArrayCompressionTrait : MachineTrait() {
 
-    @field:Persisted
-    private var compressionAstralArrayCount = 0L
+    @field:SaveField
+    @field:SyncToClient
+    var compressionAstralArrayCount = 0L
+        private set
+
+    @field:SaveField
+    @field:SyncToClient
+    var pendingCompressedAstralArrays = 0L
+        private set
+
+    private var outputSubscription: TickableSubscription? = null
 
     override fun getMachine(): ArcanicAstrograph = super.getMachine() as ArcanicAstrograph
 
     fun handleCompressionWorking() {
+        flushPendingOutputs()
         collectAstralArraysInCompressionArea()
     }
 
     fun finishCompression() {
+        if (!flushPendingOutputs()) return
         val batches = compressionAstralArrayCount / IAstralArrayInteractionMachine.COMPRESSED_ASTRAL_ARRAY_EQUIVALENT
         if (batches <= 0) return
-
-        val outputs = calculateCompressionOutputs(batches)
-        outputCompressedAstralArrays(outputs)
-
+        if (machine.level !is ServerLevel) return
+        // Commit one probability result before attempting delivery. A blocked output must not reroll it.
+        pendingCompressedAstralArrays = calculateCompressionOutputs(batches)
         compressionAstralArrayCount -= batches * IAstralArrayInteractionMachine.COMPRESSED_ASTRAL_ARRAY_EQUIVALENT
+        onOwnedStateChanged()
+        flushPendingOutputs()
     }
 
-    fun resetCompression() {
-        compressionAstralArrayCount = 0L
+    fun pauseCompression() {
+        // Collected inputs and already rolled outputs remain owned through stopping or changing recipes.
+        flushPendingOutputs()
+    }
+
+    override fun onMachineLoad() {
+        super.onMachineLoad()
+        if (!isRemote && pendingCompressedAstralArrays > 0) subscribeOutputRetry()
+    }
+
+    override fun onMachineUnload() {
+        unsubscribe(outputSubscription)
+        outputSubscription = null
+        super.onMachineUnload()
+    }
+
+    private fun subscribeOutputRetry() {
+        if (isRemote || pendingCompressedAstralArrays <= 0) return
+        outputSubscription = subscribeServerTick(outputSubscription) {
+            if (getMachine().offsetTimer % 20L == 0L) flushPendingOutputs()
+        }
+    }
+
+    fun flushPendingOutputs(): Boolean {
+        if (pendingCompressedAstralArrays <= 0) return true
+        if (machine.level !is ServerLevel) return false
+        if (!outputCompressedAstralArrays(pendingCompressedAstralArrays)) {
+            subscribeOutputRetry()
+            return false
+        }
+        pendingCompressedAstralArrays = 0L
+        onOwnedStateChanged()
+        unsubscribe(outputSubscription)
+        outputSubscription = null
+        return true
+    }
+
+    /** Native machine-item components carry owned buffers without spawning an unbounded number of drops. */
+    fun saveOwnedItemState(): CompoundTag = CompoundTag().also {
+        it.putLong("collected", compressionAstralArrayCount)
+        it.putLong("pending", pendingCompressedAstralArrays)
+    }
+
+    fun loadOwnedItemState(state: CompoundTag) {
+        compressionAstralArrayCount = state.getLong("collected").coerceAtLeast(0)
+        pendingCompressedAstralArrays = state.getLong("pending").coerceAtLeast(0)
+        onOwnedStateChanged()
+        if (machine.level is ServerLevel) subscribeOutputRetry()
     }
 
     private fun collectAstralArraysInCompressionArea() {
@@ -55,29 +113,43 @@ class AstralArrayCompressionTrait(
         }
 
         for (entity in entities) {
-            compressionAstralArrayCount += entity.item.count.toLong()
-            entity.discard()
+            val accepted = minOf(entity.item.count.toLong(), Long.MAX_VALUE - compressionAstralArrayCount)
+            if (accepted <= 0) break
+            compressionAstralArrayCount += accepted
+            entity.item.shrink(accepted.toInt())
+            if (entity.item.isEmpty) entity.discard() else entity.item = entity.item.copy()
+            onOwnedStateChanged()
         }
     }
 
+    private fun onOwnedStateChanged() {
+        // Persist entity ownership immediately; native markAsChanged only queues the next sync tick.
+        machine.setChanged()
+        syncDataHolder.markClientSyncFieldDirty("compressionAstralArrayCount")
+        syncDataHolder.markClientSyncFieldDirty("pendingCompressedAstralArrays")
+    }
+
     private fun calculateCompressionOutputs(batches: Long): Long {
-        val expectedOutputs = batches * compressedAstralArrayOutputChance
-        val guaranteedOutputs = floor(expectedOutputs).toLong()
-        val extraChance = expectedOutputs - guaranteedOutputs
+        val chance = compressedAstralArrayOutputChance
+        if (chance >= 1.0) return batches
+        val expectedOutputs = BigDecimal.valueOf(batches).multiply(BigDecimal.valueOf(chance))
+        val parts = expectedOutputs.divideAndRemainder(BigDecimal.ONE)
+        val guaranteedOutputs = parts[0].longValueExact()
+        val extraChance = parts[1].toDouble()
         val random = machine.level?.random ?: return 0L
         return guaranteedOutputs + if (random.nextDouble() < extraChance) 1L else 0L
     }
 
-    private fun outputCompressedAstralArrays(amount: Long) {
-        if (amount <= 0) return
+    private fun outputCompressedAstralArrays(amount: Long): Boolean {
+        if (amount <= 0) return true
         val compressedAstralArray = GTLAddItems.COMPRESSED_ASTRAL_ARRAY.asItem()
-        MachineUtil.outputItem(getMachine(), LongIngredient.create(Ingredient.of(compressedAstralArray), amount))
+        return MachineUtil.outputItem(getMachine(), LongIngredient.create(Ingredient.of(compressedAstralArray), amount))
     }
 
     private fun getCompressionCenter(): Vec3 {
         val machine = getMachine()
         val offset = getRotatedRenderPosition(Direction.NORTH, machine.frontFacing, 0.0, 0.0, COMPRESSION_FRONT_OFFSET)
-        return Vec3.atLowerCornerOf(machine.pos).add(offset)
+        return Vec3.atLowerCornerOf(machine.blockPos).add(offset)
     }
 
     val compressedAstralArrayOutputChance: Double
@@ -93,8 +165,6 @@ class AstralArrayCompressionTrait(
                 (1.0 - BASE_COMPRESSION_OUTPUT_CHANCE) * progress.pow(COMPRESSION_OUTPUT_CHANCE_EXPONENT)
         }
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
         // First embedded array count that makes the existing parallel formula reach Int.MAX_VALUE.
         private const val MAX_CHANCE_ASTRAL_ARRAY_COUNT = 42441
@@ -103,6 +173,5 @@ class AstralArrayCompressionTrait(
         private const val BASE_COMPRESSION_OUTPUT_CHANCE = 0.3
         private const val COMPRESSION_OUTPUT_CHANCE_EXPONENT = 1.5
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(AstralArrayCompressionTrait::class.java)
     }
 }

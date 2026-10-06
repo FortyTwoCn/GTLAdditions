@@ -2,7 +2,7 @@ package com.gtladd.gtladditions.common.items
 
 import com.gregtechceu.gtceu.api.item.ComponentItem
 import com.gregtechceu.gtceu.common.data.GTItems
-import com.gregtechceu.gtceu.common.item.TooltipBehavior
+import com.gregtechceu.gtceu.common.item.behavior.TooltipBehavior
 import com.gtladd.gtladditions.api.registry.GTLAddRegistration.Companion.REGISTRATE
 import com.gtladd.gtladditions.common.items.behavior.AstralArrayBehavior
 import com.gtladd.gtladditions.common.items.behavior.ModuleConnectionBehavior
@@ -107,7 +107,7 @@ object GTLAddItems {
         STARGATE_FRAME_PART = register("stargate_frame_part", "Stargate Frame Part")
         STARGATE_CHEVRON_UPGRADE = register("stargate_chevron_upgrade", "Stargate Chevron Upgrade")
         ULTIMATE_CONVERSATION_CARD = register("ultimate_conversation_card", "Ultimate Conversation Card")
-        COMPRESSED_ASTRAL_ARRAY = REGISTRATE.item("compressed_astral_array") { properties: Item.Properties -> ComponentItem.create(properties) }
+        COMPRESSED_ASTRAL_ARRAY = REGISTRATE.item("compressed_astral_array") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(
                 GTItems.attach(
                     TooltipBehavior
@@ -119,7 +119,7 @@ object GTLAddItems {
             )
             .lang("Compressed Astral Array")
             .register()
-        DEBUG_MODULE_CONNECTOR = REGISTRATE.item("debug_module_connector") { properties: Item.Properties -> ComponentItem.create(properties) }
+        DEBUG_MODULE_CONNECTOR = REGISTRATE.item("debug_module_connector") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(
                 GTItems.attach(
                     TooltipBehavior
@@ -133,7 +133,7 @@ object GTLAddItems {
             )
             .lang("Debug Module Connector")
             .register()
-        STRANGE_ANNIHILATION_FUEL_ROD = REGISTRATE.item("strange_annihilation_fuel_rod") { properties: Item.Properties -> ComponentItem.create(properties) }
+        STRANGE_ANNIHILATION_FUEL_ROD = REGISTRATE.item("strange_annihilation_fuel_rod") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(
                 GTItems.attach(
                     TooltipBehavior
@@ -144,7 +144,7 @@ object GTLAddItems {
             )
             .lang("Strange Annihilation Fuel Rod")
             .register()
-        BLACK_HOLE_SEED = REGISTRATE.item("black_hole_seed") { properties: Item.Properties -> ComponentItem.create(properties) }
+        BLACK_HOLE_SEED = REGISTRATE.item("black_hole_seed") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(
                 GTItems.attach(
                     TooltipBehavior
@@ -155,7 +155,7 @@ object GTLAddItems {
             )
             .lang("Black Hole Seed")
             .register()
-        ASTRAL_ARRAY = REGISTRATE.item("astral_array") { properties: Item.Properties -> ComponentItem.create(properties) }
+        ASTRAL_ARRAY = REGISTRATE.item("astral_array") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(
                 GTItems.attach(
                     TooltipBehavior
@@ -167,11 +167,11 @@ object GTLAddItems {
             )
             .lang("Astral Array")
             .register()
-        SUPRACHRONAL_DATA_MODULE = REGISTRATE.item("suprachronal_data_module") { properties: Item.Properties -> ComponentItem.create(properties) }
+        SUPRACHRONAL_DATA_MODULE = REGISTRATE.item("suprachronal_data_module") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(GTItems.attach(SuprachronalDataModuleBehavior))
             .lang("Suprachronal Data Module")
             .register()
-        GUIDE_BOOK = REGISTRATE.item("guide") { properties: Item.Properties -> ComponentItem.create(properties) }
+        GUIDE_BOOK = REGISTRATE.item("guide") { properties: Item.Properties -> ComponentItem(properties) }
             .onRegister(GTItems.attach(GuideBook()))
             .model(NonNullBiConsumer.noop())
             .lang("GTLAdditions Guide")

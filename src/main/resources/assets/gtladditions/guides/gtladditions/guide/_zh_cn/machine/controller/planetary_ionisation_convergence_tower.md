@@ -1,8 +1,8 @@
 ---
 navigation:
   title: 行星电离汇流塔
-  icon: stone
-  parent: controller/multiblock_controller.md
+  icon: planetary_ionisation_convergence_tower
+  parent: machine/controller/multiblock_controller.md
   position: 10
 categories:
   - 多方块结构主机

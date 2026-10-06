@@ -1,293 +1,144 @@
 plugins {
-    id "dev.architectury.loom" version "1.6-SNAPSHOT"
-    id "maven-publish"
-    id "com.diffplug.spotless" version "6.25.0"
+    id 'java-library'
+    id 'maven-publish'
     id 'org.jetbrains.kotlin.jvm'
+    alias libs.plugins.modDevGradle
+    alias libs.plugins.lombok
 }
 
-base {
-    archivesName = project.archives_base_name
-}
-
-String buildNumber = System.getenv("GITHUB_ACTION_NUMBER")
-version = "${mod_version}" + (buildNumber != null ? "-build_${System.getenv("GITHUB_RUN_NUMBER")}" : "")
-//version = project.mod_version
 group = project.maven_group
-
+version = project.mod_version
+base { archivesName = "${project.archives_base_name}-${libs.versions.minecraft.get()}" }
 java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+lombok { version = '1.18.38' }
+sourceSets.main.resources.srcDir('src/generated/resources')
+kotlin {
+    jvmToolchain(21)
+    sourceSets.main.kotlin.srcDir('src/main/java')
 }
 
-loom {
-    silentMojangMappingsLicense()
-    forge {
-        mixinConfigs = [
-                "gtladditions.mixin.json"
-        ]
+apply from: 'gradle/repositories.gradle'
 
-        dataGen {
-            mod(mod_id)
-        }
-    }
-
-    runConfigs.named("data").configure {
-        programArg("--existing=" + file("src/main/resources").absolutePath)
-    }
+// AE2's published POM also lists a legacy Forge GuideME; use the verified native artifact below.
+configurations.configureEach { exclude group: 'org.appliedenergistics', module: 'guideme' }
+configurations {
+    maybeCreate('localRuntime').canBeResolved = false
+    runtimeClasspath.extendsFrom(localRuntime)
 }
 
-repositories {
-    mavenLocal()
-    flatDir {
-        dir 'libs'
+neoForge {
+    version = libs.versions.neoForge.get()
+    parchment {
+        minecraftVersion = libs.versions.minecraft.get()
+        mappingsVersion = libs.versions.parchment.get()
     }
-    mavenCentral()
-    maven {
-        name 'FirstDarkDev'
-        url "https://maven.firstdarkdev.xyz/snapshots/"
+    mods {
+        "${project.mod_id}" { sourceSet(sourceSets.main) }
     }
-    maven {
-        name 'Quilt'
-        url 'https://maven.quiltmc.org/repository/release/'
-    }
-    maven {
-        name = 'ParchmentMC'
-        url = 'https://maven.parchmentmc.org'
-    }
-    maven {
-        url "https://maven.saps.dev/releases/"
-        content {
-            includeGroup "dev.latvian.mods"
-            includeGroup "dev.ftb.mods"
+    runs {
+        client { client(); gameDirectory = file('run/client') }
+        server { server(); gameDirectory = file(providers.gradleProperty('native_server_directory').orElse('run/server').get()); programArgument '--nogui' }
+        data {
+            data()
+            gameDirectory = file('run/data')
+            programArguments.addAll('--mod', project.mod_id, '--all',
+                    '--output', file('src/generated/resources').absolutePath,
+                    '--existing', file('src/main/resources').absolutePath)
         }
-    }
-    maven { // Registrate
-        url = "https://maven.tterrag.com/"
-        content {
-            // need to be specific here due to version overlaps
-            includeGroup("com.jozufozu.flywheel")
-            includeGroup("com.tterrag.registrate")
-            includeGroup("com.simibubi.create")
+        configureEach {
+            systemProperty 'mixin.debug.verify', 'true'
+            systemProperty 'mixin.debug.strict.unique', 'true'
+            systemProperty 'mixin.checks', 'true'
+            logLevel = org.slf4j.event.Level.INFO
         }
-    }
-    maven {
-        // Patchouli, JEI
-        name = "BlameJared"
-        url = "https://maven.blamejared.com/"
-    }
-    maven {
-        name = "ModMaven"
-        url = "https://modmaven.dev/"
-    }
-    maven {
-        name = "Modrinth"
-        url = "https://api.modrinth.com/maven"
-    }
-    maven {
-        url = "https://maven.theillusivec4.top/"
-    }
-    maven {
-        // Curse Forge File
-        url "https://cursemaven.com/"
-        content {
-            includeGroup "curse.maven"
-        }
-    }
-    maven {
-        url "https://maven.architectury.dev/"
-    }
-    maven { // ModernUI
-        name 'IzzelAliz Maven'
-        url 'https://maven.izzel.io/releases/'
-    }
-    maven { // Ad Astra
-        url "https://maven.teamresourceful.com/repository/maven-public/"
-    }
-    // Add KFF Maven repository
-    maven {
-        name = 'Kotlin for Forge'
-        url = 'https://thedarkcolour.github.io/KotlinForForge/'
     }
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:$project.minecraft_version"
-    forge "net.minecraftforge:forge:$project.minecraft_version-$project.forge_version"
-    // layered mappings - Mojmap names, parchment and QM docs and parameters
-    mappings loom.layered {
-        it.mappings("org.quiltmc:quilt-mappings:$project.minecraft_version+build.$project.quilt_mappings:intermediary-v2")
-        it.parchment("org.parchmentmc.data:parchment-$project.minecraft_version:$project.parchment_mappings@zip")
-        it.officialMojangMappings { nameSyntheticMembers = false }
-    }
+    implementation('com.gregtechceu.gtceu:gtceu-1.21.1:8.0.0')
+    implementation('com.hepdd.gtmthings:gtmthings:1.6.0')
+    implementation('org.gtlcore.gtlcore:gtlcore-1.21.1:1.2.3.2-fix3')
+    implementation('dev.ftb.mods:ftb-ultimine-neoforge:2101.1.1')
+    implementation('org.gtlcore.dependencies:travelanchors-neoforge:6.0.0-gtl.1')
+    implementation(forge.ae2)
+    implementation(forge.registrate)
+    implementation(forge.configuration)
+    implementation(forge.mui)
+    // Published NeoForge artifacts verified through Modrinth's loader and game-version metadata.
+    implementation('maven.modrinth:ldlib:oe3VmoEH')
+    implementation('maven.modrinth:ad-astra:9pnKHdCG')
+    implementation('maven.modrinth:re-avaritia:uY1x1LTC')
+    implementation(forge.resourcefullib)
+    implementation('maven.modrinth:resourceful-config:lSbyRD6v')
+    implementation('maven.modrinth:common-storage-lib:SCkdlli6')
+    implementation('maven.modrinth:extended-ae:bC302UUP')
+    implementation('maven.modrinth:applied-energistics-2-wireless-terminals:6feJ9h09')
+    // The implementation bundles this API for runtime; expose its published artifact to javac.
+    compileOnly('de.mari_023:ae2wtlib_api:19.2.0') { transitive = false }
+    implementation('maven.modrinth:glodium:pfbmdJ3b')
+    implementation('maven.modrinth:guideme:hFpGwC6q')
+    implementation('maven.modrinth:merequester:E46AplqZ')
+    compileOnly(forge.bundles.kjs)
+    compileOnly(forge.bundles.jei)
+    compileOnly('tamaized.ae2jeiintegration:ae2jeiintegration:1.2.0')
+    localRuntime('tamaized.ae2jeiintegration:ae2jeiintegration:1.2.0')
+    localRuntime(forge.bundles.jei)
+    compileOnly(forge.emi)
+    compileOnly(forge.iris)
+    compileOnly(forge.jade)
+    compileOnly(forge.curios)
+    compileOnly(forge.ftblibrary)
+    compileOnly(forge.ftbteams)
+    compileOnly(forge.ftbchunks)
+    runtimeOnly(forge.bundles.kjs)
+    runtimeOnly(forge.jade)
+    runtimeOnly(forge.curios)
+    implementation('maven.modrinth:sgjourney:mZTmQ1wW')
+    // Keep the published Kotlin library aggregator and its native KFF language/runtime components
+    // in the runtime export; the language loader is a separate library without a mod ID.
+    implementation(variantOf(forge.kotlinforforge) { classifier('all') })
+    jarJar(implementation('org.scilab.forge:jlatexmath:1.0.7'))
+    // Guide math rendering loads these published runtime font registrations reflectively.
+    jarJar(implementation('org.scilab.forge:jlatexmath-font-greek:1.0.7'))
+    jarJar(implementation('org.scilab.forge:jlatexmath-font-cyrillic:1.0.7'))
+    jarJar(implementation('com.github.ben-manes.caffeine:caffeine:3.1.8'))
+    // Plain libraries bundled in the production JAR also need to be visible in source-based runs.
+    additionalRuntimeClasspath 'org.scilab.forge:jlatexmath:1.0.7'
+    additionalRuntimeClasspath 'com.github.ben-manes.caffeine:caffeine:3.1.8'
 
-    modCompileOnly("mezz.jei:jei-$project.minecraft_version-forge-api:$project.jei_version") { transitive = false }
-    modCompileOnly("mezz.jei:jei-$project.minecraft_version-common-api:$project.jei_version") { transitive = false }
-    modCompileOnly("mezz.jei:jei-$project.minecraft_version-forge:$project.jei_version") { transitive = false }
-
-    modCompileOnly("curse.maven:emi-580555:6420945") { transitive = false }
-
-    modImplementation("com.gregtechceu.gtceu:gtceu-$project.minecraft_version:$project.gtceu_version") { transitive = false }
-   // modImplementation("dev:gtceu:1.20.1:$project.gtceu_version") { transitive false }
-    modImplementation("com.lowdragmc.ldlib:ldlib-forge-$project.minecraft_version:$project.ldlib_version") { transitive = false }
-    modImplementation("com.tterrag.registrate:Registrate:$project.registrate_version")
-    modImplementation("dev.latvian.mods:kubejs-forge:$project.kubejs_version") { transitive = false }
-    modImplementation("curse.maven:rhino-416294:6186971")
-
-    modImplementation("maven.modrinth:jade-1.20.1-forge-$project.jade_version")
-
-    // Mixin Extras
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:$project.mixinextras_version"))
-    implementation("io.github.llamalad7:mixinextras-forge:$project.mixinextras_version")
-
-    modImplementation("appeng:appliedenergistics2-forge:15.4.10") { transitive = false }
-
-    modImplementation("dev.architectury:architectury-forge:${project.architectury_version}")
-
-    modImplementation("dev.toma.configuration:configuration-forge-$project.minecraft_version:$project.configuration_version")
-
-    forgeRuntimeLibrary("com.teamresourceful:yabn:1.0.3")
-    forgeRuntimeLibrary("com.teamresourceful:bytecodecs:1.0.2")
-    modImplementation("com.teamresourceful.resourcefullib:resourcefullib-forge-${project.minecraft_version}:${project.resourcefullib_version}")
-    modImplementation("com.teamresourceful.resourcefulconfig:resourcefulconfig-forge-${project.minecraft_version}:${project.resourcefulconfig_version}")
-    modImplementation("earth.terrarium.botarium:botarium-forge-${project.minecraft_version}:${project.botarium_version}")
-    modImplementation("earth.terrarium.adastra:ad_astra-forge-${project.minecraft_version}:${ad_astra_version}") { transitive false }
-
-    modImplementation("dev:gtmthings-1.3.5.a")
-    modImplementation("dev:gtlcore-1.2.3.2-fix2")
-    modImplementation("curse.maven:guideme-1173950:7127447")
-
-    // Adds KFF as dependency and Kotlin libs (use the variant matching your mod loader)
-    include(modImplementation("thedarkcolour:kotlinforforge:4.11.0"))
-
-    modImplementation("curse.maven:glodium-957920:5006780")
-    modImplementation("dev:ExtendedAE-1.20-1.1.12-forge")
-
-    modImplementation("org.moddingx:LibX:1.20.1-5.0.1")
-    modImplementation("dev:TravelAnchors-1.20.1-5.0.1")
-
-    modCompileOnly("dev:Re-Avaritia-forged-1.20.1-1.3.8.3")
-
-    // ftb-chunk
-    modImplementation("curse.maven:ftb-chunks-314906:5378090"){ transitive = false }
-    modRuntimeOnly("curse.maven:ftb-library-404465:5567591"){ transitive = false }
-    modRuntimeOnly("curse.maven:ftb-teams-404468:5267190"){ transitive = false }
-
-    // ftbu
-    modImplementation("curse.maven:ftb-ultimine-386134:5363345"){ transitive = false }
-
-
-    modRuntimeOnly("mezz.jei:jei-$project.minecraft_version-forge:$project.jei_version") { transitive = false }
-
-    modRuntimeOnly("maven.modrinth:embeddium:0.3.30+mc1.20.1")
-    modCompileOnly("maven.modrinth:oculus:1.20.1-1.7.0") { transitive = false }
-
-    modRuntimeOnly("dev:rubidium-extra:0.5.4.3+mc1.20.1-build.121")
-
-    modRuntimeOnly("dev:jecharacters:1.20.1-forge-4.5.11-dev-shadow")
-
-    modImplementation("curse.maven:stargate-journey-689083:7173638"){ transitive = false }
-
-    forgeRuntimeLibrary(runtimeOnly("icyllis.modernui:ModernUI-Core:3.10.1")) // Modern UI core framework
-    forgeRuntimeLibrary(runtimeOnly("icyllis.modernui:ModernUI-Markdown:3.10.1")) { transitive = false }
-    // Modern UI core extensions
-    modRuntimeOnly("icyllis.modernui:ModernUI-Forge:1.20.1-3.10.1.4") { transitive = false }
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation(include("org.scilab.forge:jlatexmath:1.0.7"))
-    include(modImplementation("com.github.ben-manes.caffeine:caffeine:3.1.8"))
-}
-
-processResources {
-    // set up properties for filling into metadata
-    var properties = [
-            "mod_license"      : mod_license,
-            "mod_id"           : mod_id,
-            "version"          : version,
-            "mod_name"         : mod_name,
-            "mod_author"       : mod_author,
-            "forge_version"    : forge_version.split("\\.")[0], // only specify major version of forge
-            "minecraft_version": minecraft_version,
-            "gtceu_version"    : gtceu_version,
-            "ad_astra_version" : ad_astra_version,
-            "kubejs_version"   : kubejs_version,
-            "jei_version"      : jei_version,
-    ]
-    inputs.properties(properties)
-
-    filesMatching("META-INF/mods.toml") {
-        expand properties
-    }
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // ensure that the encoding is set to UTF-8, no matter what the system default is
-    // this fixes some edge cases with special characters not displaying correctly
-    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
-    // If Javadoc is generated, this must be specified in that task too.
-    options.encoding = "UTF-8"
-    options.release.set(21)
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.add('-Xmaxerrs')
+    options.compilerArgs.add('1000')
 }
 
-jar {
-    // add some additional metadata to the jar manifest
-    manifest {
-        attributes([
-                "Specification-Title"     : mod_id,
-                "Specification-Vendor"    : mod_author,
-                "Specification-Version"   : "1",
-                "Implementation-Title"    : project.name,
-                "Implementation-Version"  : version,
-                "Implementation-Vendor"   : mod_author,
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
-        ])
-    }
+processResources {
+    def properties = [mod_id: mod_id, mod_name: mod_name, mod_license: mod_license,
+                      mod_author: mod_author, mod_url: mod_url, version: project.version,
+                      minecraft_version: libs.versions.minecraft.get(),
+                      neo_version: libs.versions.neoForge.get(), loader_version: libs.versions.loader.get(),
+                      gtceu_version: '8.0.0', ae2_version: forge.versions.ae2.get()]
+    inputs.properties(properties)
+    filesMatching('META-INF/neoforge.mods.toml') { expand(properties) }
 }
 
-// configure the maven publication
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            artifactId = base.archivesName.get()
             from components.java
         }
     }
-
-    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
-    repositories {
-        // Add repositories to publish to here.
-        // Notice: This block does NOT have the same function as the block in the top level.
-        // The repositories here will be used for publishing your artifact, not for
-        // retrieving dependencies.
-    }
 }
 
-spotless {
-    encoding 'UTF-8'
-
-    java {
-        target 'src/main/java/**/*.java', 'src/test/java/**/*.java'
-
-        def orderFile = file("$rootDir/spotless/spotless.importorder")
-        def formatFile = file("$rootDir/spotless/spotless.eclipseformat.xml")
-
-        toggleOffOn()
-        importOrderFile(orderFile)
-        removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
-        eclipse('4.31').configFile(formatFile)
-        replaceRegex 'removeFinalNewline', /[\r\n]+\z/, ''
-    }
-
-    kotlin {
-        target 'src/main/java/**/*.kt', 'src/test/java/**/*.kt'
-        ktlint('1.3.1').editorConfigOverride([
-                'ktlint_standard_no-wildcard-imports': 'disabled',
-                'ktlint_standard_max-line-length': 'disabled',
-                'ij_kotlin_allow_trailing_comma': 'false',
-                'ij_kotlin_allow_trailing_comma_on_call_site': 'false'
-        ])
-        trimTrailingWhitespace()
-        replaceRegex 'removeFinalNewline', /[\r\n]+\z/, ''
-    }
-}
-kotlin {
-    jvmToolchain(21)
-    compilerOptions {
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
-}
+apply from: 'gradle/migration-regression.gradle'
+apply from: 'gradle/native-validation.gradle'
+apply from: 'gradle/native-machine-validation.gradle'
+apply from: 'gradle/native-stargate-validation.gradle'
+apply from: 'gradle/native-production-validation.gradle'

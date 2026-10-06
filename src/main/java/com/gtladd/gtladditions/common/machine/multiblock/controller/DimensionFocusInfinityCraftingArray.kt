@@ -1,21 +1,18 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 
-class DimensionFocusInfinityCraftingArray(holder: IMachineBlockEntity) :
+class DimensionFocusInfinityCraftingArray(holder: BlockEntityCreationInfo) :
     GTLAddWorkableElectricMultipleRecipesMachine(holder),
-    IModularMachineModule<MolecularAssemblerMultiblockMachine, DimensionFocusInfinityCraftingArray>,
-    IMachineLife {
+    IModularMachineModule<MolecularAssemblerMultiblockMachine, DimensionFocusInfinityCraftingArray> {
 
-    @field:Persisted
+    @field:SaveField
     private var hostPosition: BlockPos? = null
     private var host: MolecularAssemblerMultiblockMachine? = null
 
@@ -35,10 +32,10 @@ class DimensionFocusInfinityCraftingArray(holder: IMachineBlockEntity) :
     // ========================================
 
     override fun getHostScanPositions(): Array<out BlockPos> = arrayOf(
-        pos.offset(0, -2, 7),
-        pos.offset(0, -2, -7),
-        pos.offset(7, -2, 0),
-        pos.offset(-7, -2, 0)
+        blockPos.offset(0, -2, 7),
+        blockPos.offset(0, -2, -7),
+        blockPos.offset(7, -2, 0),
+        blockPos.offset(-7, -2, 0)
     )
 
     override fun onConnected(host: MolecularAssemblerMultiblockMachine) {
@@ -50,15 +47,17 @@ class DimensionFocusInfinityCraftingArray(holder: IMachineBlockEntity) :
         super.removeFromHost(host)
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) {
             removeFromHost(this.host)
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(this.host)
     }
 
@@ -67,25 +66,27 @@ class DimensionFocusInfinityCraftingArray(holder: IMachineBlockEntity) :
         removeFromHost(this.host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(this.host)
     }
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("DimensionFocusInfinityCraftingArrayStatus", syncManager, {
+            mutableListOf<Component>().also(::collectDimensionFocusInfinityCraftingArrayStatusText)
+        }, 130)
+    )
+
+    private fun collectDimensionFocusInfinityCraftingArrayStatusText(textList: MutableList<Component>) {
+        
         if (!this.isFormed) return
         textList.add(
             (if (isConnectedToHost) "tooltip.gtlcore.module_installed" else "tooltip.gtlcore.module_not_installed").toComponent
         )
     }
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(
-                DimensionFocusInfinityCraftingArray::class.java,
-                GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-            )
+
     }
 }

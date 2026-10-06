@@ -8,7 +8,7 @@ import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.VOIDFLUX_REACTION
 import dev.latvian.mods.kubejs.KubeJS
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLItems
 import org.gtlcore.gtlcore.common.data.GTLMaterials
 import org.gtlcore.gtlcore.common.data.machines.MultiBlockMachineA
@@ -19,7 +19,7 @@ import java.util.stream.IntStream
 import kotlin.math.pow
 
 object VoidfluxReaction {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         for (dimension in arrayOf("overworld", "nether", "end")) {
             for (tier in GTValues.UEV..<GTValues.MAX) {
                 val voltageName = GTValues.VN[tier].lowercase(Locale.getDefault())
@@ -73,7 +73,7 @@ object VoidfluxReaction {
             VOIDFLUX_REACTION.recipeBuilder(id(String.format("barnarda_air_%d", tier - 9)))
                 .notConsumable(GTLAddItems.BARNARDA_DATA.asStack(64))
                 .notConsumable(getItemStack("gtceu:" + voltageName + "_fluid_regulator", 8))
-                .outputFluids(GTLMaterials.BarnardaAir.getFluid(200000L * 4.0.pow(tier - 9).toInt()))
+                .outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(GTLMaterials.BarnardaAir, 200000L * 4.0.pow(tier - 9).toInt()))
                 .EUt(VA[tier].toLong()).duration(100 * (15 - tier))
                 .dimension(KubeJS.id("barnarda"))
                 .save(provider)
@@ -91,23 +91,23 @@ object VoidfluxReaction {
         when (s) {
             "overworld" -> {
                 if (i == 0) {
-                    builder.outputFluids(Air.getFluid(8000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(Air, 8000L * j))
                 } else {
-                    builder.outputFluids(LiquidAir.getFluid(20000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(LiquidAir, 20000L * j))
                 }
             }
             "nether" -> {
                 if (i == 0) {
-                    builder.outputFluids(NetherAir.getFluid(8000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(NetherAir, 8000L * j))
                 } else {
-                    builder.outputFluids(LiquidNetherAir.getFluid(20000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(LiquidNetherAir, 20000L * j))
                 }
             }
             "end" -> {
                 if (i == 0) {
-                    builder.outputFluids(EnderAir.getFluid(8000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(EnderAir, 8000L * j))
                 } else {
-                    builder.outputFluids(LiquidEnderAir.getFluid(20000L * j))
+                    builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(LiquidEnderAir, 20000L * j))
                 }
             }
         }

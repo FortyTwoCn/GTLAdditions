@@ -1,15 +1,9 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.bs
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.gui.fancy.TabsWidget
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.fancyconfigurator.CombinedDirectionalFancyConfigurator
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.CoilWorkableElectricMultiblockMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.IThreadModifierMachine
 import com.gtladd.gtladditions.api.machine.IWirelessElectricMultiblockMachine
 import com.gtladd.gtladditions.api.machine.feature.IThreadModifierPart
@@ -21,11 +15,6 @@ import com.gtladd.gtladditions.common.machine.multiblock.part.WirelessEnergyNetw
 import com.gtladd.gtladditions.utils.CommonUtils
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget
-import com.lowdragmc.lowdraglib.gui.widget.DraggableScrollableWidgetGroup
-import com.lowdragmc.lowdraglib.gui.widget.LabelWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
@@ -42,12 +31,11 @@ import java.math.BigInteger
 import java.math.RoundingMode
 import java.util.function.Consumer
 
-class BiosphereIIIController(holder: IMachineBlockEntity) :
-    CoilWorkableElectricMultiblockMachine(holder),
+class BiosphereIIIController(holder: BlockEntityCreationInfo) :
+    CoilWorkableElectricMultiblockMachine(holder, BSRecipeLogic()),
     IModularMachineHost<BiosphereIIIController>,
     IWirelessElectricMultiblockMachine,
-    IThreadModifierMachine,
-    IMachineLife {
+    IThreadModifierMachine {
     private val modulePos = ObjectOpenHashSet<IModularMachineModule<BiosphereIIIController, *>>(8)
     private var energySample = NO_ENERGY_SAMPLE
     private var currentSampleEnergy = BigInteger.ZERO
@@ -66,13 +54,14 @@ class BiosphereIIIController(holder: IMachineBlockEntity) :
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
+    override fun formStructure(substructureName: String) {
         clearRuntimeState()
-        super.onStructureFormed()
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         safeClearModules()
         energySource = if (
             parts.filterIsInstance<WirelessEnergyNetworkTerminalPartMachine>()
-                .any { it.definition == GTLAddMachines.Wireless_Energy_Network_INPUT_Terminal }
+                .any { it.definition == GTLAddMachines.Wireless_Energy_Network_INPUT_Terminal.get() }
         ) {
             EnergySource.WIRELESS
         } else {
@@ -81,13 +70,14 @@ class BiosphereIIIController(holder: IMachineBlockEntity) :
         scanAndConnectModules()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         safeClearModules()
         clearRuntimeState()
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         safeClearModules()
         clearRuntimeState()
     }
@@ -108,17 +98,17 @@ class BiosphereIIIController(holder: IMachineBlockEntity) :
     override fun getModuleSet(): MutableSet<IModularMachineModule<BiosphereIIIController, *>> = modulePos
 
     override fun getModuleScanPositions(): Array<BlockPos> =
-        BiosphereIIIPosHelper.calculateModulePositions(pos, frontFacing)
+        BiosphereIIIPosHelper.calculateModulePositions(blockPos, frontFacing)
 
     override fun getModulesForRendering(): List<ModuleRenderInfo> = listOf(
-        ModuleRenderInfo(BlockPos(-6, 7, 0), Direction.UP, Direction.NORTH, Direction.NORTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(6, 7, 0), Direction.UP, Direction.NORTH, Direction.NORTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(8, 9, 0), Direction.UP, Direction.NORTH, Direction.EAST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(-8, 9, 0), Direction.UP, Direction.NORTH, Direction.WEST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(8, 15, 0), Direction.UP, Direction.NORTH, Direction.WEST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(-8, 15, 0), Direction.UP, Direction.NORTH, Direction.EAST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(6, 17, 0), Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE),
-        ModuleRenderInfo(BlockPos(-6, 17, 0), Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE)
+        ModuleRenderInfo(BlockPos(-6, 7, 0), Direction.UP, Direction.NORTH, Direction.NORTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(6, 7, 0), Direction.UP, Direction.NORTH, Direction.NORTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(8, 9, 0), Direction.UP, Direction.NORTH, Direction.EAST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(-8, 9, 0), Direction.UP, Direction.NORTH, Direction.WEST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(8, 15, 0), Direction.UP, Direction.NORTH, Direction.WEST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(-8, 15, 0), Direction.UP, Direction.NORTH, Direction.EAST, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(6, 17, 0), Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get()),
+        ModuleRenderInfo(BlockPos(-6, 17, 0), Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.UP, MultiBlockMachine.BIOSPHERE_III_MODULE.get())
     )
 
     override fun isFormed(): Boolean = isFormed
@@ -237,46 +227,21 @@ class BiosphereIIIController(holder: IMachineBlockEntity) :
     // GUI
     // ========================================
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { isWorkingEnabled },
-                { _, pressed -> setWorkingEnabled(pressed) }
-            ).setTooltipsSupplier {
-                listOf(
-                    if (it) {
-                        "behaviour.soft_hammer.enabled".toComponent
-                    } else {
-                        "behaviour.soft_hammer.disabled".toComponent
-                    }
-                )
-            }
-        )
-    }
 
-    override fun attachSideTabs(sideTabs: TabsWidget) {
-        sideTabs.setMainTab(this)
-        CombinedDirectionalFancyConfigurator.of(self(), self())?.let(sideTabs::attachSubTab)
-    }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 190, 125)
-        group.addWidget(
-            DraggableScrollableWidgetGroup(4, 4, 182, 117).setBackground(screenTexture)
-                .addWidget(LabelWidget(4, 5, self().blockState.block.descriptionId))
-                .addWidget(
-                    ComponentPanelWidget(4, 17, ::addDisplayText)
-                        .textSupplier(if (level!!.isClientSide) null else Consumer(::addDisplayText))
-                        .setMaxWidthLimit(150)
-                )
-        )
-        group.setBackground(GuiTextures.BACKGROUND_INVERSE)
-        return group
-    }
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+
+
+
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("BiosphereIIIControllerStatus", syncManager, {
+            mutableListOf<Component>().also(::collectBiosphereIIIControllerStatusText)
+        }, 130)
+    )
+
+    private fun collectBiosphereIIIControllerStatusText(textList: MutableList<Component>) {
         val modulesActive = hasActiveModules()
         val averageEnergyConsumption = getAverageEnergyConsumption()
         MultiblockDisplayText.builder(textList, isFormed)
@@ -297,9 +262,9 @@ class BiosphereIIIController(holder: IMachineBlockEntity) :
     // Recipe logic
     // ========================================
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = BSRecipeLogic(this)
 
-    private class BSRecipeLogic(private val biosphere: BiosphereIIIController) : RecipeLogic(biosphere) {
+    private class BSRecipeLogic : RecipeLogic() {
+        private val biosphere: BiosphereIIIController get() = machine as BiosphereIIIController
         override fun serverTick() {
             biosphere.updateEnergySample()
             status = when {

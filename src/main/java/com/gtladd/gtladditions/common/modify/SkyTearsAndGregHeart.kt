@@ -1,166 +1,107 @@
 package com.gtladd.gtladditions.common.modify
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.GTValues.VA
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.data.chemical.ChemicalHelper
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.toolHeadDrill
 import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
-import com.gregtechceu.gtceu.common.data.GTItems.*
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder
-import com.gregtechceu.gtceu.utils.ItemStackHashStrategy
-import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.STAR_CORE_STRIPPER
-import it.unimi.dsi.fastutil.objects.ObjectArrayList
-import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.data.recipes.RecipeOutput
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
-import org.gtlcore.gtlcore.common.data.GTLItems.*
-import org.gtlcore.gtlcore.common.data.GTLMaterials.*
-import org.gtlcore.gtlcore.common.data.GTLRecipeTypes
+import net.minecraft.world.item.Items
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
 import org.gtlcore.gtlcore.config.ConfigHolder
-import org.gtlcore.gtlcore.utils.Registries.getItemStack
-import java.util.function.Consumer
 import kotlin.math.max
 import kotlin.math.min
 
 object SkyTearsAndGregHeart {
+    private val worldFragments = setOf("overworld", "nether", "end", "reactor", "moon", "mars", "venus",
+        "mercury", "ceres", "io", "ganymede", "pluto", "enceladus", "titan", "glacio", "barnarda")
+        .mapTo(mutableSetOf()) { ResourceLocation.fromNamespaceAndPath("gtlcore", "world_fragments_$it") }
+    private val targetDrillId = ResourceLocation.fromNamespaceAndPath("kubejs", "machine_casing_grinding_head")
+    private val miracleId = ResourceLocation.fromNamespaceAndPath("gtlcore", "miracle_crystal")
 
-    private val exceptDrills by lazy {
-        ObjectOpenCustomHashSet(
-            arrayOf(
-                ChemicalHelper.get(toolHeadDrill, GTMaterials.Steel),
-                ChemicalHelper.get(toolHeadDrill, GTMaterials.Titanium),
-                ChemicalHelper.get(toolHeadDrill, GTMaterials.NaquadahAlloy),
-                ChemicalHelper.get(toolHeadDrill, GTMaterials.Neutronium)
-            ),
-            ItemStackHashStrategy.comparingAllButCount()
-        )
-    }
+    fun init() {}
 
-    private val targetDrill: ItemStack by lazy { getItemStack("kubejs:machine_casing_grinding_head") }
+    private fun itemModifier(): ContentModifier = ContentModifier.multiplier(
+        min(4.0 / max(ConfigHolder.INSTANCE.durationMultiplier, 1.0), 4096.0))
 
-    private val worldFragments by lazy {
-        setOf(
-            WORLD_FRAGMENTS_OVERWORLD.asItem(),
-            WORLD_FRAGMENTS_NETHER.asItem(),
-            WORLD_FRAGMENTS_END.asItem(),
-            WORLD_FRAGMENTS_REACTOR.asItem(),
-            WORLD_FRAGMENTS_MOON.asItem(),
-            WORLD_FRAGMENTS_MARS.asItem(),
-            WORLD_FRAGMENTS_VENUS.asItem(),
-            WORLD_FRAGMENTS_MERCURY.asItem(),
-            WORLD_FRAGMENTS_CERES.asItem(),
-            WORLD_FRAGMENTS_IO.asItem(),
-            WORLD_FRAGMENTS_GANYMEDE.asItem(),
-            WORLD_FRAGMENTS_PLUTO.asItem(),
-            WORLD_FRAGMENTS_ENCELADUS.asItem(),
-            WORLD_FRAGMENTS_TITAN.asItem(),
-            WORLD_FRAGMENTS_GLACIO.asItem(),
-            WORLD_FRAGMENTS_BARNARDA.asItem()
-        )
-    }
+    private fun stacks(content: Content): Array<ItemStack> = LongIngredient.matchingIngredient(
+        ItemRecipeCapability.CAP.of(content.content())).items
 
-    private val itemModifier = ContentModifier.multiplier(min(4.0 / max(ConfigHolder.INSTANCE.durationMultiplier, 1.0), 4096.0))
-
-    fun init() {
-        GTLRecipeTypes.FRAGMENT_WORLD_COLLECTION.onRecipeBuild { recipeBuilder: GTRecipeBuilder, provider: Consumer<FinishedRecipe> ->
-            recipeBuilder.input[ItemRecipeCapability.CAP]?.let {
-                for (content in it) {
-                    val stacks = ItemRecipeCapability.CAP.of(content.content).items
-                    if (stacks.size > 0 && exceptDrills.contains(stacks[0])) {
-                        return@onRecipeBuild
-                    } else if (stacks[0].`is`(targetDrill.item)) {
-                        genTargetDrillRecipe(recipeBuilder, provider)
-                        return@onRecipeBuild
-                    }
-                }
+    /** Called by the constructor-time type hook; contents are immutable native records. */
+    fun modifyRecipe(recipeBuilder: GTRecipeBuilder, provider: RecipeOutput) {
+        val exceptDrills = arrayOf(GTMaterials.Steel, GTMaterials.Titanium, GTMaterials.NaquadahAlloy,
+            GTMaterials.Neutronium).map { ChemicalHelper.get(toolHeadDrill, it) }
+        for (content in recipeBuilder.input[ItemRecipeCapability.CAP].orEmpty()) {
+            val stack = stacks(content).firstOrNull() ?: continue
+            if (exceptDrills.any { ItemStack.isSameItemSameComponents(it, stack) }) return
+            if (BuiltInRegistries.ITEM.getKey(stack.item) == targetDrillId) {
+                genTargetDrillRecipe(recipeBuilder, provider)
+                return
             }
-
-            val newBuilder = STAR_CORE_STRIPPER.copyFrom(recipeBuilder).EUt(VA[GTValues.UHV].toLong())
-
-            for (entry in newBuilder.output) {
-                val cap = entry.key
-                val contentList = entry.value
-                val copyList = ObjectArrayList<Content>(contentList.size)
-
+        }
+        val derived = STAR_CORE_STRIPPER.copyFrom(recipeBuilder).EUt(GTValues.VA[GTValues.UHV].toLong())
+        val modifier = itemModifier()
+        for ((cap, contents) in derived.output) {
+            val copies = contents.map { content ->
                 if (cap == ItemRecipeCapability.CAP) {
-                    for (content in contentList) {
-                        val stacks = ItemRecipeCapability.CAP.of(content.content).items
-                        if (stacks.size > 0 && MIRACLE_CRYSTAL.asItem() != stacks[0].item) {
-                            if (content.chance >= content.maxChance && !worldFragments.contains(stacks[0].item)) {
-                                copyList.add(content.copy(cap, itemModifier))
-                            } else {
-                                val temp = content.copy(cap, null)
-                                temp.chance = min(temp.maxChance, temp.chance * 100)
-                                copyList.add(temp)
-                            }
-                        } else {
-                            copyList.add(content)
-                        }
+                    val item = stacks(content).firstOrNull()?.item
+                    val id = item?.let(BuiltInRegistries.ITEM::getKey)
+                    when {
+                        id == null || id == miracleId -> content
+                        content.chance() >= content.maxChance() && id !in worldFragments -> content.copy(cap, modifier)
+                        else -> Content(cap.copyContent(content.content()),
+                            min(content.maxChance().toLong(), content.chance().toLong() * 100).toInt(), content.maxChance())
                     }
-                } else {
-                    for (content in contentList) {
-                        if (content.chance >= content.maxChance) {
-                            copyList.add(content)
-                        } else {
-                            val temp = content.copy(cap, null)
-                            temp.chance = temp.maxChance
-                            copyList.add(temp)
-                        }
-                    }
-                }
-
-                contentList.clear()
-                contentList.addAll(copyList)
+                } else if (content.chance() >= content.maxChance()) content
+                else Content(cap.copyContent(content.content()), content.maxChance(), content.maxChance())
             }
-            newBuilder.save(provider)
+            contents.clear()
+            contents.addAll(copies)
         }
+        derived.save(provider)
     }
 
-    fun genTargetDrillRecipe(recipeBuilder: GTRecipeBuilder, provider: Consumer<FinishedRecipe>) {
-        val newBuilder = STAR_CORE_STRIPPER.copyFrom(recipeBuilder).EUt(VA[GTValues.UHV].toLong())
-        newBuilder.input[ItemRecipeCapability.CAP]!!.removeIf {
-            ItemRecipeCapability.CAP.of(it.content).items[0].`is`(
-                targetDrill.item
-            )
-        }
-        newBuilder.chancedInput(targetDrill, 1, 0)
-
-        newBuilder.output[ItemRecipeCapability.CAP]?.let { it ->
-            val copyList = ObjectArrayList<Content>(it.size)
-            for (content in it) {
-                val temp = content.copy(ItemRecipeCapability.CAP, itemModifier)
-                temp.chance = min(temp.maxChance, temp.chance * 200)
-                copyList.add(temp)
+    fun genTargetDrillRecipe(recipeBuilder: GTRecipeBuilder, provider: RecipeOutput) {
+        val derived = STAR_CORE_STRIPPER.copyFrom(recipeBuilder).EUt(GTValues.VA[GTValues.UHV].toLong())
+        val targetDrill = requiredItem(targetDrillId)
+        derived.input[ItemRecipeCapability.CAP]?.removeIf { content -> stacks(content).firstOrNull()?.item === targetDrill }
+        derived.chancedInput(ItemStack(targetDrill), 1)
+        derived.output[ItemRecipeCapability.CAP]?.let { contents ->
+            val modifier = itemModifier()
+            val copies = contents.map { content ->
+                val copy = content.copy(ItemRecipeCapability.CAP, modifier)
+                Content(copy.content(), min(copy.maxChance().toLong(), copy.chance().toLong() * 200).toInt(), copy.maxChance())
             }
-            it.clear()
-            it.addAll(copyList)
+            contents.clear()
+            contents.addAll(copies)
         }
-
-        newBuilder.save(provider)
+        derived.save(provider)
     }
 
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    private fun requiredItem(id: ResourceLocation): Item = BuiltInRegistries.ITEM.getOptional(id)
+        .orElseThrow { IllegalStateException("Skyblock recipe requires registered item $id") }
+
+    fun init(provider: RecipeOutput) {
         if (!ConfigHolder.INSTANCE.enableSkyBlokeMode) return
-        STAR_CORE_STRIPPER.recipeBuilder(id("for_stargate"))
-            .notConsumable(WORLD_FRAGMENTS_OVERWORLD)
-            .chancedOutput(WORLD_FRAGMENTS_OVERWORLD.asStack(), 5000, 0)
-            .chancedOutput(TREASURES_CRYSTAL.asStack(), 500, 0)
-            .outputItems(getItemStack("minecraft:grass_block", 8))
-            .outputItems(getItemStack("minecraft:moss_block", 8))
-            .outputItems(getItemStack("minecraft:snow_block", 8))
-            .outputItems(getItemStack("minecraft:cocoa_beans", 16))
-            .outputItems(getItemStack("minecraft:sweet_berries", 16))
-            .outputItems(getItemStack("minecraft:apple", 16))
-            .outputItems(getItemStack("minecraft:scute", 4))
-            .outputItems(getItemStack("minecraft:ochre_froglight", 2))
-            .outputItems(getItemStack("minecraft:verdant_froglight", 2))
-            .outputItems(getItemStack("minecraft:pearlescent_froglight", 2))
+        val fragment = requiredItem(ResourceLocation.fromNamespaceAndPath("gtlcore", "world_fragments_overworld"))
+        val treasure = requiredItem(ResourceLocation.fromNamespaceAndPath("gtlcore", "treasures_crystal"))
+        STAR_CORE_STRIPPER.recipeBuilder(ResourceLocation.fromNamespaceAndPath("gtladditions", "for_stargate"))
+            .notConsumable(fragment)
+            .chancedOutput(ItemStack(fragment), 5000)
+            .chancedOutput(ItemStack(treasure), 500)
+            .outputItems(ItemStack(Items.GRASS_BLOCK, 8), ItemStack(Items.MOSS_BLOCK, 8), ItemStack(Items.SNOW_BLOCK, 8),
+                ItemStack(Items.COCOA_BEANS, 16), ItemStack(Items.SWEET_BERRIES, 16), ItemStack(Items.APPLE, 16),
+                ItemStack(Items.TURTLE_SCUTE, 4), ItemStack(Items.OCHRE_FROGLIGHT, 2), ItemStack(Items.VERDANT_FROGLIGHT, 2),
+                ItemStack(Items.PEARLESCENT_FROGLIGHT, 2))
             .outputFluids(GTMaterials.Lava.getFluid(1000))
-            .circuitMeta(30)
-            .EUt(VA[GTValues.UHV].toLong()).duration(200).save(provider)
+            .circuitMeta(30).EUt(GTValues.VA[GTValues.UHV].toLong()).duration(200).save(provider)
     }
 }

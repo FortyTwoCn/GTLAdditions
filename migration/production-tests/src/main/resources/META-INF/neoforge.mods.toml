@@ -1,0 +1,19 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="LGPL-3.0"
+[[mods]]
+modId="gtl_native_probe"
+version="1"
+displayName="GTL Complete Production Validation"
+[[dependencies.gtl_native_probe]]
+modId="gtladditions"
+type="required"
+versionRange="[3.2.8Custom-fix2]"
+ordering="AFTER"
+side="BOTH"
+[[dependencies.gtl_native_probe]]
+modId="gtlcore"
+type="required"
+versionRange="[1.2.3.2-fix3]"
+ordering="AFTER"
+side="BOTH"

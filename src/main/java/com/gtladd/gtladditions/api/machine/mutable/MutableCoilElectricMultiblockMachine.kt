@@ -1,27 +1,26 @@
 package com.gtladd.gtladditions.api.machine.mutable
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.CoilWorkableElectricMultiblockMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.IWirelessThreadModifierParallelMachine
 import com.gtladd.gtladditions.api.machine.feature.IThreadModifierPart
 import com.gtladd.gtladditions.api.machine.logic.MutableRecipesLogic
 import kotlin.math.min
 import kotlin.math.pow
 
-open class MutableCoilElectricMultiblockMachine(holder: IMachineBlockEntity) :
-    CoilWorkableElectricMultiblockMachine(holder),
+open class MutableCoilElectricMultiblockMachine(holder: BlockEntityCreationInfo, logic: RecipeLogic = MutableRecipesLogic<MutableCoilElectricMultiblockMachine>()) :
+    CoilWorkableElectricMultiblockMachine(holder, logic),
     IWirelessThreadModifierParallelMachine {
 
     private var threadPartMachine: IThreadModifierPart? = null
 
-    override fun createRecipeLogic(vararg args: Any?): RecipeLogic = MutableRecipesLogic(this)
-
     @Suppress("UNCHECKED_CAST")
     override fun getRecipeLogic(): MutableRecipesLogic<MutableCoilElectricMultiblockMachine> = super.getRecipeLogic() as MutableRecipesLogic<MutableCoilElectricMultiblockMachine>
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         threadPartMachine = null
         getRecipeLogic().setUseMultipleRecipes(false)
     }

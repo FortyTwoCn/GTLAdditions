@@ -1,5 +1,7 @@
 package com.gtladd.gtladditions.data.recipes
 
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
+
 import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.GTValues.VEX
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.*
@@ -30,7 +32,7 @@ import com.gtladd.gtladditions.common.material.GTLAddMaterial.PHONON_MEDIUM
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.PROTO_HALKONITE
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.STAR_GATE_CRYSTAL_SLURRY
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.NIGHTMARE_CRAFTING
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.povstalec.sgjourney.common.init.ItemInit
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.api.machine.multiblock.GTLCleanroomType
@@ -43,11 +45,11 @@ import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object StarGate {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         gregTech(provider)
     }
 
-    private fun gregTech(provider: Consumer<FinishedRecipe?>) {
+    private fun gregTech(provider: RecipeOutput) {
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("ultimate_tea"))
             .inputItems(getItemStack("kubejs:heartofthesmogus", 64))
             .inputItems(getItemStack("kubejs:temporal_matter", 671088640))
@@ -58,17 +60,17 @@ object StarGate {
             .inputItems(getItemStack("kubejs:plasma_containment_cell", 1073741824))
             .inputItems(getItemStack("kubejs:empty_laser_cooling_container", 1073741824))
             .inputItems(getItemStack("avaritia:infinity_bucket", 1024))
-            .inputFluids(Miracle.getFluid(1000000000000L))
-            .inputFluids(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(1000000000000L))
-            .inputFluids(PHONON_MEDIUM.getFluid(384000000000L))
-            .inputFluids(PrimordialMatter.getFluid(1000000000000L))
+            .inputFluids(LongFluidIngredient.create(Miracle.getFluid(1), 1000000000000L))
+            .inputFluids(LongFluidIngredient.create(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(1), 1000000000000L))
+            .inputFluids(LongFluidIngredient.create(PHONON_MEDIUM.getFluid(1), 384000000000L))
+            .inputFluids(LongFluidIngredient.create(PrimordialMatter.getFluid(1), 1000000000000L))
             .outputItems(ULTIMATE_TEA)
             .EUt(VEX[26])
             .duration(2000000)
             .stationResearch { b: StationRecipeBuilder? ->
-                b!!.researchStack(getItemStack("expatternprovider:fishbig"))
+                b!!.researchStack(getItemStack("extendedae:fishbig"))
                     .dataStack(GTItems.TOOL_DATA_MODULE.asStack())
-                    .EUt(GTValues.VA[GTValues.MAX])
+                    .EUt(GTValues.VA[GTValues.MAX].toLong())
                     .CWUt(262144)
             }
             .save(provider)
@@ -95,7 +97,7 @@ object StarGate {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("avaritia:infinity_bucket"))
                     .dataStack(GTItems.TOOL_DATA_MODULE.asStack())
-                    .EUt(GTValues.VA[GTValues.MAX])
+                    .EUt(GTValues.VA[GTValues.MAX].toLong())
                     .CWUt(512000)
             }
             .save(provider)
@@ -117,17 +119,17 @@ object StarGate {
             .inputItems(rodLong, Magmatter, 2000000)
             .inputItems(rodLong, BlackDwarfMatter, 2000000)
             .inputItems(rodLong, TranscendentMetal, 2000000)
-            .inputFluids(Hypogen.getFluid(10240000000))
+            .inputFluids(LongFluidIngredient.create(Hypogen.getFluid(1), 10240000000L))
             .inputFluids(PHONON_MEDIUM.getFluid(256000000))
             .inputFluids(Cosmic.getFluid(1474560000))
-            .inputFluids(ExcitedDtsc.getFluid(5120000000))
+            .inputFluids(LongFluidIngredient.create(ExcitedDtsc.getFluid(1), 5120000000L))
             .outputItems(STARGATE_FRAME_PART)
             .EUt(VEX[25])
             .duration(2500000)
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:eternity_frame"))
                     .dataStack(GTItems.TOOL_DATA_MODULE.asStack())
-                    .EUt(GTValues.VA[GTValues.MAX])
+                    .EUt(GTValues.VA[GTValues.MAX].toLong())
                     .CWUt(262144)
             }
             .save(provider)
@@ -158,7 +160,7 @@ object StarGate {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(getItemStack("gtceu:magnetohydrodynamicallyconstrainedstarmatter_plate"))
                     .dataStack(GTItems.TOOL_DATA_MODULE.asStack())
-                    .EUt(GTValues.VA[GTValues.MAX])
+                    .EUt(GTValues.VA[GTValues.MAX].toLong())
                     .CWUt(262144)
             }
             .save(provider)
@@ -180,29 +182,29 @@ object StarGate {
             .inputItems(ELECTRIC_PISTON_MAX, 64000000)
             .inputItems(FIELD_GENERATOR_MAX, 16000000)
             .inputItems(CustomTags.MAX_CIRCUITS, 32000000)
-            .inputFluids(PROTO_HALKONITE.getFluid(10240000000))
-            .inputFluids(PHONON_MEDIUM.getFluid(2560000000))
-            .inputFluids(Magmatter.getFluid(117964800000))
-            .inputFluids(ExcitedDtec.getFluid(512000000000))
+            .inputFluids(LongFluidIngredient.create(PROTO_HALKONITE.getFluid(1), 10240000000L))
+            .inputFluids(LongFluidIngredient.create(PHONON_MEDIUM.getFluid(1), 2560000000L))
+            .inputFluids(LongFluidIngredient.create(Magmatter.getFluid(1), 117964800000L))
+            .inputFluids(LongFluidIngredient.create(ExcitedDtec.getFluid(1), 512000000000L))
             .outputItems(getItemStack("sgjourney:universe_stargate_chevron"))
             .EUt(GTValues.V[GTValues.MAX])
             .duration(5000)
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(STARGATE_SHIELDING_FOIL.asStack())
                     .dataStack(GTItems.TOOL_DATA_MODULE.asStack())
-                    .EUt(GTValues.VA[GTValues.MAX])
+                    .EUt(GTValues.VA[GTValues.MAX].toLong())
                     .CWUt(262144)
             }
             .save(provider)
 
         SPS_CRAFTING_RECIPES.recipeBuilder(id("heartofthesmogus"))
-            .inputItems(getItemStack("expatternprovider:fishbig", 64))
+            .inputItems(getItemStack("extendedae:fishbig", 64))
             .inputItems(MIRACLE_CRYSTAL, 10000000)
             .inputItems(getItemStack("avaritia:ultimate_stew", 64))
             .outputItems(getItemStack("kubejs:heartofthesmogus"))
-            .inputFluids(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(230400000000))
-            .inputFluids(Miracle.getFluid(460400000000))
-            .inputFluids(DragonBlood.getFluid(576000000000))
+            .inputFluids(LongFluidIngredient.create(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(1), 230400000000L))
+            .inputFluids(LongFluidIngredient.create(Miracle.getFluid(1), 460400000000L))
+            .inputFluids(LongFluidIngredient.create(DragonBlood.getFluid(1), 576000000000L))
             .EUt(VEX[24])
             .duration(288000)
             .save(provider)
@@ -228,17 +230,17 @@ object StarGate {
             .inputItems(getItemStack("kubejs:chaotic_energy_core", 1000000))
             .inputItems(nanoswarm, Eternity, 16777216)
             .inputItems(nanoswarm, Cosmic, 16777216)
-            .inputItems(getItemStack("expatternprovider:fishbig", 4096))
+            .inputItems(getItemStack("extendedae:fishbig", 4096))
             .inputItems(SUPER_GLUE, 4194304)
             .inputItems(SUPER_DENSE_MAGMATTER_PLATE, 4096000)
             .inputItems(wireGtHex, Crystalmatrix, 2000000000)
             .inputItems(wireGtHex, Infinity, 1000000000)
             .inputItems(wireGtHex, SpaceTime, 1000000000)
             .inputItems(wireGtHex, Eternity, 1000000000)
-            .inputFluids(GradePurifiedWater16.getFluid(14400000000000L))
-            .inputFluids(CosmicSuperconductor.getFluid(5760000000000L))
-            .inputFluids(STAR_GATE_CRYSTAL_SLURRY.getFluid(128000000000))
-            .inputFluids(TranscendentMetal.getFluid(10000000000000L))
+            .inputFluids(LongFluidIngredient.create(GradePurifiedWater16.getFluid(1), 14400000000000L))
+            .inputFluids(LongFluidIngredient.create(CosmicSuperconductor.getFluid(1), 5760000000000L))
+            .inputFluids(LongFluidIngredient.create(STAR_GATE_CRYSTAL_SLURRY.getFluid(1), 128000000000L))
+            .inputFluids(LongFluidIngredient.create(TranscendentMetal.getFluid(1), 10000000000000L))
             .outputItems(ItemInit.CRYSTAL_BASE.get())
             .addData("SEPMTier", 5)
             .EUt(VEX[22])

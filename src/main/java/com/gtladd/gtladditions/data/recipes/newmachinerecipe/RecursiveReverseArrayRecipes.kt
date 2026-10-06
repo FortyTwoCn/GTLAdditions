@@ -7,12 +7,12 @@ import com.gtladd.gtladditions.GTLAdditions.Companion.id
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.SPACETIME_STASIS
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.SUPRATEMPORAL_BOOSTING
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.TIME_SPACE_DISTORTION
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLMaterials.SpaceTime
 import java.util.function.Consumer
 
 object RecursiveReverseArrayRecipes {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         SPACETIME_STASIS.recipeBuilder(id("spacetime_stasis"))
             .inputFluids(SpaceTime.getFluid(70000))
             .EUt(VA[OpV].toLong())

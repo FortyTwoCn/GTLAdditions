@@ -1,7 +1,7 @@
 package com.gtladd.gtladditions.common.machine.multiblock.structure
 
-import com.gregtechceu.gtceu.api.pattern.FactoryBlockPattern
-import com.gregtechceu.gtceu.api.pattern.util.RelativeDirection
+import com.gregtechceu.gtceu.api.multiblock.pattern.MultiblockPatternBuilder
+import com.gregtechceu.gtceu.api.multiblock.util.RelativeDirection
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap
 import java.io.BufferedInputStream
 import java.io.DataInputStream
@@ -22,17 +22,17 @@ object StructureResourceLoader {
         resourcePath: String,
         expectedId: String,
         vararg directions: RelativeDirection
-    ): FactoryBlockPattern = loadFactoryPattern(resourcePath, expectedId, emptyList(), *directions)
+    ): MultiblockPatternBuilder = loadFactoryPattern(resourcePath, expectedId, emptyList(), *directions)
 
     fun loadFactoryPattern(
         resourcePath: String,
         expectedId: String,
         repeatableAisles: List<RepeatableAisle>,
         vararg directions: RelativeDirection
-    ): FactoryBlockPattern {
+    ): MultiblockPatternBuilder {
         val pattern = when (directions.size) {
-            0 -> FactoryBlockPattern.start()
-            3 -> FactoryBlockPattern.start(directions[0], directions[1], directions[2])
+            0 -> MultiblockPatternBuilder.start()
+            3 -> MultiblockPatternBuilder.start(directions[2], directions[1], directions[0])
             else -> error(resourcePath, expectedId, "expected 0 or 3 relative directions, got ${directions.size}")
         }
 
@@ -40,9 +40,9 @@ object StructureResourceLoader {
         loadAisles(resourcePath, expectedId).forEachIndexed { aisleIndex, aisle ->
             val repeatable = repeatableByIndex[aisleIndex]
             if (repeatable == null) {
-                pattern.aisle(*aisle)
+                pattern.slice(*aisle)
             } else {
-                pattern.aisleRepeatable(repeatable.min, repeatable.max, *aisle)
+                pattern.sliceRepeatable(repeatable.min, repeatable.max, *aisle)
             }
         }
         return pattern

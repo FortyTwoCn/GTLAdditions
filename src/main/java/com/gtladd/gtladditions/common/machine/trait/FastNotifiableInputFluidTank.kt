@@ -1,259 +1,102 @@
-﻿package com.gtladd.gtladditions.common.machine.trait
+package com.gtladd.gtladditions.common.machine.trait
 
-import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
-import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.machine.trait.ICapabilityTrait
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableRecipeHandlerTrait
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableRecipeHandlerTrait
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
-import com.gregtechceu.gtceu.utils.FluidStackHashStrategy
-import com.gtladd.gtladditions.utils.ComponentExtensions.literal
-import com.gtladd.gtladditions.utils.TransferHelper
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.side.fluid.IFluidTransfer
-import com.lowdragmc.lowdraglib.syncdata.IContentChangeAware
-import com.lowdragmc.lowdraglib.syncdata.ITagSerializable
-import it.unimi.dsi.fastutil.objects.ObjectLinkedOpenCustomHashSet
-import net.minecraft.ChatFormatting
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import it.unimi.dsi.fastutil.objects.Object2LongLinkedOpenCustomHashMap
+import it.unimi.dsi.fastutil.objects.Object2LongMap
 import net.minecraft.core.Direction
+import net.minecraft.core.HolderLookup
 import net.minecraft.nbt.CompoundTag
-import net.minecraft.nbt.Tag
 import net.minecraft.network.chat.Component
-import net.minecraft.network.chat.Style
-import org.gtlcore.gtlcore.integration.ae2.AEUtils
+import org.gtlcore.gtlcore.api.machine.trait.MEStock.IOptimizedMEList
 import org.gtlcore.gtlcore.utils.NumberUtils
+import com.gtladd.gtladditions.utils.TransferHelper
 import kotlin.math.max
 import kotlin.math.min
+import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidParallelLogic
+import net.neoforged.neoforge.fluids.FluidStack
+import net.neoforged.neoforge.fluids.capability.IFluidHandler
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient
+import org.gtlcore.gtlcore.api.machine.trait.ILongFluidStorage
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
 
-class FastNotifiableInputFluidTank(machine: MetaMachine) :
-    NotifiableRecipeHandlerTrait<FluidIngredient>(machine),
-    ICapabilityTrait,
-    IFluidTransfer,
-    ITagSerializable<CompoundTag>,
-    IContentChangeAware {
-
-    private val fluidInventory: ObjectLinkedOpenCustomHashSet<FluidStack> =
-        ObjectLinkedOpenCustomHashSet(FluidStackHashStrategy.comparingAllButAmount())
-
-    val realSize: Int
-        get() = fluidInventory.size
-
-    fun isEmpty(): Boolean = fluidInventory.isEmpty()
-
-    fun getFluidStorage() = fluidInventory
-
-    fun addDisplayText(textList: MutableList<Component?>) {
-        for (fluidStack in fluidInventory) {
-            textList.add(
-                fluidStack.displayName.copy().setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD))
-                    .append(
-                        (
-                            if (fluidStack.amount < 1000L) {
-                                fluidStack.amount
-                                    .toString() + "mB"
-                            } else {
-                                NumberUtils.formatLong(fluidStack.amount / 1000L) + "B"
-                            }
-                            ).literal
-                            .setStyle(Style.EMPTY.withColor(ChatFormatting.AQUA))
-                    )
-            )
-        }
+/** Native stacks expose an int view; the map owns component-sensitive, exact long quantities. */
+class FastNotifiableInputFluidTank : NotifiableRecipeHandlerTrait<SizedFluidIngredient>(),
+    ICapabilityTrait, IFluidHandler, IOptimizedMEList, ILongFluidStorage {
+    @field:SaveField
+    @field:SyncToClient
+    private val savedInventory: MutableMap<FluidStack, Long> =
+        Object2LongLinkedOpenCustomHashMap<FluidStack>(LongFluidParallelLogic.fluidIdentity())
+    private val inventory: Object2LongLinkedOpenCustomHashMap<FluidStack>
+        get() = savedInventory as Object2LongLinkedOpenCustomHashMap<FluidStack>
+    val realSize: Int get() = inventory.size
+    fun isEmpty(): Boolean = inventory.isEmpty()
+    fun getFluidStorage(): Object2LongLinkedOpenCustomHashMap<FluidStack> = inventory
+    override fun getMEFluidMap(): Object2LongMap<FluidStack> = inventory
+    override fun `gtlcore$getStoredAmount`(tank: Int): Long = inventory.object2LongEntrySet().elementAtOrNull(tank)?.longValue ?: 0
+    fun addDisplayText(textList: MutableList<Component>) {
+        inventory.object2LongEntrySet().forEach { textList.add(it.key.hoverName.copy().append(" " + NumberUtils.formatLong(it.longValue) + " mB")) }
     }
-
     fun importFromNearby(vararg facings: Direction) {
         val level = machine.level ?: return
-        val pos = machine.pos
-
-        for (facing in facings) {
-            TransferHelper.importToTarget(
-                this,
-                machine.getFluidCapFilter(facing),
-                level,
-                pos.relative(facing),
-                facing.opposite
-            )
-        }
+        facings.forEach { TransferHelper.importToTarget(this, machine.getFluidCapFilter(it, IO.IN), level, machine.blockPos.relative(it), it.opposite) }
     }
-
     fun exportToNearby(vararg facings: Direction) {
-        if (isEmpty()) return
-
         val level = machine.level ?: return
-        val pos = machine.pos
-
-        for (facing in facings) {
-            TransferHelper.exportToTarget(
-                this,
-                machine.getFluidCapFilter(facing),
-                level,
-                pos.relative(facing),
-                facing.opposite
-            )
-        }
+        facings.forEach { TransferHelper.exportToTarget(this, machine.getFluidCapFilter(it, IO.OUT), level, machine.blockPos.relative(it), it.opposite) }
     }
-
     override fun getHandlerIO(): IO = IO.IN
-
-    override fun onContentsChanged() {
-        notifyListeners()
-    }
-
-    override fun handleRecipeInner(
-        io: IO,
-        recipe: GTRecipe,
-        left: MutableList<FluidIngredient>,
-        slotName: String?,
-        simulate: Boolean
-    ): List<FluidIngredient>? {
-        if (io != IO.IN) return left.ifEmpty { null }
-
+    override fun getCapabilityIO(): IO = IO.IN
+    override fun getCapability(): RecipeCapability<SizedFluidIngredient> = FluidRecipeCapability.CAP
+    fun onContentsChanged() { machine.setChanged(); syncDataHolder.markClientSyncFieldDirty("savedInventory"); notifyListeners() }
+    override fun handleRecipeInner(io: IO, recipe: GTRecipe?, left: MutableList<SizedFluidIngredient>, simulate: Boolean): List<SizedFluidIngredient> {
+        if (io != IO.IN) return left
+        val available = Object2LongLinkedOpenCustomHashMap<FluidStack>(LongFluidParallelLogic.fluidIdentity()).apply { putAll(inventory) }
         var changed = false
         val iter = left.listIterator()
-        outer@ while (iter.hasNext()) {
-            val fluidIngredient = iter.next()
-            if (fluidIngredient.isEmpty) {
-                iter.remove()
-                continue
+        while (iter.hasNext()) {
+            val ingredient = iter.next()
+            var remaining = LongFluidIngredient.amount(ingredient)
+            if (remaining <= 0) { iter.remove(); continue }
+            val matching = LongFluidIngredient.matchingIngredient(ingredient)
+            val entries = available.object2LongEntrySet().iterator()
+            while (entries.hasNext() && remaining > 0) {
+                val entry = entries.next()
+                if (!matching.test(entry.key)) continue
+                val used = min(entry.longValue, remaining)
+                if (used <= 0) continue
+                remaining -= used
+                val stored = entry.longValue - used
+                if (stored == 0L) entries.remove() else entry.setValue(stored)
+                changed = true
             }
-
-            val fluids = fluidIngredient.getStacks()
-            if (fluids.isEmpty()) {
-                iter.remove()
-                continue
-            }
-
-            var leftAmount = fluidIngredient.amount
-
-            for (fluidStack in fluids) {
-                val innerStack = fluidInventory.get(fluidStack) ?: continue
-
-                val drain = min(leftAmount, innerStack.amount)
-                leftAmount -= drain
-                if (!simulate) {
-                    if (innerStack.amount == drain) {
-                        fluidInventory.remove(innerStack)
-                    } else {
-                        innerStack.amount -= drain
-                    }
-                    changed = true
-                }
-
-                if (leftAmount <= 0L) {
-                    iter.remove()
-                    continue@outer
-                }
-            }
-
-            fluidIngredient.amount = leftAmount
+            if (remaining == 0L) iter.remove() else iter.set(LongFluidIngredient.create(matching, remaining))
         }
-
-        if (changed) onContentsChanged()
-
-        return left.ifEmpty { null }
+        if (!simulate && changed) { inventory.clear(); inventory.putAll(available); onContentsChanged() }
+        return left
     }
-
-    override fun getContents(): List<Any> = fluidInventory.toList()
-
-    override fun getTotalContentAmount(): Double = fluidInventory.sumOf { it.amount }.toDouble()
-
-    override fun getCapability(): RecipeCapability<FluidIngredient> = FluidRecipeCapability.CAP
-
-    override fun getCapabilityIO(): IO = IO.IN
-
-    override fun getTanks(): Int = max(fluidInventory.size, 1)
-
-    override fun getFluidInTank(tank: Int): FluidStack =
-        fluidInventory.elementAtOrNull(tank) ?: FluidStack.empty()
-
-    @Suppress("UnstableApiUsage")
-    override fun setFluidInTank(tank: Int, fluidStack: FluidStack) {
-        fluidInventory.addOrGet(fluidStack).amount = fluidStack.amount
-    }
-
-    override fun getTankCapacity(tank: Int): Long = Long.MAX_VALUE
-
+    override fun getContents(): List<Any> = inventory.object2LongEntrySet().map { it.key.copyWithAmount(min(Int.MAX_VALUE.toLong(), it.longValue).toInt()) }
+    override fun getTotalContentAmount(): Double = inventory.values.sumOf { it.toDouble() }
+    override fun getTanks(): Int = max(realSize, 1)
+    override fun getFluidInTank(tank: Int): FluidStack = inventory.object2LongEntrySet().elementAtOrNull(tank)?.let {
+        it.key.copyWithAmount(min(Int.MAX_VALUE.toLong(), it.longValue).toInt())
+    } ?: FluidStack.EMPTY
+    override fun getTankCapacity(tank: Int): Int = Int.MAX_VALUE
     override fun isFluidValid(tank: Int, stack: FluidStack): Boolean = true
-
-    override fun fill(resource: FluidStack, simulate: Boolean, notifyChanges: Boolean): Long =
-        fill(0, resource, simulate, notifyChanges)
-
-    @Suppress("UnstableApiUsage")
-    override fun fill(
-        ignore: Int,
-        resource: FluidStack,
-        simulate: Boolean,
-        notifyChanges: Boolean
-    ): Long {
+    override fun fill(resource: FluidStack, action: IFluidHandler.FluidAction): Int {
         if (resource.isEmpty) return 0
-
-        val fluidIn: FluidStack? = fluidInventory.get(resource)
-        val realFill = min(Long.MAX_VALUE - (fluidIn?.amount ?: 0), resource.amount)
-
-        return if (simulate) {
-            realFill
-        } else {
-            if (realFill > 0) {
-                realFill.also {
-                    fluidIn?.let {
-                        it.amount += realFill
-                    } ?: run {
-                        fluidInventory.add(resource.copy(realFill))
-                    }
-                    if (notifyChanges) this.onContentsChanged()
-                }
-            } else {
-                0
-            }
-        }
+        val inserted = min(Long.MAX_VALUE - inventory.getLong(resource), resource.amount.toLong()).toInt()
+        if (action.execute() && inserted > 0) { inventory.addTo(resource.copyWithAmount(1), inserted.toLong()); onContentsChanged() }
+        return inserted
     }
-
-    override fun supportsFill(tank: Int): Boolean = true
-
-    @Suppress("UnstableApiUsage")
-    override fun drain(tank: Int, resource: FluidStack?, simulate: Boolean, notifyChanges: Boolean): FluidStack =
-        FluidStack.empty()
-
-    override fun drain(maxDrain: Long, simulate: Boolean): FluidStack = FluidStack.empty()
-
-    override fun drain(maxDrain: Long, simulate: Boolean, notifyChanges: Boolean): FluidStack = FluidStack.empty()
-
-    override fun drain(resource: FluidStack?, simulate: Boolean): FluidStack = FluidStack.empty()
-
-    override fun drain(resource: FluidStack?, simulate: Boolean, notifyChanges: Boolean): FluidStack =
-        FluidStack.empty()
-
-    override fun supportsDrain(tank: Int): Boolean = false
-
-    @Suppress("UnstableApiUsage")
-    override fun createSnapshot(): Any = throw UnsupportedOperationException("Why Fabric")
-
-    @Suppress("UnstableApiUsage")
-    override fun restoreFromSnapshot(snapshot: Any?): Unit = throw UnsupportedOperationException("Why Fabric")
-
-    override fun serializeNBT(): CompoundTag {
-        val tag = CompoundTag()
-
-        val fluidsTag = AEUtils.createListTag({ fluidStack ->
-            CompoundTag().apply {
-                fluidStack.saveToTag(this)
-            }
-        }, fluidInventory)
-        if (!fluidsTag.isEmpty()) tag.put("fluidInventory", fluidsTag)
-
-        return tag
-    }
-
-    override fun deserializeNBT(tag: CompoundTag) {
-        fluidInventory.clear()
-
-        val fluids = tag.getList("fluidInventory", Tag.TAG_COMPOUND.toInt())
-        AEUtils.loadInventory(fluids, FluidStack::loadFromTag, fluidInventory)
-    }
-
-    override fun setOnContentsChanged(onContentChanged: Runnable?) {}
-
-    override fun getOnContentsChanged(): Runnable = Runnable { }
+    override fun drain(resource: FluidStack, action: IFluidHandler.FluidAction): FluidStack = FluidStack.EMPTY
+    override fun drain(maxDrain: Int, action: IFluidHandler.FluidAction): FluidStack = FluidStack.EMPTY
+    fun serializeNBT(registries: HolderLookup.Provider): CompoundTag = syncDataHolder.serializeNBT(registries)
+    fun deserializeNBT(registries: HolderLookup.Provider, tag: CompoundTag) { syncDataHolder.deserializeNBT(registries, tag); notifyListeners() }
 }

@@ -1,0 +1,8 @@
+{
+  "com.lowdragmc.lowdraglib.gui.editor.ColorPattern": "com.lowdragmc.lowdraglib.editor.ColorPattern",
+  "com.lowdragmc.lowdraglib.side.fluid.FluidHelper": "com.lowdragmc.lowdraglib.utils.FluidHelper",
+  "com.lowdragmc.lowdraglib.utils.BlockInfo": "com.lowdragmc.lowdraglib.utils.data.BlockInfo",
+  "com.lowdragmc.lowdraglib.utils.CycleItemStackHandler": "com.lowdragmc.lowdraglib.misc.CycleItemStackHandler",
+  "com.lowdragmc.lowdraglib.utils.Position": "com.lowdragmc.lowdraglib.math.Position",
+  "com.lowdragmc.lowdraglib.utils.Size": "com.lowdragmc.lowdraglib.math.Size"
+}

@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.common.items.behavior
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.item.component.IInteractionItem
 import com.gtladd.gtladditions.api.machine.IAstralArrayInteractionMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
@@ -14,8 +14,7 @@ object AstralArrayBehavior : IInteractionItem {
         val player = context.player ?: return InteractionResult.PASS
         if (!player.isShiftKeyDown) return InteractionResult.PASS
 
-        val machine = (context.level.getBlockEntity(context.clickedPos) as? MetaMachineBlockEntity)
-            ?.metaMachine as? IAstralArrayInteractionMachine
+        val machine = MetaMachine.getMachine(context.level, context.clickedPos) as? IAstralArrayInteractionMachine
             ?: return InteractionResult.PASS
 
         if (context.level.isClientSide) return InteractionResult.SUCCESS

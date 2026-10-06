@@ -1,5 +1,21 @@
 # GTLAdditions
 
+
+## Native 1.21.1 preview
+
+Download [this prerelease](https://github.com/FortyTwoCn/GTLAdditions/releases/tag/neoforge-1.21.1-3.2.8Custom-fix2-preview.1) for the native mod JAR,
+or install both mods with the fixed dependency closure from
+[native-runtime-mods.zip](https://github.com/FortyTwoCn/GTLCore/releases/download/neoforge-1.21.1-1.2.3.2-fix3-preview.1/native-runtime-mods.zip) and
+[required-kubejs-profile.zip](https://github.com/FortyTwoCn/GTLCore/releases/download/neoforge-1.21.1-1.2.3.2-fix3-preview.1/required-kubejs-profile.zip).
+Both releases include the same installation instructions, full sources and validation evidence.
+Use Minecraft 1.21.1, NeoForge 21.1.248 and Java 21.
+
+The complete dedicated-server stress flow encountered a JVM C2 SIGSEGV in
+`InventoryChangeTrigger` on two Temurin Java 21 versions. Its cause is unresolved.
+The stress validation used explicit diagnostic JIT flags; ordinary client validation passed with
+default JIT. These flags are not included in production JARs. See the migration documentation
+and the release evidence for the tested scope and limitations.
+
 [简体中文](README.zh.md)
 
 > [!TIP]
@@ -9,22 +25,24 @@
 
 ## Introduction
 
-GTLAdditions is developed for Minecraft Forge 1.20.1 and the GregTech Leisure ecosystem. While preserving the original hardcore technology framework, it expands GTCEu/GTLCore late-game progression with many innovative designs and balance optimizations, giving players a smoother automation experience and a more difficult final goal.
+This checkout is the native Minecraft 1.21.1 NeoForge port of GTLAdditions 3.2.8Custom-fix2. It preserves the original late-game machines, parts and integrations around GTCEu and GTLCore. Pinned sources, build commands, runtime evidence and coverage limits are documented in [migration/README.md](migration/README.md).
 
 ## Requirements
 
 | Requirement | Version / Scope |
 | --- | --- |
-| Java | `>= 21` |
-| GTLCore (`gtlcore`) | `>= 1.2.3.2-fix2` |
-| Stargate Journey (`sgjourney`) | `0.6.44` only |
-| Oculus (`oculus`) | `>= 1.7.0`, client side |
+| Minecraft / NeoForge | `1.21.1` / `21.1.248` |
+| Java | `21` |
+| GTLCore (`gtlcore`) | Native `1.2.3.2-fix3` |
+| GTCEu | `8.0.0`, pinned 1.21 API reference |
+| Stargate Journey (`sgjourney`) | Native `0.6.49` |
+| Other dependencies | Pinned native runtime closure; see the migration documentation |
 
 ## Install
 
-1. Download `GregTech Leisure` [here](https://pan.quark.cn/s/d13f899cdab5#/list/share) or [here](https://drive.google.com/drive/folders/1Ga_w-TmDKNru0me1kAM_gXyedz_Ne4-x), and install it with your Minecraft launcher.
-2. Delete the bundled `GTLCore`, then install the newest GTLCore from [here](https://github.com/AaAdoniSsS/GTLCore).
-3. Add GTLAdditions to the `mods` folder.
+1. Create a Minecraft 1.21.1 / NeoForge 21.1.248 profile using Java 21.
+2. Install the native Core/Additions JARs and their pinned native dependency closure described in the migration documentation.
+3. Prepare the source-verified KubeJS registration/assets profile described there, including the original Space Elevator recipe slice when needed. The full Forge modpack is not a native installation profile.
 4. Use JEI and the in-game GTLAdditions Guide for recipes, structures, and feature details.
 
 ## Features
@@ -127,24 +145,17 @@ For further information, please consult the in-game GTLAdditions Guide.
 
 ## Build / Development
 
-```bash
-# Build the mod
-./gradlew build
+Check out the two `1.21.1` branches in adjacent `GTLCore/` and `GTLAdditions/` directories.
+With Java 21, first prepare and build the fixed native source dependencies:
 
-# Run in a development client
-./gradlew runClient
-
-# Run in a development server
-./gradlew runServer
-
-# Generate data
-./gradlew runData
-
-# Check formatting
-./gradlew spotlessCheck
-
-# Apply formatting
-./gradlew spotlessApply
+```sh
+cd ../GTLCore
+python3 migration/prepare_native_workspace.py prepare --build-modularui
+./gradlew assemble check verifyGtceuBaseline verifyNativeRuntime --no-daemon
+cd ../GTLAdditions
+./gradlew assemble check exportNativeRuntime --no-daemon
 ```
 
-Use `gradle` instead of `./gradlew` only if the Gradle wrapper is unavailable in your checkout.
+For `runClient`, `runServer` and `runData`, prepare the required KubeJS registration profile
+in the corresponding run directory. Exact baselines, commands and runtime validation entries
+are documented in [migration/README.md](migration/README.md).

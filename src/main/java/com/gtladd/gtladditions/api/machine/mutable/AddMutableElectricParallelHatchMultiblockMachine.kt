@@ -1,12 +1,10 @@
-﻿package com.gtladd.gtladditions.api.machine.mutable
+package com.gtladd.gtladditions.api.machine.mutable
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.AddMutableRecipesLogic
 
-class AddMutableElectricParallelHatchMultiblockMachine(holder: IMachineBlockEntity, vararg args: Any?) : MutableElectricParallelHatchMultiblockMachine(holder, *args) {
-    override fun createRecipeLogic(vararg args: Any?): RecipeLogic = AddMutableRecipesLogic(this)
-
+class AddMutableElectricParallelHatchMultiblockMachine(holder: BlockEntityCreationInfo) : MutableElectricParallelHatchMultiblockMachine(holder, AddMutableRecipesLogic<MutableElectricMultiblockMachine>()) {
     @Suppress("UNCHECKED_CAST")
     override fun getRecipeLogic(): AddMutableRecipesLogic<MutableElectricMultiblockMachine> = super.getRecipeLogic() as AddMutableRecipesLogic<MutableElectricMultiblockMachine>
 

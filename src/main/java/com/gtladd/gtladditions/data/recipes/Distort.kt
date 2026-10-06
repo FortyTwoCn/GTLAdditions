@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.machine.multiblock.CleanroomType.STERILE_CLEANR
 import com.gregtechceu.gtceu.common.data.GTItems
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gtladd.gtladditions.GTLAdditions.Companion.id
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.world.item.Items
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix
 import org.gtlcore.gtlcore.api.machine.multiblock.GTLCleanroomType.LAW_CLEANROOM
@@ -17,7 +17,7 @@ import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object Distort {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         DISTORT_RECIPES.recipeBuilder(id("rare_earth_dust_monazite"))
             .notConsumable(GTLTagPrefix.nanoswarm, Rhenium)
             .inputItems(dust, Monazite, 64)
@@ -140,7 +140,7 @@ object Distort {
             .outputItems(dust, Salt, 64)
             .notConsumableFluid(Perfluorobenzene.getFluid(2000))
             .inputFluids(NitricAcid.getFluid(300000))
-            .inputFluids(HydrogenPeroxide.getFluid(12000))
+            .inputFluids(org.gtlcore.gtlcore.common.data.GTLMaterials.HydrogenPeroxide.getFluid(12000))
             .inputFluids(SulfurDioxide.getFluid(64000))
             .inputFluids(Chlorine.getFluid(64000))
             .outputFluids(ResidualTriniiteSolution.getFluid(128000))

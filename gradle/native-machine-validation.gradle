@@ -1,0 +1,41 @@
+// Verify migrated production machines against the native API while the full port is in progress.
+// This source set is never packaged in the release JAR and does not replace main.
+sourceSets { nativeMachineApi }
+kotlin.sourceSets.nativeMachineApi.kotlin {
+    srcDir 'src/main/java'
+    include 'com/gtladd/gtladditions/common/machine/multiblock/part/SuperParallelHatchPartMachine.kt'
+    include 'com/gtladd/gtladditions/events/MECapabilityHandler.kt'
+    include 'com/gtladd/gtladditions/common/machine/multiblock/part/MESuperPatternBufferPartMachine.kt'
+    include 'com/gtladd/gtladditions/common/machine/multiblock/part/MESuperPatternBufferProxyPartMachine.kt'
+    include 'com/gtladd/gtladditions/api/machine/gui/FOAPatternConfigurator.kt'
+    include 'com/gtladd/gtladditions/integration/ae2/ForgePatternRules.kt'
+    include 'com/gtladd/gtladditions/integration/ae2/MEBufferPatternHelperExtensions.kt'
+    include 'com/gtladd/gtladditions/utils/CycleContainerHelper.kt'
+}
+sourceSets.nativeMachineApi.java {
+    srcDir 'src/main/java'
+    include 'com/gtladd/gtladditions/api/registry/NativeMachineBuilders.java'
+    include 'com/gtladd/gtladditions/api/registry/NativeQueuedMachines.java'
+    include 'com/gtladd/gtladditions/client/render/machine/OverlayHullMachineModel.java'
+    include 'com/gtladd/gtladditions/mixin/gtceu/registry/QueuedMachineBuilderMixin.java'
+    include 'com/gtladd/gtladditions/mixin/gtceu/registry/DefaultRecipeLogicMixin.java'
+    include 'com/gtladd/gtladditions/integration/ae2/MEStorageCapabilityProvider.java'
+    include 'com/gtladd/gtladditions/integration/ae2/SuperPatternDataStick.java'
+    include 'com/gtladd/gtladditions/mixin/gtlcore/machine/part/MEPatternBufferPartMachineBaseMixin.java'
+    include 'com/gtladd/gtladditions/mixin/gtlcore/machine/part/MEPatternBufferPartMachineMixin.java'
+    include 'com/gtladd/gtladditions/mixin/gtceu/common/item/DataItemBehaviorMixin.java'
+}
+neoForge.addModdingDependenciesTo(sourceSets.nativeMachineApi)
+dependencies {
+    def coreSource = file(providers.gradleProperty('gtlcore_source').get())
+    def coreBuild = gradle.includedBuilds.find { it.projectDir.canonicalFile == coreSource.canonicalFile }
+    nativeMachineApiImplementation(files(new File(coreSource, 'build/classes/java/nativeMachineApi'))
+            .builtBy(coreBuild.task(':compileNativeMachineApiJava')))
+    nativeMachineApiImplementation('com.gregtechceu.gtceu:gtceu-1.21.1:8.0.0')
+    nativeMachineApiImplementation('com.hepdd.gtmthings:gtmthings:1.6.0')
+    nativeMachineApiImplementation(forge.mui)
+    nativeMachineApiImplementation(forge.registrate)
+    nativeMachineApiImplementation(forge.configuration)
+    nativeMachineApiImplementation(forge.ae2)
+}
+tasks.named('compileNativeMachineApiKotlin') { dependsOn 'verifyGtceuBaseline' }

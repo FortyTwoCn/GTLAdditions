@@ -15,8 +15,8 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import kotlin.math.asin
@@ -340,12 +340,11 @@ object AntichristBeamRenderer {
         y0 + ((x - x0) * (y1 - y0)) / (x1 - x0)
 
     private fun uploadBeamBuffer(segments: SegmentBuffer, tick: Float) {
-        val builder = Tesselator.getInstance().builder
-        builder.begin(VertexFormat.Mode.TRIANGLES, AntichristShaders.BEAM_VERTEX_FORMAT)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.TRIANGLES, AntichristShaders.BEAM_VERTEX_FORMAT)
         writeBeamVertices(builder, segments, tick)
 
         beamBuffer.bind()
-        beamBuffer.upload(builder.end())
+        beamBuffer.upload(builder.buildOrThrow())
     }
 
     private fun writeBeamVertices(builder: BufferBuilder, segments: SegmentBuffer, tick: Float) {
@@ -380,10 +379,9 @@ object AntichristBeamRenderer {
         val heightOffset = (offset / 256.0f) + timer
         val alpha = packAlpha(segments.transparency(endpointId))
 
-        builder.vertex(x.toDouble(), y.toDouble(), offset.toDouble())
-            .uv(heightOffset, angle / (2.0f * PI) + heightOffset / 3.0f + timer)
-            .overlayCoords(alpha)
-            .endVertex()
+        builder.addVertex(x, y, offset)
+            .setUv(heightOffset, angle / (2.0f * PI) + heightOffset / 3.0f + timer)
+            .setOverlay(alpha)
     }
 
     private fun packAlpha(alpha: Float): Int =

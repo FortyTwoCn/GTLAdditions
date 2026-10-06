@@ -13,7 +13,7 @@ import net.minecraft.world.level.Level
 
 class GuideBook : IInteractionItem {
     override fun use(
-        item: Item,
+        item: ItemStack,
         level: Level,
         player: Player,
         usedHand: InteractionHand

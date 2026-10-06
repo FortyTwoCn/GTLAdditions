@@ -1,127 +1,96 @@
 package com.gtladd.gtladditions.mixin.gtlcore.machine;
 
-import org.gtlcore.gtlcore.common.data.GTLMachines;
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo;
+import com.gregtechceu.gtceu.api.capability.recipe.*;
+import com.gregtechceu.gtceu.api.machine.MetaMachine;
+import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableFluidTank;
+import com.gregtechceu.gtceu.api.recipe.GTRecipe;
+import com.gregtechceu.gtceu.api.recipe.ingredient.EnergyStack;
+import com.gregtechceu.gtceu.api.recipe.modifier.ModifierFunction;
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient;
+import com.gregtechceu.gtceu.common.machine.multiblock.part.SteamHatchPartMachine;
+import com.gtladd.gtladditions.common.machine.hatch.HugeSteamHatchPartMachine;
+import brachy.modularui.factory.PosGuiData;
+import brachy.modularui.screen.UISettings;
+import brachy.modularui.value.sync.PanelSyncManager;
+import brachy.modularui.widget.ParentWidget;
+import com.gtladd.gtladditions.api.gui.NativeHatchUI;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import org.gtlcore.gtlcore.api.machine.trait.ExactSteamEnergyRecipeHandler;
+import org.gtlcore.gtlcore.api.machine.trait.SteamEnergyConversion;
+import org.gtlcore.gtlcore.api.recipe.CoreRecipeModifiers;
 import org.gtlcore.gtlcore.common.data.machines.MultiBlockMachineA;
 import org.gtlcore.gtlcore.common.machine.multiblock.part.LargeSteamHatchPartMachine;
 import org.gtlcore.gtlcore.common.machine.multiblock.steam.LargeSteamParallelMultiblockMachine;
-
-import com.gregtechceu.gtceu.api.capability.recipe.*;
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity;
-import com.gregtechceu.gtceu.api.machine.MetaMachine;
-import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine;
-import com.gregtechceu.gtceu.api.machine.steam.SteamEnergyRecipeHandler;
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableFluidTank;
-import com.gregtechceu.gtceu.api.recipe.GTRecipe;
-import com.gregtechceu.gtceu.api.recipe.RecipeHelper;
-import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic;
-import com.gregtechceu.gtceu.api.recipe.content.Content;
-import com.gregtechceu.gtceu.common.data.GTRecipeModifiers;
-import com.gregtechceu.gtceu.common.machine.multiblock.part.SteamHatchPartMachine;
-
-import com.lowdragmc.lowdraglib.gui.widget.ComponentPanelWidget;
-
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.HoverEvent;
-import net.minecraft.network.chat.Style;
-
-import com.gtladd.gtladditions.common.machine.GTLAddMachines;
-import com.gtladd.gtladditions.common.machine.hatch.HugeSteamHatchPartMachine;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
-import java.util.Objects;
 
+/** Huge steam keeps its 125 EU/mB ratio and one-tick recipes using the native, exact handler. */
 @Mixin(LargeSteamParallelMultiblockMachine.class)
 public abstract class LargeSteamParallelMultiblockMachineMixin extends WorkableMultiblockMachine {
+    @Shadow(remap = false) private boolean isOC;
+    @Shadow(remap = false) private int amountOC;
+    @Shadow(remap = false) @Final private int max_parallels;
+    @Unique @SyncToClient private boolean gtladditions$isHuge;
+    public LargeSteamParallelMultiblockMachineMixin(BlockEntityCreationInfo info) { super(info); }
 
-    public LargeSteamParallelMultiblockMachineMixin(IMachineBlockEntity holder, Object... args) {
-        super(holder, args);
+    @Inject(method = "formStructure", at = @At("HEAD"), remap = false, require = 1)
+    private void gtladditions$resetHatch(String name, CallbackInfo ci) { gtladditions$isHuge = false; }
+    @Inject(method = "formStructure", at = @At("RETURN"), remap = false, require = 1)
+    private void gtladditions$syncHatch(String name, CallbackInfo ci) { syncDataHolder.markClientSyncFieldDirty("gtladditions$isHuge"); }
+    @Inject(method = "invalidateStructure", at = @At("RETURN"), remap = false, require = 1)
+    private void gtladditions$invalidateHugeHatch(String name, CallbackInfo ci) {
+        gtladditions$isHuge = false;
+        syncDataHolder.markClientSyncFieldDirty("gtladditions$isHuge");
     }
-
-    @Unique
-    private boolean gtladditions$isLarge;
-    @Unique
-    private boolean gtladditions$isHuge;
-    @Shadow(remap = false)
-    private boolean isOC;
-    @Shadow(remap = false)
-    private int amountOC;
-    @Shadow(remap = false)
-    @Final
-    private int max_parallels;
-
-    /**
-     * @author .
-     * @reason .
-     */
-    @Overwrite(remap = false)
-    public static GTRecipe recipeModifier(MetaMachine machine, @NotNull GTRecipe recipe, double reductionDuration) {
-        if (machine instanceof LargeSteamParallelMultiblockMachineMixin machine1) {
-            boolean isHuge = machine1.gtladditions$isHuge;
-            boolean isLarge = machine1.gtladditions$isLarge;
-            if (RecipeHelper.getInputEUt(recipe) > (long) (isHuge ? 512 : (isLarge ? 128 : 32))) return null;
-            GTRecipe result = GTRecipeModifiers.accurateParallel(machine, recipe, machine1.max_parallels, false).getFirst();
-            recipe = result == recipe ? result.copy() : result;
-            if (isHuge) reductionDuration = 0.0;
-            if (machine1.getDefinition() == MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_STEAM_OVEN) recipe.tickInputs.put(EURecipeCapability.CAP, List.of(new Content((long) Math.max(1.0, (double) RecipeHelper.getInputEUt(recipe) * 0.01), ChanceLogic.getMaxChancedValue(), ChanceLogic.getMaxChancedValue(), 0, null, null)));
-            recipe.duration = (int) Math.max(1.0, (double) recipe.duration * reductionDuration / (isLarge ? Math.pow(2.0, machine1.amountOC) : 1.0));
-        }
-        return recipe;
+    /** @author Dragons @reason Discover the additional native huge steam part through Core's extension point. */
+    @Overwrite protected boolean isSteamInputPart(MetaMachine part) {
+        boolean matches = part instanceof SteamHatchPartMachine || part instanceof LargeSteamHatchPartMachine || part instanceof HugeSteamHatchPartMachine;
+        if (matches) gtladditions$isHuge = part instanceof HugeSteamHatchPartMachine;
+        return matches;
     }
+    /** @author Dragons @reason Use exact rational accounting for huge steam. */
+    @Overwrite protected ExactSteamEnergyRecipeHandler createSteamEnergyHandler(NotifiableFluidTank tank) {
+        return gtladditions$isHuge ? new ExactSteamEnergyRecipeHandler(tank, () -> new SteamEnergyConversion.Rate(BigInteger.ONE, BigInteger.valueOf(125)))
+                : new ExactSteamEnergyRecipeHandler(tank, () -> isOC ? amountOC : 0);
+    }
+    /** @author Dragons @reason Preserve the public EU per mB conversion rate. */
+    @Overwrite public double getConversionRate() { return gtladditions$isHuge ? 125 : .5 * (isOC ? Math.pow(3, amountOC) : 1); }
 
-    /**
-     * @author .
-     * @reason .
-     */
-    @Overwrite(remap = false)
-    public void onStructureFormed() {
-        super.onStructureFormed();
-        List<IRecipeHandler<?>> handlers = this.capabilitiesProxy.get(IO.IN, FluidRecipeCapability.CAP);
-        if (handlers != null) {
-            Iterator<IRecipeHandler<?>> itr = handlers.iterator();
-            while (itr.hasNext()) {
-                IRecipeHandler<?> handler = itr.next();
-                if (handler instanceof NotifiableFluidTank tank) {
-                    MetaMachine machine = tank.getMachine();
-                    if (machine instanceof SteamHatchPartMachine || machine instanceof LargeSteamHatchPartMachine || machine instanceof HugeSteamHatchPartMachine) {
-                        gtladditions$isLarge = machine.getDefinition() == GTLMachines.LARGE_STEAM_HATCH;
-                        gtladditions$isHuge = machine.getDefinition() == GTLAddMachines.HUGE_STEAM_HATCH;
-                        this.isOC = gtladditions$isLarge || gtladditions$isHuge;
-                        Object2IntMap<RecipeCapability<?>> recipeOutputLimits = new Object2IntOpenHashMap<>();
-                        recipeOutputLimits.put(ItemRecipeCapability.CAP, gtladditions$isHuge ? 3 : 1);
-                        MultiBlockMachineA.LARGE_STEAM_MACERATOR.setRecipeOutputLimits(recipeOutputLimits);
-                        itr.remove();
-                        if (!this.capabilitiesProxy.contains(IO.IN, EURecipeCapability.CAP)) this.capabilitiesProxy.put(IO.IN, EURecipeCapability.CAP, new ArrayList<>());
-                        (Objects.requireNonNull(this.capabilitiesProxy.get(IO.IN, EURecipeCapability.CAP)))
-                                .add(new SteamEnergyRecipeHandler(tank, 0.5 * (gtladditions$isHuge ? 250.0 : (gtladditions$isLarge ? Math.pow(3.0, amountOC) : 1.0))));
-                        return;
-                    }
-                }
+    /** @author Dragons @reason Keep huge hatch parallel limits, duration and oven energy reduction. */
+    @Overwrite public static ModifierFunction recipeModifier(MetaMachine machine, GTRecipe recipe, double durationMultiplier) {
+        if (!(machine instanceof LargeSteamParallelMultiblockMachineMixin steam)) return ModifierFunction.NULL;
+        if (recipe.getInputEUt().getTotalEU() > (steam.gtladditions$isHuge ? 512 : steam.isOC ? 128 : 32)) return ModifierFunction.NULL;
+        final double multiplier = steam.gtladditions$isHuge ? 0 : durationMultiplier / (steam.isOC ? Math.pow(2, steam.amountOC) : 1);
+        return input -> {
+            var result = CoreRecipeModifiers.accurateParallel(machine, input, steam.max_parallels, false).getFirst();
+            if (result == null) return null;
+            result = result.copy(); result.data = result.data.copy();
+            result.duration = (int) Math.max(1, input.duration * multiplier);
+            result.data.putInt(ExactSteamEnergyRecipeHandler.RECIPE_OC, steam.isOC ? steam.amountOC : 0);
+            if (machine.getDefinition() == MultiBlockMachineA.DIMENSIONALLY_TRANSCENDENT_STEAM_OVEN.get()) {
+                long energy = Math.max(1, BigDecimal.valueOf(result.getInputEUt().getTotalEU()).multiply(new BigDecimal("0.01")).longValue());
+                EURecipeCapability.putEUContent(result.tickInputs, new EnergyStack(energy));
             }
-        }
+            return result;
+        };
     }
-
-    @SuppressWarnings("DiscouragedShift")
-    @Inject(method = "addDisplayText", at = @At(value = "INVOKE", target = "Lcom/gregtechceu/gtceu/api/machine/trait/RecipeLogic;isWaiting()Z", shift = At.Shift.BEFORE), remap = false, cancellable = true)
-    public void addDisplayText(List<Component> textList, CallbackInfo ci) {
-        if (this.recipeLogic.isWaiting()) textList.add(Component.translatable("gtceu.multiblock.steam.low_steam").setStyle(Style.EMPTY.withColor(ChatFormatting.RED)));
-        if (gtladditions$isHuge) textList.add(Component.translatable("gtceu.multiblock.steam_duration_modify"));
-        else if (gtladditions$isLarge) {
-            textList.add(Component.translatable("gtceu.multiblock.oc_amount", amountOC)
-                    .withStyle(Style.EMPTY.withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("gtceu.multiblock.steam_parallel_machine.oc")))));
-            textList.add(Component.translatable("gtceu.multiblock.steam_parallel_machine.modification_oc")
-                    .append(ComponentPanelWidget.withButton(Component.literal("[-] "), "ocSub"))
-                    .append(ComponentPanelWidget.withButton(Component.literal("[+]"), "ocAdd")));
-        }
-        ci.cancel();
+    @Override public Reference2IntMap<RecipeCapability<?>> getOutputLimits() {
+        var limits = new Reference2IntOpenHashMap<>(super.getOutputLimits());
+        if (getDefinition() == MultiBlockMachineA.LARGE_STEAM_MACERATOR.get()) limits.put(ItemRecipeCapability.CAP, gtladditions$isHuge ? 3 : 1);
+        return limits;
+    }
+    @Inject(method = "buildMainUI", at = @At("RETURN"), remap = false, require = 1)
+    private void gtladditions$hugeStatus(ParentWidget<?> main, PosGuiData data, PanelSyncManager sync, UISettings settings, CallbackInfo ci) {
+        main.child(NativeHatchUI.componentList("hugeSteamStatus", sync, () -> gtladditions$isHuge
+                ? List.of(Component.translatable("gtceu.multiblock.steam_duration_modify")) : List.of(), 25).bottom(0));
     }
 }

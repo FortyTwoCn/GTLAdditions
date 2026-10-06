@@ -1,9 +1,9 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.mutable
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper
 import com.gtladd.gtladditions.api.machine.IWirelessThreadModifierParallelMachine
@@ -14,24 +14,22 @@ import org.gtlcore.gtlcore.api.machine.trait.IRecipeCapabilityMachine
 import org.gtlcore.gtlcore.api.recipe.IParallelLogic
 import org.gtlcore.gtlcore.common.machine.multiblock.electric.PCBFactoryMachine
 
-class MutablePCBFactoryMachine(holder: IMachineBlockEntity) :
-    PCBFactoryMachine(holder),
+class MutablePCBFactoryMachine(holder: BlockEntityCreationInfo) :
+    PCBFactoryMachine(holder, PcbLogic()),
     IWirelessThreadModifierParallelMachine {
     private var threadPartMachine: IThreadModifierPart? = null
 
     private val nanoSwarmMultiplier: Double
         get() {
             val itemStack = machineStorageItem
-            return when (itemStack.`kjs$getId`()) {
+            return when (net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(itemStack.item).toString()) {
                 "gtceu:vibranium_nanoswarm" -> (100 - itemStack.count) / 400.0
                 "gtceu:gold_nanoswarm" -> (100 - itemStack.count * 0.5) / 100.0
                 else -> 1.0
             }
         }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic {
-        val machine = this
-        return object : MutableRecipesLogic<MutablePCBFactoryMachine>(machine) {
+    private class PcbLogic : MutableRecipesLogic<MutablePCBFactoryMachine>() {
 
             override val energyReductionMultiplier: Double
                 get() = super.energyReductionMultiplier * getMachine().nanoSwarmMultiplier
@@ -40,19 +38,19 @@ class MutablePCBFactoryMachine(holder: IMachineBlockEntity) :
                 machine: IRecipeLogicMachine,
                 match: GTRecipe,
                 remain: Long
-            ): LongLongPair = if (RecipeHelper.getInputEUt(match) <= GTValues.V[GTValues.LuV]) {
+            ): LongLongPair = if (match.inputEUt.totalEU <= GTValues.V[GTValues.LuV]) {
                 LongLongPair.of(IParallelLogic.getMaxParallel(machine, match, Long.Companion.MAX_VALUE), 0)
             } else {
                 super.calculateParallel(machine, match, remain)
             }
-        }
     }
 
     @Suppress("UNCHECKED_CAST")
     override fun getRecipeLogic(): MutableRecipesLogic<MutablePCBFactoryMachine> = super.getRecipeLogic() as MutableRecipesLogic<MutablePCBFactoryMachine>
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         threadPartMachine = null
         getRecipeLogic().setUseMultipleRecipes(false)
     }
@@ -64,7 +62,7 @@ class MutablePCBFactoryMachine(holder: IMachineBlockEntity) :
     }
 
     @Suppress("CAST_NEVER_SUCCEEDS")
-    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch?.currentParallel ?: 1
+    override fun getMaxParallel(): Int = (this as IRecipeCapabilityMachine).parallelHatch.map { it.currentParallel }.orElse(1)
 
     override fun setThreadPartMachine(threadModifierPart: IThreadModifierPart) {
         this.threadPartMachine = threadModifierPart

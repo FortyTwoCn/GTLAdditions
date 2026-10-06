@@ -2,7 +2,7 @@ package com.gtladd.gtladditions.common.blocks
 
 import com.gregtechceu.gtceu.api.block.ActiveBlock
 import com.gregtechceu.gtceu.api.item.tool.GTToolType
-import com.gregtechceu.gtceu.common.data.GTModels
+import com.gregtechceu.gtceu.common.data.models.GTModels
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.api.registry.GTLAddRegistration
 import com.gtladd.gtladditions.common.modify.GTLAddCreativeModeTabs
@@ -22,7 +22,7 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
-import net.minecraft.world.level.block.GlassBlock
+import net.minecraft.world.level.block.TransparentBlock
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
 import org.gtlcore.gtlcore.GTLCore
@@ -139,7 +139,7 @@ object GTLAddBlocks {
     ): BlockEntry<Block> = createCasingBlock(
         name,
         { arg: BlockBehaviour.Properties? ->
-            GlassBlock(arg)
+            TransparentBlock(arg)
         },
         texture,
         NonNullSupplier { Blocks.GLASS },
@@ -185,7 +185,7 @@ object GTLAddBlocks {
         .initialProperties(properties)
         .properties { p: BlockBehaviour.Properties? -> p!!.isValidSpawn { state: BlockState?, level: BlockGetter?, pos: BlockPos?, ent: EntityType<*>? -> false } }
         .addLayer(type)
-        .blockstate(GTModels.cubeAllModel(name, texture))
+        .blockstate { context, provider -> provider.simpleBlock(context.entry, provider.models().cubeAll(name, texture)) }
         .tag(GTToolType.WRENCH.harvestTags[0], BlockTags.MINEABLE_WITH_PICKAXE)
         .item(
             NonNullBiFunction { block: Block?, properties: Item.Properties? ->

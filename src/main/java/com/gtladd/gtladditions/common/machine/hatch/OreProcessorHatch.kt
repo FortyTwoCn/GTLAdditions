@@ -1,50 +1,44 @@
-﻿package com.gtladd.gtladditions.common.machine.hatch
+package com.gtladd.gtladditions.common.machine.hatch
 
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IDropSaveMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import brachy.modularui.api.drawable.Text
+import brachy.modularui.drawable.DynamicDrawable
+import brachy.modularui.drawable.UITexture
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.IntSyncValue
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widget.Widget
+import brachy.modularui.widgets.layout.Flow
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
 import com.gtladd.gtladditions.api.gui.widget.SliderTextFieldWidget
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.texture.ResourceTexture
-import com.lowdragmc.lowdraglib.gui.widget.ImageWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.DropSaved
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
-import com.lowdragmc.lowdraglib.utils.ColorUtils
-import net.minecraft.network.FriendlyByteBuf
-import org.gtlcore.gtlcore.api.gui.ExtendLabelWidget
-import java.util.function.Consumer
-import java.util.function.Supplier
+import net.minecraft.core.component.DataComponentMap
+import net.minecraft.core.component.DataComponents
+import net.minecraft.nbt.CompoundTag
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.world.item.component.CustomData
+import net.minecraft.world.level.block.entity.BlockEntity.DataComponentInput
+import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.max
 import kotlin.math.min
 
-class OreProcessorHatch(holder: IMachineBlockEntity) :
-    MultiblockPartMachine(holder),
-    IMachineLife,
-    IDropSaveMachine {
-    @Persisted
-    @DropSaved
-    @DescSynced
-    val color: Int = ColorUtils.randomColor()
-
-    @Persisted
-    @DropSaved
-    @DescSynced
+class OreProcessorHatch(holder: BlockEntityCreationInfo) : MultiblockPartMachine(holder), IMuiMachine {
+    @field:SaveField
+    @field:SyncToClient
+    var color: Int = ThreadLocalRandom.current().nextInt(0x1000000) or (0xff shl 24)
+        private set
+    @field:SaveField
+    @field:SyncToClient
     private var red = 0
-
-    @Persisted
-    @DropSaved
-    @DescSynced
+    @field:SaveField
+    @field:SyncToClient
     private var green = 0
-
-    @Persisted
-    @DropSaved
-    @DescSynced
+    @field:SaveField
+    @field:SyncToClient
     private var blue = 0
 
     val matchAll get() = this.red == color.red && this.green == color.green && this.blue == color.blue
@@ -88,26 +82,60 @@ class OreProcessorHatch(holder: IMachineBlockEntity) :
         else -> 0
     }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 186, 130)
-        val container = WidgetGroup(4, 4, 178, 120)
-        container.setBackground(GuiTextures.BACKGROUND_INVERSE)
-        container.addWidget(ExtendLabelWidget(8, 4, "gtceu.machine.ore_hatch.gui.1".toComponent))
-        container.addWidget(HatchChannelGroup(0, 16, color.red, { this.red }, { this.red = it }))
-        container.addWidget(ExtendLabelWidget(8, 42, "gtceu.machine.ore_hatch.gui.2".toComponent))
-        container.addWidget(HatchChannelGroup(0, 54, color.green, { this.green }, { this.green = it }))
-        container.addWidget(ExtendLabelWidget(8, 80, "gtceu.machine.ore_hatch.gui.3".toComponent))
-        container.addWidget(HatchChannelGroup(0, 92, color.blue, { this.blue }, { this.blue = it }))
-        group.addWidget(container)
-        return group
+    override fun buildMainUI(main: ParentWidget<*>, data: PosGuiData, manager: PanelSyncManager, settings: UISettings) {
+        val column = Flow.column().width(178).coverChildrenHeight().center().childPadding(3)
+        val getters = listOf({ red }, { green }, { blue })
+        val setters = listOf<(Int) -> Unit>({ red = it }, { green = it }, { blue = it })
+        val fieldNames = listOf("red", "green", "blue")
+        val targets = listOf({ color.red }, { color.green }, { color.blue })
+        for (i in 0..2) {
+            val value = IntSyncValue(getters[i], { incoming ->
+                setters[i](incoming.coerceIn(0, 255))
+                setChanged()
+                syncDataHolder.markClientSyncFieldDirty(fieldNames[i])
+            }).allowC2S()
+            manager.syncValue("oreChannel$i", value)
+            val row = Flow.row().coverChildren().childPadding(4)
+                .child(SliderTextFieldWidget(0, 0, 80, 24, 0, 255, value))
+            for (range in listOf(80, 35, 5)) {
+                val matched = brachy.modularui.value.sync.BooleanSyncValue { matchRange(getters[i](), targets[i](), range) }
+                manager.syncValue("oreLamp${i}_$range", matched)
+                row.child(Lamp().size(20).background(DynamicDrawable { if (matched.boolValue) GREEN_LAMP else RED_LAMP }))
+            }
+            column.child(Text.lang("gtceu.machine.ore_hatch.gui.${i + 1}").asWidget()).child(row)
+        }
+        main.child(column)
     }
 
-    override fun getFieldHolder() = MANAGED_FIELD_HOLDER
+    override fun collectImplicitComponents(components: DataComponentMap.Builder) {
+        super.collectImplicitComponents(components)
+        val state = CompoundTag()
+        state.putInt("color", color)
+        state.putInt("red", red)
+        state.putInt("green", green)
+        state.putInt("blue", blue)
+        val custom = components.build().getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag()
+        custom.put("gtladdOreProcessor", state)
+        components.set(DataComponents.CUSTOM_DATA, CustomData.of(custom))
+    }
+
+    override fun applyImplicitComponents(input: DataComponentInput) {
+        super.applyImplicitComponents(input)
+        val custom = input.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag()
+        if (!custom.contains("gtladdOreProcessor", 10)) return
+        val state = custom.getCompound("gtladdOreProcessor")
+        color = state.getInt("color")
+        red = state.getInt("red").coerceIn(0, 255)
+        green = state.getInt("green").coerceIn(0, 255)
+        blue = state.getInt("blue").coerceIn(0, 255)
+        setChanged()
+    }
+
+    private class Lamp : Widget<Lamp>()
 
     companion object {
-        val MANAGED_FIELD_HOLDER = ManagedFieldHolder(OreProcessorHatch::class.java, MultiblockPartMachine.MANAGED_FIELD_HOLDER)
-        private val RED_LAMP = ResourceTexture("gtladditions:textures/gui/red_lamp.png")
-        private val GREEN_LAMP = ResourceTexture("gtladditions:textures/gui/green_lamp.png")
+        private val RED_LAMP = UITexture.builder().location(ResourceLocation.fromNamespaceAndPath("gtladditions", "textures/gui/red_lamp.png")).build()
+        private val GREEN_LAMP = UITexture.builder().location(ResourceLocation.fromNamespaceAndPath("gtladditions", "textures/gui/green_lamp.png")).build()
         private fun matchRange(x: Int, t: Int, range: Int): Boolean = x.isRange(t.safeLimitMinus(range, 0), t.safeLimitPlus(range, 0xff))
 
         private val Int.red: Int get() = (this shr 16) and 0xff
@@ -117,46 +145,5 @@ class OreProcessorHatch(holder: IMachineBlockEntity) :
         private fun Int.safeLimitPlus(plus: Int, limit: Int): Int = min((this + plus), limit)
         private fun Int.safeLimitMinus(minus: Int, limit: Int): Int = max((this - minus), limit)
 
-        private class HatchChannelGroup(x: Int, y: Int, t: Int, v: Supplier<Int>, c: Consumer<Int>) : WidgetGroup(x, y, 160, 26) {
-            private val sliderTextFieldWidget: SliderTextFieldWidget
-            private val lamp1: ImageWidget
-            private val lamp2: ImageWidget
-            private val lamp3: ImageWidget
-            private val target: Int = t
-
-            init {
-                this.sliderTextFieldWidget = SliderTextFieldWidget(
-                    6,
-                    2,
-                    80,
-                    24,
-                    0,
-                    255,
-                    v,
-                    c
-                ) { this.update(it) }
-                this.lamp1 = ImageWidget(100, 1, 20, 20, if (matchFirst(v.get())) GREEN_LAMP else RED_LAMP)
-                this.lamp2 = ImageWidget(122, 1, 20, 20, if (matchSecond(v.get())) GREEN_LAMP else RED_LAMP)
-                this.lamp3 = ImageWidget(144, 1, 20, 20, if (matchThird(v.get())) GREEN_LAMP else RED_LAMP)
-
-                this.addWidget(this.sliderTextFieldWidget).addWidget(lamp1).addWidget(lamp2).addWidget(lamp3)
-            }
-
-            private fun matchFirst(x: Int): Boolean = matchRange(x, target, 80)
-            private fun matchSecond(x: Int): Boolean = matchRange(x, target, 35)
-            private fun matchThird(x: Int): Boolean = matchRange(x, target, 5)
-
-            private fun update(x: Int) = writeUpdateInfo(16) { it.writeInt(x) }
-
-            override fun readUpdateInfo(id: Int, buffer: FriendlyByteBuf) {
-                super.readUpdateInfo(id, buffer)
-                if (id == 16) {
-                    val value = buffer.readInt()
-                    lamp1.setImage { if (matchFirst(value)) GREEN_LAMP else RED_LAMP }
-                    lamp2.setImage { if (matchSecond(value)) GREEN_LAMP else RED_LAMP }
-                    lamp3.setImage { if (matchThird(value)) GREEN_LAMP else RED_LAMP }
-                }
-            }
-        }
     }
 }

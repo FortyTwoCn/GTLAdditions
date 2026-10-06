@@ -2,8 +2,8 @@ package com.gtladd.gtladditions.client.render.machine.heart
 
 import net.minecraft.core.Direction
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 
 @OnlyIn(Dist.CLIENT)
 object HeartBlackHoleVisualConfig {

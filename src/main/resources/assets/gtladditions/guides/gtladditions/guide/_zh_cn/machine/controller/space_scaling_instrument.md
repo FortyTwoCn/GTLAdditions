@@ -1,8 +1,8 @@
 ---
 navigation:
   title: 空间缩放仪
-  icon: stone
-  parent: controller/multiblock_controller.md
+  icon: space_scaling_instrument
+  parent: machine/controller/multiblock_controller.md
   position: 30
 categories:
   - 多方块结构主机

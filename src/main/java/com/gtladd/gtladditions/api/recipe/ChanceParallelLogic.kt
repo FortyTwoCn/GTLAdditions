@@ -1,336 +1,176 @@
 package com.gtladd.gtladditions.api.recipe
 
-import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
-import com.gregtechceu.gtceu.api.recipe.chance.boost.ChanceBoostFunction
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
-import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredient
-import com.gregtechceu.gtceu.utils.FluidStackHashStrategy
-import com.gregtechceu.gtceu.utils.IngredientEquality
+import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.utils.ItemStackHashStrategy
 import com.hepdd.gtmthings.common.block.machine.trait.CatalystFluidStackHandler
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import it.unimi.dsi.fastutil.objects.*
-import net.minecraft.world.item.crafting.Ingredient
+import it.unimi.dsi.fastutil.objects.Object2IntMap
+import it.unimi.dsi.fastutil.objects.Object2LongMap
+import it.unimi.dsi.fastutil.objects.Object2LongMaps
+import it.unimi.dsi.fastutil.objects.Object2LongOpenCustomHashMap
+import net.minecraft.world.item.ItemStack
+import net.neoforged.neoforge.fluids.FluidStack
 import org.gtlcore.gtlcore.api.machine.multiblock.ParallelMachine
 import org.gtlcore.gtlcore.api.machine.trait.IRecipeCapabilityMachine
 import org.gtlcore.gtlcore.api.machine.trait.MEPatternRecipeHandlePart
 import org.gtlcore.gtlcore.api.machine.trait.RecipeHandlePart
+import org.gtlcore.gtlcore.api.recipe.IGTRecipe
+import org.gtlcore.gtlcore.api.recipe.NativeContentState
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidParallelLogic
 import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
 import org.gtlcore.gtlcore.utils.NumberUtils
-import org.gtlcore.gtlcore.utils.datastructure.Int128
-import java.util.function.Predicate
+import java.math.BigInteger
 
+/** Read-only quantity bounds for the matrix's reduced input chances on native, sized ingredients. */
 object ChanceParallelLogic {
-
-    private class ContentAmountPair(
-        val chance: Int,
-        val maxChance: Int
-    ) {
-        var amount: Long = 0
-            private set
-
-        fun addTo(amount: Long) {
-            this.amount += amount
-        }
-    }
-
     fun getMaxParallel(
-        holder: ParallelMachine,
-        recipe: GTRecipe,
-        parallelAmount: Long,
-        chanceCaches: Map<RecipeCapability<*>, Object2IntMap<*>>,
-        boostFunction: ChanceBoostFunction,
-        baseTier: Int,
-        machineTier: Int
+        holder: ParallelMachine, recipe: GTRecipe, parallelAmount: Long,
+        chanceCaches: Map<RecipeCapability<*>, Object2IntMap<*>>, baseTier: Int, machineTier: Int
     ): Long {
-        var parallel = parallelAmount
-        for (cap in recipe.inputs.keys) {
-            if (cap == ItemRecipeCapability.CAP) {
-                parallel = minOf(
-                    parallel,
-                    getInputItemParallel(
-                        holder,
-                        recipe,
-                        parallel,
-                        chanceCaches[ItemRecipeCapability.CAP],
-                        boostFunction,
-                        baseTier,
-                        machineTier
-                    )
-                )
-                if (parallel == 0L) break
-            } else if (cap == FluidRecipeCapability.CAP) {
-                parallel = minOf(
-                    parallel,
-                    getInputFluidParallel(
-                        holder,
-                        recipe,
-                        parallel,
-                        chanceCaches[FluidRecipeCapability.CAP],
-                        boostFunction,
-                        baseTier,
-                        machineTier
-                    )
-                )
-                if (parallel == 0L) break
-            }
+        var parallel = parallelAmount.coerceAtLeast(0)
+        if (recipe.inputs.containsKey(ItemRecipeCapability.CAP)) {
+            parallel = getInputItemParallel(holder, recipe, parallel, chanceCaches[ItemRecipeCapability.CAP], baseTier, machineTier)
+        }
+        if (parallel > 0 && recipe.inputs.containsKey(FluidRecipeCapability.CAP)) {
+            parallel = getInputFluidParallel(holder, recipe, parallel, chanceCaches[FluidRecipeCapability.CAP], baseTier, machineTier)
         }
         return parallel
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun getInputItemParallel(
-        holder: ParallelMachine,
-        recipe: GTRecipe,
-        parallelAmount: Long,
-        cache: Object2IntMap<*>?,
-        boostFunction: ChanceBoostFunction,
-        baseTier: Int,
-        machineTier: Int
+        holder: ParallelMachine, recipe: GTRecipe, parallelAmount: Long,
+        cache: Object2IntMap<*>?, baseTier: Int, machineTier: Int
     ): Long {
-        if (parallelAmount <= 1) return parallelAmount
-        if (holder !is IRecipeCapabilityMachine) return 1
+        if (parallelAmount <= 0) return 0
+        if (holder !is IRecipeCapabilityMachine) return minOf(1, parallelAmount)
         if (holder.emptyRecipeHandlePart()) return 0
-
-        val guaranteedMap = Object2LongOpenCustomHashMap(
-            IngredientEquality.IngredientHashStrategy.INSTANCE
-        )
-        val chanceMap = Object2ReferenceOpenCustomHashMap<Ingredient, ContentAmountPair>(
-            IngredientEquality.IngredientHashStrategy.INSTANCE
-        )
-        val confirmMEStock = holder.needConfirmMEStock()
-
-        for (content in recipe.getInputContents(ItemRecipeCapability.CAP)) {
-            if (content.chance <= 0) continue
-            val ingredient = ItemRecipeCapability.CAP.of(content.content)
-            val ingredientCount = when (ingredient) {
-                is LongIngredient -> ingredient.actualAmount
-                is SizedIngredient -> ingredient.amount.toLong()
-                else -> 1L
-            }
-
-            if (content.chance >= content.maxChance) {
-                guaranteedMap.addTo(ingredient, ingredientCount)
-            } else {
-                val boostedChance = boostFunction.getBoostedChance(content, baseTier, machineTier)
-                if (boostedChance >= content.maxChance) {
-                    guaranteedMap.addTo(ingredient, ingredientCount)
-                } else {
-                    chanceMap.computeIfAbsent(ingredient) {
-                        ContentAmountPair(boostedChance, content.maxChance)
-                    }.addTo(ingredientCount)
-                }
+        val inventory = Object2LongOpenCustomHashMap<ItemStack>(ItemStackHashStrategy.comparingAllButCount())
+        val confirmStock = holder.needConfirmMEStock()
+        val contents: Object2LongMap<ItemStack>? = when (val handle = holder.getActiveRecipeHandle(recipe)) {
+            is MEPatternRecipeHandlePart -> handle.getMEContent(ItemRecipeCapability.CAP, recipe)
+            is RecipeHandlePart -> handle.getSelfContent(ItemRecipeCapability.CAP, confirmStock)
+            else -> holder.sharedRecipeHandlePart?.getSelfContent(ItemRecipeCapability.CAP, confirmStock)
+        }
+        contents?.let {
+            for (entry in Object2LongMaps.fastIterable(it)) {
+                inventory.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
             }
         }
-
-        if (guaranteedMap.isEmpty() && chanceMap.isEmpty()) return parallelAmount
-
-        val ingredientStacks = Object2LongOpenCustomHashMap(
-            ItemStackHashStrategy.comparingAllButCount()
-        )
-
-        when (val handle = holder.getActiveRecipeHandle(recipe)) {
-            is MEPatternRecipeHandlePart -> {
-                for (entry in Object2LongMaps.fastIterable(handle.getMEContent(ItemRecipeCapability.CAP, recipe))) {
-                    ingredientStacks.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
-                }
-            }
-
-            is RecipeHandlePart -> {
-                for (entry in Object2LongMaps.fastIterable(handle.getSelfContent(ItemRecipeCapability.CAP, confirmMEStock))) {
-                    ingredientStacks.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
-                }
-            }
-
-            else -> {
-                val sharedRecipeHandlePart = holder.sharedRecipeHandlePart
-                if (sharedRecipeHandlePart != null) {
-                    for (entry in Object2LongMaps.fastIterable(
-                        sharedRecipeHandlePart.getSelfContent(ItemRecipeCapability.CAP, confirmMEStock)
-                    )) {
-                        ingredientStacks.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
-                    }
-                }
-            }
-        }
-
-        return calculateWithChance(
-            parallelAmount,
-            guaranteedMap,
-            chanceMap,
-            ingredientStacks,
-            cache as? Object2IntMap<Ingredient>
-        )
+        return limitItemInputs(recipe.getInputContents(ItemRecipeCapability.CAP), inventory, parallelAmount,
+            cache, baseTier, machineTier, IGTRecipe.of(recipe).realParallels)
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun getInputFluidParallel(
-        holder: ParallelMachine,
-        recipe: GTRecipe,
-        parallelAmount: Long,
-        cache: Object2IntMap<*>?,
-        boostFunction: ChanceBoostFunction,
-        baseTier: Int,
-        machineTier: Int
+        holder: ParallelMachine, recipe: GTRecipe, parallelAmount: Long,
+        cache: Object2IntMap<*>?, baseTier: Int, machineTier: Int
     ): Long {
-        if (parallelAmount <= 1) return parallelAmount
-        if (holder !is IRecipeCapabilityMachine) return 1
+        if (parallelAmount <= 0) return 0
+        if (holder !is IRecipeCapabilityMachine) return minOf(1, parallelAmount)
         if (holder.emptyRecipeHandlePart()) return 0
-
-        val guaranteedFluidMap = Object2LongOpenHashMap<FluidIngredient>()
-        val chanceFluidMap = Object2ReferenceOpenHashMap<FluidIngredient, ContentAmountPair>()
-        val confirmMEStock = holder.needConfirmMEStock()
-
-        for (content in recipe.getInputContents(FluidRecipeCapability.CAP)) {
-            if (content.chance <= 0) continue
-            val fluidInput = FluidRecipeCapability.CAP.of(content.content)
-
-            if (content.chance >= content.maxChance) {
-                guaranteedFluidMap.addTo(fluidInput, fluidInput.amount)
-            } else {
-                val boostedChance = boostFunction.getBoostedChance(content, baseTier, machineTier)
-                if (boostedChance >= content.maxChance) {
-                    guaranteedFluidMap.addTo(fluidInput, fluidInput.amount)
-                } else {
-                    chanceFluidMap.computeIfAbsent(fluidInput) {
-                        ContentAmountPair(boostedChance, content.maxChance)
-                    }.addTo(fluidInput.amount)
-                }
-            }
+        val inventory = LongFluidParallelLogic.newFluidAmountMap()
+        val confirmStock = holder.needConfirmMEStock()
+        val handle = holder.getActiveRecipeHandle(recipe)
+        val contents: Object2LongMap<FluidStack>? = when (handle) {
+            is MEPatternRecipeHandlePart -> handle.getMEContent(FluidRecipeCapability.CAP, recipe)
+            is RecipeHandlePart -> if (holder.isDistinct) handle.getSelfContent(FluidRecipeCapability.CAP, confirmStock)
+                else handle.getContentWithShared(FluidRecipeCapability.CAP, confirmStock)
+            else -> null
         }
-
-        if (guaranteedFluidMap.isEmpty() && chanceFluidMap.isEmpty()) return parallelAmount
-
-        val ingredientStacks = Object2LongOpenCustomHashMap(FluidStackHashStrategy.comparingAllButAmount())
-
-        when (val handle = holder.getActiveRecipeHandle(recipe)) {
-            is MEPatternRecipeHandlePart -> {
-                for (entry in Object2LongMaps.fastIterable(handle.getMEContent(FluidRecipeCapability.CAP, recipe))) {
-                    ingredientStacks.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
-                }
+        if (contents != null) {
+            for (entry in Object2LongMaps.fastIterable(contents)) {
+                inventory.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
             }
-
-            is RecipeHandlePart -> {
-                val content = if (holder.isDistinct) {
-                    handle.getSelfContent(FluidRecipeCapability.CAP, confirmMEStock)
-                } else {
-                    handle.getContentWithShared(FluidRecipeCapability.CAP, confirmMEStock)
-                }
-                for (entry in Object2LongMaps.fastIterable(content)) {
-                    ingredientStacks.mergeLong(entry.key, entry.longValue, NumberUtils::saturatedAdd)
-                }
-            }
-
-            else -> {
-                val sharedRecipeHandlePart = holder.sharedRecipeHandlePart
-                if (sharedRecipeHandlePart != null) {
-                    for (handler in sharedRecipeHandlePart.getCapability(FluidRecipeCapability.CAP)) {
-                        if (handler is CatalystFluidStackHandler) continue
-                        for (obj in handler.contents) {
-                            if (obj is FluidStack) {
-                                ingredientStacks.mergeLong(obj, obj.amount, NumberUtils::saturatedAdd)
-                            }
-                        }
+        } else if (handle !is RecipeHandlePart && handle !is MEPatternRecipeHandlePart) {
+            holder.sharedRecipeHandlePart?.let { shared ->
+                for (handler in shared.getCapability(FluidRecipeCapability.CAP)) {
+                    if (handler is CatalystFluidStackHandler) continue
+                    for (stack in handler.contents) {
+                        // Native handlers expose sized ingredients; retain exact Core long quantities.
+                        val sized = FluidRecipeCapability.CAP.of(stack)
+                        val fluid = LongFluidIngredient.matchingIngredient(sized).getStacks().firstOrNull { !it.isEmpty } ?: continue
+                        inventory.mergeLong(fluid, LongFluidIngredient.amount(sized), NumberUtils::saturatedAdd)
                     }
                 }
             }
         }
-
-        return calculateWithChance(
-            parallelAmount,
-            guaranteedFluidMap,
-            chanceFluidMap,
-            ingredientStacks,
-            cache as? Object2IntMap<FluidIngredient>
-        )
+        return limitFluidInputs(recipe.getInputContents(FluidRecipeCapability.CAP), inventory, parallelAmount,
+            cache, baseTier, machineTier, IGTRecipe.of(recipe).realParallels)
     }
 
-    private fun <I, S> calculateWithChance(
-        parallelLimit: Long,
-        guaranteedMap: Object2LongMap<I>,
-        chanceMap: Object2ReferenceMap<I, ContentAmountPair>,
-        ingredientStacks: Object2LongMap<S>,
-        cache: Object2IntMap<I>?
-    ): Long where I : Predicate<S> {
-        if (ingredientStacks.isEmpty()) return 0
+    @JvmStatic
+    fun limitItemInputs(
+        contents: List<Content>, inventory: Object2LongMap<ItemStack>, limit: Long,
+        cache: Object2IntMap<*>?, recipeTier: Int, machineTier: Int, sourceRuns: Long
+    ): Long = limitInputs(contents, inventory, limit, cache, recipeTier, machineTier, sourceRuns,
+        { LongIngredient.amount(ItemRecipeCapability.CAP.of(it.content)) },
+        { content, stack -> LongIngredient.matchingIngredient(ItemRecipeCapability.CAP.of(content.content)).test(stack) })
 
-        var parallel = parallelLimit
+    @JvmStatic
+    fun limitFluidInputs(
+        contents: List<Content>, inventory: Object2LongMap<FluidStack>, limit: Long,
+        cache: Object2IntMap<*>?, recipeTier: Int, machineTier: Int, sourceRuns: Long
+    ): Long = limitInputs(contents, inventory, limit, cache, recipeTier, machineTier, sourceRuns,
+        { LongFluidIngredient.amount(FluidRecipeCapability.CAP.of(it.content)) },
+        { content, stack -> LongFluidIngredient.matchingIngredient(FluidRecipeCapability.CAP.of(content.content)).test(stack) })
 
-        // First, calculate parallel limit for guaranteed inputs (traditional method)
-        for (entry in Object2LongMaps.fastIterable(guaranteedMap)) {
-            val needed = entry.longValue
-            val available = findAvailable(entry.key, ingredientStacks)
-            if (available < needed) return 0
-
-            parallel = minOf(parallel, available / needed)
+    private fun <S> limitInputs(
+        contents: List<Content>, inventory: Object2LongMap<S>, limit: Long,
+        cache: Object2IntMap<*>?, recipeTier: Int, machineTier: Int, sourceRuns: Long,
+        amount: (Content) -> Long, matches: (Content, S) -> Boolean
+    ): Long {
+        if (limit <= 0) return 0
+        require(sourceRuns > 0) { "Recipe run count must be positive" }
+        if (contents.isEmpty()) return limit
+        // Reserve reusable inputs first; overlapping predicates draw from the same working ledger.
+        val requirements = contents.sortedBy { if (it.chance == 0) 0 else 1 }
+        val stacks = Object2LongMaps.fastIterable(inventory).map { it.key to it.longValue.coerceAtLeast(0) }
+        val cached = requirements.map {
+            require(it.maxChance > 0) { "Chance denominator must be positive" }
+            // A missing cache uses the largest initial roll. Matching never advances RNG or caches.
+            if (cache?.containsKey(it.content) == true) cache.getInt(it.content) else it.maxChance - 1
         }
-
-        // For chanced inputs, calculate maximum parallel based on roll simulation
-        for (entry in Object2ReferenceMaps.fastIterable(chanceMap)) {
-            val chanceNeeded = entry.value
-            val ingredient = entry.key
-
-            val available = findAvailable(ingredient, ingredientStacks)
-            if (available < chanceNeeded.amount) return 0
-
-            // Get or generate cached chance value
-            val cached = getGuaranteedCachedChanceValue(ingredient, chanceNeeded.maxChance, cache)
-
-            // parallel <= ((maxOutputs + 1) * maxChance - 1 - cached) / chance
-            // This ensures: floor((parallel * chance + cached) / maxChance) <= maxOutputs
-            val maxOutputs = available / chanceNeeded.amount
-            var maxParallelForThis = (
-                Int128(maxOutputs).add(1L)
-                    .multiply(Int128(chanceNeeded.maxChance.toLong()))
-                    .subtract(Int128((1 + cached).toLong()))
-                    .divide(chanceNeeded.chance.toLong()) as Number
-                ).toLong()
-
-            // Ensure non-negative
-            if (maxParallelForThis < 0) maxParallelForThis = 0
-
-            parallel = minOf(parallel, maxParallelForThis)
-        }
-
-        return parallel
-    }
-
-    private fun <I, S> findAvailable(
-        ingredient: I,
-        stacks: Object2LongMap<S>
-    ): Long where I : Predicate<S> {
-        val it = Object2LongMaps.fastIterator(stacks)
-        while (it.hasNext()) {
-            val input = it.next()
-            if (ingredient.test(input.key)) {
-                val value = input.longValue
-                it.remove()
-                return value
+        fun canSupply(parallels: Long): Boolean {
+            val remaining = stacks.map { it.second }.toLongArray()
+            for ((index, content) in requirements.withIndex()) {
+                val quantity = amount(content)
+                if (quantity <= 0) continue
+                val runs = when {
+                    content.chance == 0 -> BigInteger.ONE
+                    content.chance >= content.maxChance -> BigInteger.valueOf(parallels)
+                    else -> {
+                        val chance = NativeContentState.boostedChance(content, recipeTier, machineTier).coerceAtLeast(0)
+                        val totalChance = BigInteger.valueOf(parallels).multiply(BigInteger.valueOf(sourceRuns))
+                            .multiply(BigInteger.valueOf(chance.toLong()))
+                        val portions = totalChance.divideAndRemainder(BigInteger.valueOf(content.maxChance.toLong()))
+                        val bonus = portions[1].add(BigInteger.valueOf(cached[index].toLong()))
+                            .divide(BigInteger.valueOf(content.maxChance.toLong())).max(BigInteger.ZERO)
+                        // The unrolled, one-run ingredient must also satisfy Core's input plan.
+                        portions[0].add(bonus).max(BigInteger.ONE)
+                    }
+                }
+                var needed = runs.multiply(BigInteger.valueOf(quantity))
+                if (needed > BigInteger.valueOf(Long.MAX_VALUE)) return false
+                for (slot in stacks.indices) {
+                    if (remaining[slot] == 0L || !matches(content, stacks[slot].first)) continue
+                    val used = minOf(remaining[slot], needed.longValueExact())
+                    remaining[slot] -= used
+                    needed = needed.subtract(BigInteger.valueOf(used))
+                    if (needed.signum() == 0) break
+                }
+                if (needed.signum() != 0) return false
             }
+            return true
         }
-        return 0
-    }
-
-    private fun <I> getGuaranteedCachedChanceValue(
-        content: I,
-        maxChance: Int,
-        cache: Object2IntMap<I>?
-    ): Int {
-        if (cache == null) {
-            return GTValues.RNG.nextInt(maxChance)
+        var low = 0L
+        var high = limit
+        while (low < high) {
+            val middle = low + (high - low) / 2 + (high - low) % 2
+            if (canSupply(middle)) low = middle else high = middle - 1
         }
-
-        return if (cache.containsKey(content)) {
-            cache.getInt(content)
-        } else {
-            // Generate random and save to cache for consistency
-            val randomValue = GTValues.RNG.nextInt(maxChance)
-            cache.put(content, randomValue)
-            randomValue
-        }
+        return low
     }
 }

@@ -1,5 +1,18 @@
 # GTLAdditions
 
+
+## 1.21.1 原生预发布
+
+[本次发行版](https://github.com/FortyTwoCn/GTLAdditions/releases/tag/neoforge-1.21.1-3.2.8Custom-fix2-preview.1) 提供原生模组 JAR。
+完整安装可使用 [native-runtime-mods.zip](https://github.com/FortyTwoCn/GTLCore/releases/download/neoforge-1.21.1-1.2.3.2-fix3-preview.1/native-runtime-mods.zip)
+与 [required-kubejs-profile.zip](https://github.com/FortyTwoCn/GTLCore/releases/download/neoforge-1.21.1-1.2.3.2-fix3-preview.1/required-kubejs-profile.zip)，
+其中包含两个模组、固定依赖及必要注册脚本和资产。两个发行版均附有安装说明、完整源码及验证证据。
+运行环境为 Minecraft 1.21.1 / NeoForge 21.1.248 / Java 21。
+
+完整联机压力流程曾在两版 Temurin Java 21 的 `InventoryChangeTrigger` C2 编译代码中
+发生 SIGSEGV，根因未确认；该压力验收使用显式诊断 JIT 参数，普通客户端默认 JIT 验收通过。
+诊断参数不进入生产 JAR。覆盖范围与限制见迁移文档及发行版证据。
+
 [English](README.md)
 
 > [!TIP]
@@ -9,22 +22,24 @@
 
 ## 前言
 
-GTLAdditions 基于 Minecraft Forge 1.20.1 与 GregTech Leisure 生态开发。在保留原版硬核科技框架的同时，扩展了 GTCEu/GTLCore 的后期流程，加入大量创新设计与平衡性优化，为玩家带来更流畅的自动化体验，以及一个更高难度的终极目标。
+当前工作树是 GTLAdditions 3.2.8Custom-fix2 的 Minecraft 1.21.1 NeoForge 原生移植，保留围绕 GTCEu/GTLCore 的后期机器、部件和联动。固定源码、构建命令、运行证据和覆盖边界见 [migration/README.md](migration/README.md)。
 
 ## 前置需求
 
 | 需求 | 版本 / 范围 |
 | --- | --- |
-| Java | `>= 21` |
-| GTLCore (`gtlcore`) | `>= 1.2.3.2-fix2` |
-| Stargate Journey (`sgjourney`) | 仅支持 `0.6.44` |
-| Oculus (`oculus`) | `>= 1.7.0`，客户端侧 |
+| Minecraft / NeoForge | `1.21.1` / `21.1.248` |
+| Java | `21` |
+| GTLCore (`gtlcore`) | 原生 `1.2.3.2-fix3` |
+| GTCEu | `8.0.0`，固定 1.21 API 参考 |
+| Stargate Journey (`sgjourney`) | 原生 `0.6.49` |
+| 其他依赖 | 固定原生运行闭包，见迁移文档 |
 
 ## 安装流程
 
-1. 在[此处](https://pan.quark.cn/s/d13f899cdab5#/list/share)或[这里](https://drive.google.com/drive/folders/1Ga_w-TmDKNru0me1kAM_gXyedz_Ne4-x)下载 `GregTech Leisure`，然后使用你的 Minecraft 启动器安装它。
-2. 删除其中的 `GTLCore`，接着在[这里](https://github.com/AaAdoniSsS/GTLCore)下载并安装最新版 GTLCore。
-3. 将 GTLAdditions 添加到 `mods` 文件夹中。
+1. 使用 Java 21 建立 Minecraft 1.21.1 / NeoForge 21.1.248 游戏配置。
+2. 安装原生 Core/Additions JAR 和迁移文档所列的固定原生依赖闭包。
+3. 按文档准备来源和哈希可核对的 KubeJS 注册/资产配置，需要时加入原始太空电梯配方片段。完整 Forge 整合包不能直接作为原生安装配置。
 4. 使用 JEI 和游戏内 GTLAdditions 指南查询配方、结构与功能细节。
 
 ## 内容
@@ -127,24 +142,16 @@ GTLAdditions 基于 Minecraft Forge 1.20.1 与 GregTech Leisure 生态开发。�
 
 ## 构建 / 开发
 
-```bash
-# 构建模组
-./gradlew build
+将两个仓库的 `1.21.1` 分支放在相邻的 `GTLCore/`、`GTLAdditions/` 目录中。
+在 Java 21 环境先准备固定原生源码依赖并构建：
 
-# 启动开发客户端
-./gradlew runClient
-
-# 启动开发服务端
-./gradlew runServer
-
-# 生成数据
-./gradlew runData
-
-# 检查格式
-./gradlew spotlessCheck
-
-# 应用格式
-./gradlew spotlessApply
+```sh
+cd ../GTLCore
+python3 migration/prepare_native_workspace.py prepare --build-modularui
+./gradlew assemble check verifyGtceuBaseline verifyNativeRuntime --no-daemon
+cd ../GTLAdditions
+./gradlew assemble check exportNativeRuntime --no-daemon
 ```
 
-如果当前检出没有 Gradle wrapper，请改用 `gradle` 执行对应任务。
+执行 `runClient`、`runServer` 或 `runData` 前，需要在对应运行目录准备必要的 KubeJS 注册配置。
+固定源码基线、精确构建与验证入口见 [migration/README.md](migration/README.md)。

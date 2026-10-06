@@ -6,7 +6,7 @@ navigation:
 categories:
   - 配方
 item_ids:
-  - expatternprovider:fishbig
+  - extendedae:fishbig
   - avaritia:ultimate_stew
   - avaritia:cosmic_meatballs
   - avaritia:endest_pearl

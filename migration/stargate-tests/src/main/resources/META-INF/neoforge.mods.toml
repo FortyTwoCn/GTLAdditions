@@ -1,0 +1,11 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "LGPL-3.0"
+[[mods]]
+modId = "gtladditions_stargate_test"
+version = "1"
+displayName = "GTLAdditions Stargate migration validation"
+[[mixins]]
+config = "gtladditions.stargate-test.mixins.json"
+[[mixins]]
+config = "gtladditions.recipe-test.mixins.json"

@@ -1,12 +1,10 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.RecipeHelper
 import com.gregtechceu.gtceu.api.recipe.modifier.ParallelLogic
@@ -15,12 +13,7 @@ import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import org.gtlcore.gtlcore.api.machine.ISuspendableMachine
@@ -32,12 +25,13 @@ import org.gtlcore.gtlcore.utils.Registries.getItem
 import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.BiPredicate
 
-class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
-    GTLAddWorkableElectricMultipleRecipesMachine(holder),
-    IMachineLife {
+class BiologicalSimulationLaboratory(holder: BlockEntityCreationInfo) :
+    GTLAddWorkableElectricMultipleRecipesMachine(holder, BiologicalSimulationLaboratoryLogic()) {
 
-    @field:Persisted
-    val machineStorage: NotifiableItemStackHandler = createMachineStorage()
+    @field:SaveField
+    val machineStorage: NotifiableItemStackHandler = attachTrait(createMachineStorage()).also {
+        it.addChangedListener(::recalculateParameters)
+    }
 
     private var reductionEUt = 1.0
     private var reductionDuration = 1.0
@@ -45,24 +39,21 @@ class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
     private var isMultiRecipe = false
 
     fun createMachineStorage(): NotifiableItemStackHandler {
-        val handler = NotifiableItemStackHandler(this, 1, IO.NONE, IO.BOTH) { _ ->
-            object : ItemStackTransfer(1) {
+        val handler = NotifiableItemStackHandler(1, IO.NONE, IO.BOTH) { _ ->
+            object : com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler(1) {
                 override fun getSlotLimit(slot: Int): Int = 1
-                override fun onContentsChanged() {
-                    recalculateParameters()
-                }
             }
         }
-        handler.setFilter { itemStack: ItemStack? -> this.filter(itemStack!!) }
+        handler.setFilter(::filter)
         return handler
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = BiologicalSimulationLaboratoryLogic(this)
 
     override fun getRecipeLogic(): BiologicalSimulationLaboratoryLogic = super.getRecipeLogic() as BiologicalSimulationLaboratoryLogic
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         recalculateParameters()
     }
 
@@ -78,20 +69,28 @@ class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
 
     fun isMultiRecipeEnabled(): Boolean = isMultiRecipe
 
-    override fun createUIWidget(): Widget {
-        val widget = super.createUIWidget()
-        if (widget is WidgetGroup) {
-            val size = widget.size
-            widget.addWidget(
-                SlotWidget(machineStorage.storage, 0, size.width - 30, size.height - 30, true, true)
-                    .setBackground(GuiTextures.SLOT)
-            )
-        }
-        return widget
+    override fun buildMainUI(main: brachy.modularui.widget.ParentWidget<*>,
+                             data: brachy.modularui.factory.PosGuiData,
+                             manager: brachy.modularui.value.sync.PanelSyncManager,
+                             settings: brachy.modularui.screen.UISettings) {
+        super.buildMainUI(main, data, manager, settings)
+        val group = brachy.modularui.widgets.slot.SlotGroup("biologicalCatalyst", 1)
+        manager.registerSlotGroup(group)
+        main.child(brachy.modularui.widgets.slot.ItemSlot()
+            .slot(brachy.modularui.widgets.slot.ModularSlot(machineStorage.storage, 0).slotGroup(group))
+            .right(10).bottom(10))
     }
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("BiologicalSimulationLaboratoryStatus", syncManager, {
+            mutableListOf<Component>().also(::collectBiologicalSimulationLaboratoryStatusText)
+        }, 130)
+    )
+
+    private fun collectBiologicalSimulationLaboratoryStatusText(textList: MutableList<Component>) {
+        
         if (this.isFormed) {
             textList.add(("gtceu.machine.biological_simulation_laboratory.gui.tooltip." + if (isMultiRecipe) 1 else 0).toComponent)
             textList.add(
@@ -121,13 +120,10 @@ class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
         this@BiologicalSimulationLaboratory.reductionDuration = reductionDuration
     }
 
-    override fun onMachineRemoved() = clearInventory(machineStorage)
 
     override fun getMaxParallel(): Int = maxParallels
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
-    class BiologicalSimulationLaboratoryLogic(machine: BiologicalSimulationLaboratory) : GTLAddMultipleRecipesLogic(machine, BEFORE_RECIPE) {
+    class BiologicalSimulationLaboratoryLogic() : GTLAddMultipleRecipesLogic(BEFORE_RECIPE) {
 
         override fun getMachine(): BiologicalSimulationLaboratory = super.getMachine() as BiologicalSimulationLaboratory
 
@@ -152,15 +148,15 @@ class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
 
         val oneRecipe: GTRecipe?
             get() {
-                if (!machine.hasProxies()) return null
+                if (!machine.hasCapabilityProxies()) return null
                 val lab = getMachine()
-                var recipe = machine.recipeType.lookup.find(machine, this::checkRecipe) ?: return null
-                recipe = ParallelLogic.applyParallel(
+                var recipe = machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull() ?: return null
+                recipe = org.gtlcore.gtlcore.api.recipe.CoreRecipeModifiers.accurateParallel(
                     lab,
                     recipe,
                     parallel.maxParallel,
                     false
-                ).first
+                ).first ?: return null
                 return GTLRecipeModifiers.reduction(
                     lab,
                     recipe,
@@ -213,7 +209,5 @@ class BiologicalSimulationLaboratory(holder: IMachineBlockEntity) :
                 true
             }
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(BiologicalSimulationLaboratory::class.java, GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER)
     }
 }

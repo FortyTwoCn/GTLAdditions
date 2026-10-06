@@ -1,4 +1,4 @@
-﻿package com.gtladd.gtladditions.utils
+package com.gtladd.gtladditions.utils
 
 import com.gregtechceu.gtceu.client.renderer.GTRenderTypes
 import com.gtladd.gtladditions.client.render.withPose
@@ -13,9 +13,9 @@ import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.FastColor
 import net.minecraft.util.RandomSource
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.model.data.ModelData
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.model.data.ModelData
 import org.gtlcore.gtlcore.client.ClientUtil
 import org.gtlcore.gtlcore.client.GlobalRenderClock
 import org.joml.Quaternionf
@@ -239,7 +239,7 @@ object RenderUtils {
             val tiltDir = motionParams.tiltDirection
             mulPose(Quaternionf().fromAxisAngleRad(tiltDir.x, tiltDir.y, tiltDir.z, tiltAngleRad))
 
-            val vertexConsumer = buffer.getBuffer(GTRenderTypes.getLightRing())
+            val vertexConsumer = buffer.getBuffer(GTRenderTypes.lightRing())
             val matrix = last().pose()
 
             val radius = motionParams.radius
@@ -264,25 +264,21 @@ object RenderUtils {
                 val perpX2 = -sin2 * lineWidth
                 val perpZ2 = cos2 * lineWidth
 
-                vertexConsumer.vertex(matrix, x1 - perpX1, 0f, z1 - perpZ1)
-                    .color(255, 255, 255, 200)
-                    .uv(0f, 0f)
-                    .endVertex()
+                vertexConsumer.addVertex(matrix, x1 - perpX1, 0f, z1 - perpZ1)
+                    .setColor(255, 255, 255, 200)
+                    .setUv(0f, 0f)
 
-                vertexConsumer.vertex(matrix, x1 + perpX1, 0f, z1 + perpZ1)
-                    .color(255, 255, 255, 200)
-                    .uv(1f, 0f)
-                    .endVertex()
+                vertexConsumer.addVertex(matrix, x1 + perpX1, 0f, z1 + perpZ1)
+                    .setColor(255, 255, 255, 200)
+                    .setUv(1f, 0f)
 
-                vertexConsumer.vertex(matrix, x2 + perpX2, 0f, z2 + perpZ2)
-                    .color(255, 255, 255, 200)
-                    .uv(1f, 1f)
-                    .endVertex()
+                vertexConsumer.addVertex(matrix, x2 + perpX2, 0f, z2 + perpZ2)
+                    .setColor(255, 255, 255, 200)
+                    .setUv(1f, 1f)
 
-                vertexConsumer.vertex(matrix, x2 - perpX2, 0f, z2 - perpZ2)
-                    .color(255, 255, 255, 200)
-                    .uv(0f, 1f)
-                    .endVertex()
+                vertexConsumer.addVertex(matrix, x2 - perpX2, 0f, z2 - perpZ2)
+                    .setColor(255, 255, 255, 200)
+                    .setUv(0f, 1f)
             }
         }
     }

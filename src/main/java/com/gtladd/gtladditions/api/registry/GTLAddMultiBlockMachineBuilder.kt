@@ -1,76 +1,64 @@
 package com.gtladd.gtladditions.api.registry
 
-import com.gregtechceu.gtceu.api.block.IMachineBlock
 import com.gregtechceu.gtceu.api.data.RotationState
-import com.gregtechceu.gtceu.api.item.MetaMachineItem
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.MultiblockMachineDefinition
+import com.gregtechceu.gtceu.api.machine.multiblock.CoilWorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
-import com.gregtechceu.gtceu.api.registry.registrate.MultiblockMachineBuilder
-import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import net.minecraft.core.BlockPos
+import com.gregtechceu.gtceu.api.registry.registrate.builder.MultiblockMachineBuilder
+import com.gregtechceu.gtceu.utils.FormattingUtil
+import brachy.modularui.api.drawable.Text
+import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
-import net.minecraft.world.item.Item
-import net.minecraft.world.level.block.entity.BlockEntityType
-import net.minecraft.world.level.block.state.BlockBehaviour
-import net.minecraft.world.level.block.state.BlockState
-import org.apache.commons.lang3.function.TriFunction
-import org.gtlcore.gtlcore.common.data.GTLMachines
-import java.util.function.BiFunction
-import java.util.function.Function
+import java.util.function.Supplier
 
-class GTLAddMultiBlockMachineBuilder private constructor(
-    name: String,
-    metaMachine: Function<IMachineBlockEntity, out MultiblockControllerMachine>,
-    blockFactory: BiFunction<BlockBehaviour.Properties, MultiblockMachineDefinition, IMachineBlock>,
-    itemFactory: BiFunction<IMachineBlock, Item.Properties, MetaMachineItem>,
-    blockEntityFactory: TriFunction<BlockEntityType<*>, BlockPos, BlockState, IMachineBlockEntity>
-) : MultiblockMachineBuilder(
-    GTLAddRegistration.REGISTRATE,
-    name,
-    metaMachine,
-    blockFactory,
-    itemFactory,
-    blockEntityFactory
-) {
-
-    fun allRotation(): GTLAddMultiBlockMachineBuilder = super.rotationState(RotationState.ALL) as GTLAddMultiBlockMachineBuilder
-
-    fun nonYAxisRotation(): GTLAddMultiBlockMachineBuilder = super.rotationState(RotationState.NON_Y_AXIS).allowExtendedFacing(false) as GTLAddMultiBlockMachineBuilder
-
-    fun noneRotation(): GTLAddMultiBlockMachineBuilder = super.rotationState(RotationState.NONE).allowExtendedFacing(false).allowFlip(false) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextKey(vararg key: Component): GTLAddMultiBlockMachineBuilder = super.tooltips(*key) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextMaxParallels(parallel: Any): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.multiblock.max_parallel".toComponent(parallel)) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextRecipeTypes(vararg recipeTypes: GTRecipeType): GTLAddMultiBlockMachineBuilder {
-        val components = recipeTypes.map { it.registryName.toLanguageKey().toComponent }.toTypedArray()
-        return super.tooltips("gtceu.machine.available_recipe_map_${recipeTypes.size}.tooltip".toComponent(*components)) as GTLAddMultiBlockMachineBuilder
+/** Helpers on the native builder; GT owns its block, item and block-entity factories. */
+object GTLAddMultiBlockMachineBuilder {
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.dynamicCasingModel(
+        casing: net.minecraft.resources.ResourceLocation,
+        overlay: net.minecraft.resources.ResourceLocation,
+        render: Supplier<com.gregtechceu.gtceu.client.renderer.machine.DynamicRender<*, *>>
+    ): MultiblockMachineBuilder<M> {
+        workableCasingModel(casing, overlay)
+        return model(com.gregtechceu.gtceu.common.data.models.GTMachineModels.createWorkableCasingMachineModel(casing, overlay)
+            .andThen(java.util.function.Consumer<com.gregtechceu.gtceu.data.model.builder.MachineModelBuilder<net.neoforged.neoforge.client.model.generators.BlockModelBuilder>> {
+                it.addDynamicRenderer(render)
+            }))
     }
 
-    fun tooltipTextCoilParallel(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.multiblock.coil_parallel".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextLaser(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.multiblock.laser.tooltip".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipOnlyTextLaser(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.multiblock.only.laser.tooltip".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextMultiRecipes(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.machine.multiple_recipes.tooltip".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextParallelHatch(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.multiblock.parallelizable.tooltip".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun tooltipTextPerfectOverclock(): GTLAddMultiBlockMachineBuilder = super.tooltips("gtceu.machine.perfect_oc".toComponent) as GTLAddMultiBlockMachineBuilder
-
-    fun coilParallelDisplay(): GTLAddMultiBlockMachineBuilder = super.additionalDisplay(GTLMachines.MULTIPLERECIPES_COIL_PARALLEL) as GTLAddMultiBlockMachineBuilder
-
-    companion object {
-        fun createMulti(
-            name: String,
-            metaMachine: Function<IMachineBlockEntity, out MultiblockControllerMachine>,
-            blockFactory: BiFunction<BlockBehaviour.Properties, MultiblockMachineDefinition, IMachineBlock>,
-            itemFactory: BiFunction<IMachineBlock, Item.Properties, MetaMachineItem>,
-            blockEntityFactory: TriFunction<BlockEntityType<*>, BlockPos, BlockState, IMachineBlockEntity>
-        ): GTLAddMultiBlockMachineBuilder = GTLAddMultiBlockMachineBuilder(name, metaMachine, blockFactory, itemFactory, blockEntityFactory)
-    }
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.allRotation(): MultiblockMachineBuilder<M> =
+        rotationState(RotationState.ALL)
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.nonYAxisRotation(): MultiblockMachineBuilder<M> =
+        rotationState(RotationState.NON_Y_AXIS).allowExtendedFacing(false)
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.noneRotation(): MultiblockMachineBuilder<M> =
+        rotationState(RotationState.NONE).allowExtendedFacing(false).allowFlip(false)
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextKey(vararg text: Component): MultiblockMachineBuilder<M> =
+        tooltips(*text)
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextMaxParallels(parallel: Any): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.multiblock.max_parallel", parallel))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextRecipeTypes(vararg types: Supplier<GTRecipeType>): MultiblockMachineBuilder<M> =
+        tooltips(Supplier {
+            val names = types.map { Component.translatable(it.get().id.toLanguageKey("recipe_type")) }.toTypedArray()
+            Component.translatable("gtceu.machine.available_recipe_map_${types.size}.tooltip", *names)
+        })
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextCoilParallel(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.multiblock.coil_parallel"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextLaser(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.multiblock.laser.tooltip"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipOnlyTextLaser(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.multiblock.only.laser.tooltip"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextMultiRecipes(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.machine.multiple_recipes.tooltip"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextParallelHatch(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.multiblock.parallelizable.tooltip"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.tooltipTextPerfectOverclock(): MultiblockMachineBuilder<M> =
+        tooltips(Component.translatable("gtceu.machine.perfect_oc"))
+    fun <M : MultiblockControllerMachine> MultiblockMachineBuilder<M>.coilParallelDisplay(): MultiblockMachineBuilder<M> =
+        additionalDisplay { controller, _ ->
+            if (controller is CoilWorkableElectricMultiblockMachine && controller.isFormed) {
+                val parallels = Math.pow(2.0, controller.coilType.coilTemperature.toDouble() / 900).coerceAtMost(Int.MAX_VALUE.toDouble()).toInt()
+                listOf(Text.of(Component.translatable("gtceu.multiblock.parallel",
+                    Component.literal(FormattingUtil.formatNumbers(parallels)).withStyle(ChatFormatting.DARK_PURPLE))
+                    .withStyle(ChatFormatting.GRAY)).asWidget())
+            } else emptyList()
+        }
 }

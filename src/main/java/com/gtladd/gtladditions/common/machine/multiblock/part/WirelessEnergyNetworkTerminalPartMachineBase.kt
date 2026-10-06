@@ -1,10 +1,10 @@
 package com.gtladd.gtladditions.common.machine.multiblock.part
 
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyUIProvider.PageGroupingData
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IInteractedMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
+import com.gregtechceu.gtceu.utils.ExtendedUseOnContext
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
 import com.gregtechceu.gtceu.common.data.GTItems
@@ -12,8 +12,7 @@ import com.gtladd.gtladditions.common.machine.trait.NetworkEnergyContainer
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.hepdd.gtmthings.api.capability.IBindable
 import com.hepdd.gtmthings.utils.TeamUtil
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.InteractionHand
@@ -26,32 +25,26 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.BlockHitResult
 import java.util.*
 
-open class WirelessEnergyNetworkTerminalPartMachineBase(holder: IMachineBlockEntity, protected val io: IO) :
+open class WirelessEnergyNetworkTerminalPartMachineBase(holder: BlockEntityCreationInfo, protected val io: IO) :
     MultiblockPartMachine(holder),
-    IInteractedMachine,
-    IBindable,
-    IMachineLife {
-    @field:Persisted
+    IMuiMachine,
+    IBindable {
+    @field:SaveField
     protected var uuid: UUID? = null
 
-    @field:Persisted
+    @field:SaveField
     val energyContainer: NetworkEnergyContainer
 
     init {
-        this.energyContainer = createEnergyContainer()
+        this.energyContainer = attachTrait(createEnergyContainer())
     }
 
-    override fun onUse(
-        state: BlockState?,
-        world: Level?,
-        pos: BlockPos?,
-        player: Player,
-        hand: InteractionHand,
-        hit: BlockHitResult?
-    ): InteractionResult {
+    override fun onUse(context: ExtendedUseOnContext): InteractionResult {
+        val player = context.player ?: return InteractionResult.PASS
+        val hand = context.hand
         if (player.getItemInHand(hand).`is`(GTItems.TOOL_DATA_STICK.asItem())) {
-            setUUID(player.getUUID())
-            if (isRemote) {
+            if (!isRemote) {
+                setUUID(player.uuid)
                 player.sendSystemMessage(
                     "gtmthings.machine.wireless_energy_hatch.tooltip.bind".toComponent(TeamUtil.GetName(player))
                 )
@@ -63,16 +56,14 @@ open class WirelessEnergyNetworkTerminalPartMachineBase(holder: IMachineBlockEnt
 
     override fun onLeftClick(
         player: Player,
-        world: Level?,
         hand: InteractionHand,
-        pos: BlockPos?,
         direction: Direction?
     ): Boolean {
         val `is` = player.getItemInHand(hand)
         if (`is`.isEmpty) return false
         if (`is`.`is`(GTItems.TOOL_DATA_STICK.asItem())) {
-            this.uuid = null
-            if (isRemote) {
+            if (!isRemote) {
+                setUUID(null)
                 player.sendSystemMessage("gtmthings.machine.wireless_energy_hatch.tooltip.unbind".toComponent)
             }
             return true
@@ -80,23 +71,19 @@ open class WirelessEnergyNetworkTerminalPartMachineBase(holder: IMachineBlockEnt
         return false
     }
 
-    override fun onMachinePlaced(player: LivingEntity?, stack: ItemStack?) {
-        if (player != null) this.setUUID(player.getUUID())
+    override fun setOwnerUUID(uuid: UUID) {
+        super.setOwnerUUID(uuid)
+        setUUID(uuid)
     }
 
-    override fun getPageGroupingData(): PageGroupingData? = when (this.io) {
-        IO.IN -> PageGroupingData("gtceu.multiblock.page_switcher.io.import", 1)
-        IO.OUT -> PageGroupingData("gtceu.multiblock.page_switcher.io.export", 2)
-        IO.BOTH -> PageGroupingData("gtceu.multiblock.page_switcher.io.both", 3)
-        IO.NONE -> null
-    }
-
-    protected fun createEnergyContainer(vararg args: Any?): NetworkEnergyContainer = NetworkEnergyContainer(this, io)
+    protected fun createEnergyContainer(): NetworkEnergyContainer = NetworkEnergyContainer(io)
 
     override fun getUUID(): UUID? = uuid
 
-    override fun setUUID(uuid: UUID?) {
+    fun setUUID(uuid: UUID?) {
         this.uuid = uuid
+        markAsChanged()
+        energyContainer.notifyListeners()
         for (controller in controllers) {
             if (controller is IRecipeLogicMachine) {
                 controller.recipeLogic.updateTickSubscription()
@@ -104,16 +91,11 @@ open class WirelessEnergyNetworkTerminalPartMachineBase(holder: IMachineBlockEnt
         }
     }
 
-    override fun shouldOpenUI(player: Player?, hand: InteractionHand?, hit: BlockHitResult?): Boolean = false
+    override fun shouldOpenUI(player: Player, hand: InteractionHand, hit: BlockHitResult): Boolean = false
 
-    override fun canShared(): Boolean = false
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
+    override fun canShared(controller: MultiblockControllerMachine, substructureName: String): Boolean = false
 
     companion object {
-        protected val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            WirelessEnergyNetworkTerminalPartMachineBase::class.java,
-            MultiblockPartMachine.MANAGED_FIELD_HOLDER
-        )
+
     }
 }

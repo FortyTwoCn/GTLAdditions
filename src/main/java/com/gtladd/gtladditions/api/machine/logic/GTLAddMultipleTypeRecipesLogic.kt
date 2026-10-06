@@ -8,24 +8,23 @@ import java.util.Collections
 import java.util.function.Predicate
 
 open class GTLAddMultipleTypeRecipesLogic(
-    machine: GTLAddWorkableElectricMultipleRecipesMachine,
     beforeWorking: Predicate<IRecipeLogicMachine>? = null
-) : GTLAddMultipleRecipesLogic(machine, beforeWorking) {
-    override fun lookupRecipeIterator(): Set<GTRecipe> = if (isLock) {
+) : GTLAddMultipleRecipesLogic(beforeWorking) {
+    override fun lookupRecipeSet(): Set<GTRecipe> = if (isLock) {
         when {
             lockRecipe == null -> {
                 lockRecipe = machine.recipeTypes.asSequence()
-                    .mapNotNull { it.lookup.find(machine, this::checkRecipe) }
+                    .mapNotNull { it.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull() }
                     .firstOrNull()
                 lockRecipe?.let { Collections.singleton(it) } ?: emptySet()
             }
 
-            checkRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
+            matchesSourceRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
             else -> emptySet()
         }
     } else {
         machine.recipeTypes.asSequence()
-            .flatMap { it.lookup.getRecipeIterator(machine, this::checkRecipe).asSequence() }
+            .flatMap { it.searchRecipe(machine, this::matchesSourceRecipe).asSequence() }
             .toCollection(ObjectOpenHashSet())
     }
 }

@@ -1,21 +1,25 @@
 package com.gtladd.gtladditions.common.machine
 
+import com.gregtechceu.gtceu.common.data.machines.GTMachineUtils
 import com.gregtechceu.gtceu.GTCEu
 import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.data.RotationState
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MachineDefinition
+import com.gregtechceu.gtceu.api.registry.registrate.entry.MachineEntry
+import com.gregtechceu.gtceu.common.registry.GTRegistration
 import com.gregtechceu.gtceu.api.machine.multiblock.PartAbility
-import com.gregtechceu.gtceu.api.registry.registrate.MachineBuilder
-import com.gregtechceu.gtceu.client.renderer.machine.OverlaySteamMachineRenderer
-import com.gregtechceu.gtceu.common.data.GTCompassSections
+import com.gregtechceu.gtceu.api.registry.registrate.builder.MachineBuilder
 import com.gregtechceu.gtceu.common.data.GTMachines
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.api.machine.GTLAddPartAbility
 import com.gtladd.gtladditions.api.registry.GTLAddRegistration.Companion.REGISTRATE
-import com.gtladd.gtladditions.api.registry.MachineBuilderExtensions.overlayHullRenderer
+import com.gtladd.gtladditions.api.registry.MachineBuilderExtensions.overlayHullModel
+import com.gtladd.gtladditions.api.registry.MachineBuilderExtensions.overlayHullTextureModel
+import com.gtladd.gtladditions.api.registry.NativeMachineBuilders
+import org.gtlcore.gtlcore.common.data.GTLCompassLinks
 import com.gtladd.gtladditions.common.machine.hatch.CloudOpticalComputationHatchMachine
 import com.gtladd.gtladditions.common.machine.hatch.CloudOpticalDataHatchMachine
 import com.gtladd.gtladditions.common.machine.hatch.HugeSteamHatchPartMachine
@@ -50,32 +54,32 @@ object GTLAddMachines {
     val WIRELL_ENERGY_HIGH_TIERS: IntArray = GTValues.tiersBetween(5, 14)
 
     @JvmField
-    val HUGE_STEAM_HATCH: MachineDefinition
-    val SUPER_INPUT_DUAL_HATCH: MachineDefinition
-    val ME_BLOCK_CONVERSATION: MachineDefinition
-    val INFINITY_INPUT_DUAL_HATCH: MachineDefinition
-    val ORE_PROCESSOR_HATCH: MachineDefinition
-    val VIENTIANE_TRANSCRIPTION_NODE: MachineDefinition
-    val ME_SUPER_PATTERN_BUFFER: MachineDefinition
-    val ME_SUPER_PATTERN_BUFFER_PROXY: MachineDefinition
-    val SUPER_PARALLEL_HATCH: MachineDefinition
-    val Wireless_Energy_Network_OUTPUT_Terminal: MachineDefinition
-    val Wireless_Energy_Network_INPUT_Terminal: MachineDefinition
-    val THREAD_MODIFIER_HATCH: MachineDefinition
-    val CLOUD_COMPUTATION_HATCH_TRANSMITTER: MachineDefinition
-    val CLOUD_COMPUTATION_HATCH_RECEIVER: MachineDefinition
-    val CLOUD_COMPUTATION_MONITOR: MachineDefinition
-    val CLOUD_DATA_MACHINE: MachineDefinition
-    val CLOUD_DATA_HATCH: MachineDefinition
-    val HUGE_OUTPUT_DUAL_HATCH: Array<MachineDefinition?>
-    val LASER_INPUT_HATCH_16777216A: Array<MachineDefinition?>
-    val LASER_OUTPUT_HATCH_16777216A: Array<MachineDefinition?>
-    val LASER_INPUT_HATCH_67108864A: Array<MachineDefinition?>
-    val LASER_OUTPUT_HATCH_67108863A: Array<MachineDefinition?>
-    val WIRELESS_LASER_INPUT_HATCH_16777216A: Array<MachineDefinition?>
-    val WIRELESS_LASER_OUTPUT_HATCH_16777216A: Array<MachineDefinition?>
-    val WIRELESS_LASER_INPUT_HATCH_67108864A: Array<MachineDefinition?>
-    val WIRELESS_LASER_OUTPUT_HATCH_67108863A: Array<MachineDefinition?>
+    val HUGE_STEAM_HATCH: MachineEntry<MachineDefinition>
+    val SUPER_INPUT_DUAL_HATCH: MachineEntry<MachineDefinition>
+    val ME_BLOCK_CONVERSATION: MachineEntry<MachineDefinition>
+    val INFINITY_INPUT_DUAL_HATCH: MachineEntry<MachineDefinition>
+    val ORE_PROCESSOR_HATCH: MachineEntry<MachineDefinition>
+    val VIENTIANE_TRANSCRIPTION_NODE: MachineEntry<MachineDefinition>
+    val ME_SUPER_PATTERN_BUFFER: MachineEntry<MachineDefinition>
+    val ME_SUPER_PATTERN_BUFFER_PROXY: MachineEntry<MachineDefinition>
+    val SUPER_PARALLEL_HATCH: MachineEntry<MachineDefinition>
+    val Wireless_Energy_Network_OUTPUT_Terminal: MachineEntry<MachineDefinition>
+    val Wireless_Energy_Network_INPUT_Terminal: MachineEntry<MachineDefinition>
+    val THREAD_MODIFIER_HATCH: MachineEntry<MachineDefinition>
+    val CLOUD_COMPUTATION_HATCH_TRANSMITTER: MachineEntry<MachineDefinition>
+    val CLOUD_COMPUTATION_HATCH_RECEIVER: MachineEntry<MachineDefinition>
+    val CLOUD_COMPUTATION_MONITOR: MachineEntry<MachineDefinition>
+    val CLOUD_DATA_MACHINE: MachineEntry<MachineDefinition>
+    val CLOUD_DATA_HATCH: MachineEntry<MachineDefinition>
+    val HUGE_OUTPUT_DUAL_HATCH: Array<out MachineEntry<MachineDefinition>?>
+    val LASER_INPUT_HATCH_16777216A: Array<out MachineEntry<MachineDefinition>?>
+    val LASER_OUTPUT_HATCH_16777216A: Array<out MachineEntry<MachineDefinition>?>
+    val LASER_INPUT_HATCH_67108864A: Array<out MachineEntry<MachineDefinition>?>
+    val LASER_OUTPUT_HATCH_67108863A: Array<out MachineEntry<MachineDefinition>?>
+    val WIRELESS_LASER_INPUT_HATCH_16777216A: Array<out MachineEntry<MachineDefinition>?>
+    val WIRELESS_LASER_OUTPUT_HATCH_16777216A: Array<out MachineEntry<MachineDefinition>?>
+    val WIRELESS_LASER_INPUT_HATCH_67108864A: Array<out MachineEntry<MachineDefinition>?>
+    val WIRELESS_LASER_OUTPUT_HATCH_67108863A: Array<out MachineEntry<MachineDefinition>?>
 
     fun init() {
         MultiBlockMachine.init()
@@ -92,20 +96,20 @@ object GTLAddMachines {
         get() = createLanguageRainbowComponentOnServer("gui.gtladditions.modify".toComponent)
 
     init {
-        LASER_INPUT_HATCH_16777216A = GTMachines.registerLaserHatch(IO.IN, 16777216, PartAbility.INPUT_LASER)
-        LASER_OUTPUT_HATCH_16777216A = GTMachines.registerLaserHatch(IO.OUT, 16777216, PartAbility.OUTPUT_LASER)
-        LASER_INPUT_HATCH_67108864A = GTMachines.registerLaserHatch(IO.IN, 67108864, PartAbility.INPUT_LASER)
-        LASER_OUTPUT_HATCH_67108863A = GTMachines.registerLaserHatch(IO.OUT, 67108863, PartAbility.OUTPUT_LASER)
+        LASER_INPUT_HATCH_16777216A = GTMachineUtils.registerLaserHatch(GTRegistration.REGISTRATE, IO.IN, 16777216, PartAbility.INPUT_LASER)
+        LASER_OUTPUT_HATCH_16777216A = GTMachineUtils.registerLaserHatch(GTRegistration.REGISTRATE, IO.OUT, 16777216, PartAbility.OUTPUT_LASER)
+        LASER_INPUT_HATCH_67108864A = GTMachineUtils.registerLaserHatch(GTRegistration.REGISTRATE, IO.IN, 67108864, PartAbility.INPUT_LASER)
+        LASER_OUTPUT_HATCH_67108863A = GTMachineUtils.registerLaserHatch(GTRegistration.REGISTRATE, IO.OUT, 67108863, PartAbility.OUTPUT_LASER)
         HUGE_OUTPUT_DUAL_HATCH = CustomMachines.registerTieredMachines(
             "huge_output_dual_hatch",
-            { holder: IMachineBlockEntity?, tier: Int? ->
+            { holder: BlockEntityCreationInfo?, tier: Int? ->
                 HugeDualHatchPartMachine(holder!!, tier!!, IO.OUT)
             },
-            { tier: Int?, builder: MachineBuilder<MachineDefinition?>? ->
+            { tier: Int?, builder: MachineBuilder<MachineDefinition, *, *> ->
                 val vnf = GTValues.VNF
                 builder!!.langValue(vnf[tier!!] + " Huge Output Dual Hatch").rotationState(RotationState.ALL)
-                    .overlayTieredHullRenderer("huge_dual_hatch.import")
-                    .abilities(*GTMachines.DUAL_OUTPUT_HATCH_ABILITIES).compassNode("huge_dual_hatch")
+                    .colorOverlayTieredHullModel("overlay_huge_dual_hatch", "overlay_pipe_out", null)
+                    .abilities(*GTMachineUtils.DUAL_OUTPUT_HATCH_ABILITIES).onRegister(GTLCompassLinks.node("parts", "huge_dual_hatch"))
                     .tooltips("gtceu.machine.dual_hatch.export.tooltip".toComponent)
                     .tooltips("gtceu.universal.tooltip.item_storage_capacity".toComponent((1 + tier) * 2 - 1))
                     .tooltips("gtceu.universal.tooltip.fluid_storage_capacity_mult".toComponent(tier, FormattingUtil.formatNumbers(Int.Companion.MAX_VALUE)))
@@ -139,7 +143,7 @@ object GTLAddMachines {
             WIRELL_ENERGY_HIGH_TIERS
         )
         REGISTRATE.creativeModeTab { GTLAddCreativeModeTabs.GTLADD_MACHINE }
-        HUGE_STEAM_HATCH = REGISTRATE.machine("huge_steam_input_hatch") { HugeSteamHatchPartMachine(it!!) }
+        HUGE_STEAM_HATCH = NativeMachineBuilders.machine(REGISTRATE, "huge_steam_input_hatch") { HugeSteamHatchPartMachine(it!!) }
             .rotationState(RotationState.ALL).abilities(PartAbility.STEAM)
             .tooltips(
                 "gtceu.multiblock.steam_oc_hv".toComponent,
@@ -147,21 +151,19 @@ object GTLAddMachines {
                 "gtceu.universal.tooltip.fluid_storage_capacity".toComponent(Int.Companion.MAX_VALUE),
                 "gtceu.machine.steam.steam_hatch.tooltip".toComponent
             )
-            .tooltipBuilder(GTLAdd_ADD).compassSections(GTCompassSections.STEAM).compassNode("steam_hatch")
-            .renderer {
-                OverlaySteamMachineRenderer(ResourceLocation("gtceu", "block/machine/part/steam_hatch"))
-            }.register()
-        SUPER_INPUT_DUAL_HATCH = REGISTRATE.machine("super_input_dual_hatch") { SuperDualHatchPartMachine(it!!, 18) }
+            .tooltipBuilder(GTLAdd_ADD).onRegister(GTLCompassLinks.node("steam", "steam_hatch"))
+            .overlaySteamHullModel(ResourceLocation.fromNamespaceAndPath("gtceu", "block/machine/part/steam_hatch")).register()
+        SUPER_INPUT_DUAL_HATCH = NativeMachineBuilders.machine(REGISTRATE, "super_input_dual_hatch") { SuperDualHatchPartMachine(it!!, 18) }
             .rotationState(RotationState.ALL)
-            .abilities(*GTMachines.DUAL_INPUT_HATCH_ABILITIES)
-            .langValue("Super Input Dual Hatch").overlayTieredHullRenderer("super_input_dual_hatch.import")
+            .abilities(*GTMachineUtils.DUAL_INPUT_HATCH_ABILITIES)
+            .langValue("Super Input Dual Hatch").overlayTieredHullModel("super_input_dual_hatch.import")
             .tooltips("gtceu.universal.tooltip.item_storage_capacity".toComponent(37))
             .tooltips("gtceu.universal.tooltip.fluid_storage_capacity_mult".toComponent(24, FormattingUtil.formatNumbers(Long.Companion.MAX_VALUE shr 12)))
             .tooltipBuilder(GTLAdd_ADD).tier(14).register()
-        ORE_PROCESSOR_HATCH = REGISTRATE.machine("spectral_analysis_hatch") { OreProcessorHatch(it!!) }
+        ORE_PROCESSOR_HATCH = NativeMachineBuilders.machine(REGISTRATE, "spectral_analysis_hatch") { OreProcessorHatch(it!!) }
             .rotationState(RotationState.ALL)
             .langValue("Ore Processor Hatch")
-            .overlayTieredHullRenderer("op_hatch")
+            .overlayTieredHullModel("op_hatch")
             .tooltips(
                 "gtceu.universal.disabled".toComponent,
                 "gtceu.machine.hold_g.tooltip.1".toComponent
@@ -169,16 +171,16 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(8)
             .register()
-        VIENTIANE_TRANSCRIPTION_NODE = REGISTRATE.machine("vientiane_transcription_node") { VientianeTranscriptionNode(it!!) }
+        VIENTIANE_TRANSCRIPTION_NODE = NativeMachineBuilders.machine(REGISTRATE, "vientiane_transcription_node") { VientianeTranscriptionNode(it!!) }
             .rotationState(RotationState.ALL)
-            .overlayTieredHullRenderer("vientiane_transcription_node")
+            .overlayTieredHullModel("vientiane_transcription_node")
             .langValue("Vientiane Transcription Node")
             .tooltipBuilder(GTLAdd_ADD)
             .tier(14)
             .register()
-        ME_BLOCK_CONVERSATION = REGISTRATE.machine("me_block_conservation") { MEBlockConversationHatch(it!!) }
+        ME_BLOCK_CONVERSATION = NativeMachineBuilders.machine(REGISTRATE, "me_block_conservation") { MEBlockConversationHatch(it!!) }
             .rotationState(RotationState.ALL)
-            .overlayTieredHullRenderer("me_block_conservation")
+            .overlayTieredHullModel("me_block_conservation")
             .tooltips(
                 "gtceu.universal.disabled".toComponent,
                 "gtceu.machine.me.item_import.tooltip".toComponent,
@@ -190,10 +192,10 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(11)
             .register()
-        INFINITY_INPUT_DUAL_HATCH = REGISTRATE.machine("infinity_input_dual_hatch") { InfinityDualHatchPartMachine(it!!) }
+        INFINITY_INPUT_DUAL_HATCH = NativeMachineBuilders.machine(REGISTRATE, "infinity_input_dual_hatch") { InfinityDualHatchPartMachine(it!!) }
             .rotationState(RotationState.ALL)
-            .abilities(*GTMachines.DUAL_INPUT_HATCH_ABILITIES)
-            .overlayHullRenderer(ResourceLocation(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), ResourceLocation(GTLAdditions.MOD_ID, "block/machine/part/ultimate_input_dual_hatch.import"))
+            .abilities(*GTMachineUtils.DUAL_INPUT_HATCH_ABILITIES)
+            .overlayHullModel(ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/machine/part/ultimate_input_dual_hatch.import"))
             .langValue("Infinity Input Dual Hatch")
             .tooltips(
                 "gtceu.universal.tooltip.item_storage_capacity".toComponent(
@@ -210,10 +212,10 @@ object GTLAddMachines {
             )
             .tooltips("gtladditions.machine.infinity_input_dual_hatch.tooltip.0".toComponent)
             .tooltipBuilder(GTLAdd_ADD).tier(14).register()
-        ME_SUPER_PATTERN_BUFFER = REGISTRATE.machine("me_super_pattern_buffer") { MESuperPatternBufferPartMachine(it!!, ConfigHolder.INSTANCE.superPatternBuffer.patternsPerRow, ConfigHolder.INSTANCE.superPatternBuffer.rowsPerPage, ConfigHolder.INSTANCE.superPatternBuffer.maxPages) }
+        ME_SUPER_PATTERN_BUFFER = NativeMachineBuilders.machine(REGISTRATE, "me_super_pattern_buffer") { MESuperPatternBufferPartMachine(it!!, ConfigHolder.INSTANCE.superPatternBuffer.patternsPerRow, ConfigHolder.INSTANCE.superPatternBuffer.rowsPerPage, ConfigHolder.INSTANCE.superPatternBuffer.maxPages) }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.IMPORT_ITEMS, PartAbility.IMPORT_FLUIDS)
-            .overlayHullRenderer(ResourceLocation(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), GTCEu.id("block/machine/part/me_pattern_buffer"))
+            .overlayHullTextureModel(ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), GTCEu.id("block/overlay/appeng/me_buffer_hatch"))
             .langValue("Me Super Pattern Buffer")
             .tooltips(
                 "tooltip.gtlcore.bigger_stronger".toComponent.withStyle(ChatFormatting.GOLD),
@@ -230,10 +232,10 @@ object GTLAddMachines {
             )
             .tooltipBuilder(GTLAdd_ADD)
             .register()
-        ME_SUPER_PATTERN_BUFFER_PROXY = REGISTRATE.machine("me_super_pattern_buffer_proxy") { MESuperPatternBufferProxyPartMachine(it!!) }
+        ME_SUPER_PATTERN_BUFFER_PROXY = NativeMachineBuilders.machine(REGISTRATE, "me_super_pattern_buffer_proxy") { MESuperPatternBufferProxyPartMachine(it!!) }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.IMPORT_ITEMS, PartAbility.IMPORT_FLUIDS)
-            .overlayHullRenderer(ResourceLocation(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), GTCEu.id("block/machine/part/me_pattern_buffer_proxy"))
+            .overlayHullTextureModel(ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/casings/infinity_input_dual_hatch_casing"), GTCEu.id("block/overlay/appeng/me_buffer_hatch_proxy"))
             .langValue("Me Super Pattern Buffer Proxy")
             .tooltips(
                 "block.gtceu.pattern_buffer_proxy.desc.0".toComponent,
@@ -244,22 +246,22 @@ object GTLAddMachines {
             )
             .tooltipBuilder(GTLAdd_ADD)
             .register()
-        SUPER_PARALLEL_HATCH = REGISTRATE.machine("super_parallel_hatch") { SuperParallelHatchPartMachine(it!!) }
+        SUPER_PARALLEL_HATCH = NativeMachineBuilders.machine(REGISTRATE, "super_parallel_hatch") { SuperParallelHatchPartMachine(it!!) }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.PARALLEL_HATCH)
-            .workableCasingRenderer(GTLCore.id("block/create_casing"), GTCEu.id("block/machines/parallel_hatch_mk10"))
+            .workableCasingModel(GTLCore.id("block/create_casing"), GTCEu.id("block/machines/parallel_hatch_mk10"))
             .tooltips(
                 "gtceu.universal.enabled".toComponent,
                 "gtceu.machine.super_parallel_hatch.tooltip".toComponent
             )
             .tooltipBuilder(GTLAdd_ADD)
-            .compassNode("parallel_hatch")
+            .onRegister(GTLCompassLinks.node("parts", "parallel_hatch"))
             .register()
-        Wireless_Energy_Network_OUTPUT_Terminal = REGISTRATE.machine("wireless_energy_network_output_terminal") { WirelessEnergyNetworkTerminalPartMachine(it!!, IO.OUT) }
+        Wireless_Energy_Network_OUTPUT_Terminal = NativeMachineBuilders.machine(REGISTRATE, "wireless_energy_network_output_terminal") { WirelessEnergyNetworkTerminalPartMachine(it!!, IO.OUT) }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.OUTPUT_LASER, PartAbility.OUTPUT_ENERGY)
             .tier(GTValues.MAX)
-            .overlayHullRenderer(ResourceLocation(GTLAdditions.MOD_ID, "block/casings/wireless_terminate_casing"), GTLAdditions.id("block/machine/part/wireless_energy_network_terminal"))
+            .overlayHullModel(ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/casings/wireless_terminate_casing"), GTLAdditions.id("block/machine/part/wireless_energy_network_terminal"))
             .langValue("Wireless Energy Network Output Terminal")
             .tooltips(
                 "gtceu.universal.disabled".toComponent,
@@ -269,11 +271,11 @@ object GTLAddMachines {
             )
             .tooltipBuilder(GTLAdd_ADD)
             .register()
-        Wireless_Energy_Network_INPUT_Terminal = REGISTRATE.machine("wireless_energy_network_input_terminal") { WirelessEnergyNetworkTerminalPartMachine(it!!, IO.IN) }
+        Wireless_Energy_Network_INPUT_Terminal = NativeMachineBuilders.machine(REGISTRATE, "wireless_energy_network_input_terminal") { WirelessEnergyNetworkTerminalPartMachine(it!!, IO.IN) }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.INPUT_LASER, PartAbility.INPUT_ENERGY)
             .tier(GTValues.MAX)
-            .overlayHullRenderer(ResourceLocation(GTLAdditions.MOD_ID, "block/casings/wireless_terminate_casing"), GTLAdditions.id("block/machine/part/wireless_energy_network_terminal"))
+            .overlayHullModel(ResourceLocation.fromNamespaceAndPath(GTLAdditions.MOD_ID, "block/casings/wireless_terminate_casing"), GTLAdditions.id("block/machine/part/wireless_energy_network_terminal"))
             .langValue("Wireless Energy Network Input Terminal")
             .tooltips(
                 "gtceu.universal.disabled".toComponent,
@@ -283,10 +285,10 @@ object GTLAddMachines {
             )
             .tooltipBuilder(GTLAdd_ADD)
             .register()
-        THREAD_MODIFIER_HATCH = REGISTRATE.machine("thread_modifier_hatch") { ThreadPartMachine(it!!) }
+        THREAD_MODIFIER_HATCH = NativeMachineBuilders.machine(REGISTRATE, "thread_modifier_hatch") { ThreadPartMachine(it!!) }
             .rotationState(RotationState.ALL)
             .abilities(GTLAddPartAbility.THREAD_MODIFIER)
-            .overlayHullRenderer(GTLCore.id("block/create_casing"), GTLAdditions.id("block/machine/part/thread_modifier_hatch"))
+            .overlayHullModel(GTLCore.id("block/create_casing"), GTLAdditions.id("block/machine/part/thread_modifier_hatch"))
             .langValue("Thread Modifier Hatch")
             .tooltips(
                 "gtceu.universal.disabled".toComponent,
@@ -297,9 +299,9 @@ object GTLAddMachines {
             )
             .tooltipBuilder(GTLAdd_ADD)
             .register()
-        CLOUD_COMPUTATION_MONITOR = REGISTRATE.machine("cloud_computation_monitor", ::CloudOpticalComputationMonitorMachine)
+        CLOUD_COMPUTATION_MONITOR = NativeMachineBuilders.machine(REGISTRATE, "cloud_computation_monitor", ::CloudOpticalComputationMonitorMachine)
             .rotationState(RotationState.ALL)
-            .overlayTieredHullRenderer("cloud_computation_monitor")
+            .overlayTieredHullModel("cloud_computation_monitor")
             .tooltips(
                 "tooltip.gtladditions.cloud_computation_monitor".toComponent,
                 "tooltip.gtladditions.cloud_systems".toComponent
@@ -308,12 +310,12 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(GTValues.UIV)
             .register()
-        CLOUD_COMPUTATION_HATCH_TRANSMITTER = REGISTRATE.machine("cloud_computation_transmitter_hatch") { holder ->
+        CLOUD_COMPUTATION_HATCH_TRANSMITTER = NativeMachineBuilders.machine(REGISTRATE, "cloud_computation_transmitter_hatch") { holder ->
             CloudOpticalComputationHatchMachine(holder, true)
         }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.COMPUTATION_DATA_TRANSMISSION)
-            .overlayTieredHullRenderer("cloud_computation_transmitter_hatch")
+            .overlayTieredHullModel("cloud_computation_transmitter_hatch")
             .tooltips(
                 "gtceu.universal.enabled".toComponent,
                 "tooltip.gtladditions.cloud_computation_transmitter_hatch".toComponent,
@@ -323,12 +325,12 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(GTValues.UIV)
             .register()
-        CLOUD_COMPUTATION_HATCH_RECEIVER = REGISTRATE.machine("cloud_computation_receiver_hatch") { holder ->
+        CLOUD_COMPUTATION_HATCH_RECEIVER = NativeMachineBuilders.machine(REGISTRATE, "cloud_computation_receiver_hatch") { holder ->
             CloudOpticalComputationHatchMachine(holder, false)
         }
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.COMPUTATION_DATA_RECEPTION)
-            .overlayTieredHullRenderer("cloud_computation_receiver_hatch")
+            .overlayTieredHullModel("cloud_computation_receiver_hatch")
             .tooltips(
                 "gtceu.universal.enabled".toComponent,
                 "tooltip.gtladditions.cloud_computation_receiver_hatch".toComponent,
@@ -338,9 +340,9 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(GTValues.UIV)
             .register()
-        CLOUD_DATA_MACHINE = REGISTRATE.machine("cloud_data_machine", ::CloudOpticalDataMachine)
+        CLOUD_DATA_MACHINE = NativeMachineBuilders.machine(REGISTRATE, "cloud_data_machine", ::CloudOpticalDataMachine)
             .rotationState(RotationState.ALL)
-            .overlayTieredHullRenderer("cloud_data_machine")
+            .overlayTieredHullModel("cloud_data_machine")
             .tooltips(
                 "tooltip.gtladditions.cloud_data_machine.0".toComponent,
                 "tooltip.gtladditions.cloud_data_machine.1".toComponent,
@@ -358,10 +360,10 @@ object GTLAddMachines {
             .tooltipBuilder(GTLAdd_ADD)
             .tier(GTValues.UIV)
             .register()
-        CLOUD_DATA_HATCH = REGISTRATE.machine("cloud_data_hatch", ::CloudOpticalDataHatchMachine)
+        CLOUD_DATA_HATCH = NativeMachineBuilders.machine(REGISTRATE, "cloud_data_hatch", ::CloudOpticalDataHatchMachine)
             .rotationState(RotationState.ALL)
             .abilities(PartAbility.OPTICAL_DATA_RECEPTION)
-            .overlayTieredHullRenderer("cloud_data_hatch")
+            .overlayTieredHullModel("cloud_data_hatch")
             .tooltips(
                 "gtceu.universal.enabled".toComponent,
                 "tooltip.gtladditions.cloud_data_hatch".toComponent,

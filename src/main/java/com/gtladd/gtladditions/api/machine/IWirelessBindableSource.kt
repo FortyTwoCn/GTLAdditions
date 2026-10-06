@@ -8,7 +8,7 @@ import net.minecraft.resources.ResourceLocation
 interface IWirelessBindableSource<T : IWirelessBindableTarget> {
     val bindingType: ResourceLocation
 
-    fun getPos(): BlockPos
+    fun getBlockPos(): BlockPos
 
     fun isFormed(): Boolean
 

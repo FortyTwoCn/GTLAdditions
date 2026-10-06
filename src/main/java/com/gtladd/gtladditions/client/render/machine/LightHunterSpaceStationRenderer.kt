@@ -1,8 +1,6 @@
 package com.gtladd.gtladditions.client.render.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.client.renderer.machine.WorkableCasingMachineRenderer
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.client.render.machine.lighthunter.LightHunterSpaceStationBeamRenderer
 import com.gtladd.gtladditions.client.render.withPose
@@ -12,6 +10,10 @@ import com.gtladd.gtladditions.common.machine.multiblock.controller.LightHunterS
 import com.gtladd.gtladditions.utils.CommonUtils.getRotatedRenderPosition
 import com.gtladd.gtladditions.utils.Constants.ORBIT_OBJECTS
 import com.gtladd.gtladditions.utils.RenderUtils
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType
+import com.mojang.serialization.MapCodec
+import net.minecraft.world.phys.AABB
 import com.mojang.blaze3d.vertex.PoseStack
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import net.minecraft.client.renderer.MultiBufferSource
@@ -22,8 +24,8 @@ import net.minecraft.util.FastColor
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.gtlcore.gtlcore.client.ClientUtil
 import org.gtlcore.gtlcore.utils.RenderUtil
 import org.joml.Quaternionf
@@ -35,23 +37,19 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-class LightHunterSpaceStationRenderer :
-    WorkableCasingMachineRenderer(
-        GTCEu.id("block/casings/hpca/high_power_casing"),
-        GTCEu.id("block/multiblock/data_bank")
-    ) {
+class LightHunterSpaceStationRenderer : DynamicRender<LightHunterSpaceStation, LightHunterSpaceStationRenderer>() {
 
     @OnlyIn(Dist.CLIENT)
     override fun render(
-        blockEntity: BlockEntity,
+        machine: LightHunterSpaceStation,
         partialTicks: Float,
         poseStack: PoseStack,
         buffer: MultiBufferSource,
         combinedLight: Int,
         combinedOverlay: Int
     ) {
-        if (blockEntity is IMachineBlockEntity) {
-            val machine = blockEntity.metaMachine as? LightHunterSpaceStation ?: return
+        val blockEntity = machine
+        run {
             if (machine.recipeLogic.isWorking) {
                 val tick = RenderUtil.getSmoothTick(machine, partialTicks)
                 val seed = blockEntity.blockPos.asLong()
@@ -71,18 +69,19 @@ class LightHunterSpaceStationRenderer :
     }
 
     @OnlyIn(Dist.CLIENT)
-    override fun onAdditionalModel(registry: Consumer<ResourceLocation>) {
-        super.onAdditionalModel(registry)
+    fun onAdditionalModel(registry: Consumer<ResourceLocation>) {
         registry.accept(STAR_LAYER)
         registry.accept(SPACE_MODEL)
         ORBIT_OBJECTS.forEach(registry)
     }
 
     @OnlyIn(Dist.CLIENT)
-    override fun hasTESR(blockEntity: BlockEntity): Boolean = true
+    override fun isBlockEntityRenderer(): Boolean = true
 
     @OnlyIn(Dist.CLIENT)
-    override fun isGlobalRenderer(blockEntity: BlockEntity): Boolean = true
+    override fun shouldRenderOffScreen(machine: LightHunterSpaceStation): Boolean = true
+
+    override fun getRenderBoundingBox(machine: LightHunterSpaceStation): AABB = AABB(machine.blockPos).inflate(viewDistance.toDouble())
 
     @OnlyIn(Dist.CLIENT)
     override fun getViewDistance(): Int = 384
@@ -105,7 +104,12 @@ class LightHunterSpaceStationRenderer :
     }
 
     @OnlyIn(Dist.CLIENT)
+    override fun getType(): DynamicRenderType<LightHunterSpaceStation, LightHunterSpaceStationRenderer> = TYPE
+
     companion object {
+        @JvmField val CODEC: MapCodec<LightHunterSpaceStationRenderer> = MapCodec.unit { LightHunterSpaceStationRenderer() }
+        @JvmField val TYPE = DynamicRenderType(CODEC)
+
         private const val BEAM_OFFSET_X = -174.0
         private const val STAR_OFFSET_X = -206.0
         private const val MIN_RADIUS = 22.0f

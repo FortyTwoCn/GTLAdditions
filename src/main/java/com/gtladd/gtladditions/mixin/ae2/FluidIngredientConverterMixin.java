@@ -1,11 +1,11 @@
 package com.gtladd.gtladditions.mixin.ae2;
 
-import net.minecraftforge.fluids.FluidStack;
+import net.neoforged.neoforge.fluids.FluidStack;
 
 import appeng.api.stacks.AEFluidKey;
 import appeng.api.stacks.AEKey;
 import appeng.api.stacks.GenericStack;
-import appeng.integration.modules.jei.FluidIngredientConverter;
+import tamaized.ae2jeiintegration.integration.modules.jei.converters.FluidIngredientConverter;
 import com.gtladd.gtladditions.integration.xei.LongFluidStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -22,7 +22,7 @@ public abstract class FluidIngredientConverterMixin {
     public @Nullable FluidStack getIngredientFromStack(GenericStack stack) {
         AEKey var3 = stack.what();
         if (var3 instanceof AEFluidKey fluidKey) {
-            return new LongFluidStack(fluidKey.getFluid(), Math.max(1, stack.amount()), fluidKey.getTag());
+            return LongFluidStack.copyWithAmount(fluidKey.toStack(1), Math.max(1L, stack.amount()));
         } else {
             return null;
         }
@@ -35,6 +35,6 @@ public abstract class FluidIngredientConverterMixin {
     @Overwrite(remap = false)
     public @Nullable GenericStack getStackFromIngredient(FluidStack ingredient) {
         AEFluidKey key = AEFluidKey.of(ingredient);
-        return key == null ? null : new GenericStack(key, ingredient instanceof LongFluidStack longFluidStack ? longFluidStack.getLongAmount() : ingredient.getAmount());
+        return key == null ? null : new GenericStack(key, LongFluidStack.getAmount(ingredient));
     }
 }

@@ -1,19 +1,18 @@
 package com.gtladd.gtladditions.api.machine.wireless
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.trait.MachineTrait
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.common.data.GTItems
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleWirelessRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.api.machine.trait.IWirelessNetworkEnergyHandler
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.hepdd.gtmthings.api.misc.WirelessEnergyManager
+import com.gtladd.gtladditions.api.machine.wireless.NativeWirelessEnergyAccount
 import com.hepdd.gtmthings.utils.TeamUtil
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.utils.ExtendedUseOnContext
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.InteractionHand
@@ -28,53 +27,47 @@ import org.gtlcore.gtlcore.utils.NumberUtils
 import java.math.BigInteger
 import java.util.*
 
-open class GTLAddWirelessWorkableElectricMultipleRecipesMachine(holder: IMachineBlockEntity, vararg args: Any?) :
-    GTLAddWorkableElectricMultipleRecipesMachine(holder, *args),
-    IMachineLife {
-    @field:Persisted
+open class GTLAddWirelessWorkableElectricMultipleRecipesMachine(holder: BlockEntityCreationInfo, logic: GTLAddMultipleWirelessRecipesLogic = GTLAddMultipleWirelessRecipesLogic()) :
+    GTLAddWorkableElectricMultipleRecipesMachine(holder, logic) {
+    @field:SaveField
     var uuid: UUID? = null
         protected set
 
-    val selfWirelessNetworkTrait = SelfWirelessNetworkHandler()
+    val selfWirelessNetworkTrait = attachTrait(SelfWirelessNetworkHandler())
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = GTLAddMultipleWirelessRecipesLogic(this)
 
     override fun getRecipeLogic(): GTLAddMultipleWirelessRecipesLogic = super.getRecipeLogic() as GTLAddMultipleWirelessRecipesLogic
 
-    override fun onUse(
-        state: BlockState,
-        world: Level,
-        pos: BlockPos,
-        player: Player,
-        hand: InteractionHand,
-        hit: BlockHitResult
-    ): InteractionResult {
+    override fun onUse(context: ExtendedUseOnContext): InteractionResult {
+        val player = context.player ?: return InteractionResult.PASS
+        val hand = context.hand
         if (player.getItemInHand(hand).`is`(GTItems.TOOL_DATA_STICK.asItem())) {
-            this.uuid = player.getUUID()
-            if (isRemote) {
+            if (!isRemote) {
+                this.uuid = player.uuid
+                markAsChanged()
                 player.sendSystemMessage(
                     "gtmthings.machine.wireless_energy_hatch.tooltip.bind".toComponent(TeamUtil.GetName(player))
                 )
-            } else if (this.isFormed) {
-                this.refreshTier()
+                if (isFormed) refreshTier()
+                getRecipeLogic().updateTickSubscription()
             }
             return InteractionResult.sidedSuccess(isRemote)
         }
-        return super.onUse(state, world, pos, player, hand, hit)
+        return super.onUse(context)
     }
 
     override fun onLeftClick(
         player: Player,
-        world: Level,
         hand: InteractionHand,
-        pos: BlockPos,
-        direction: Direction
+        direction: Direction?
     ): Boolean {
         val itemStack = player.getItemInHand(hand)
         if (itemStack.isEmpty) return false
         if (itemStack.`is`(GTItems.TOOL_DATA_STICK.asItem())) {
-            this.uuid = null
-            if (isRemote) {
+            if (!isRemote) {
+                this.uuid = null
+                markAsChanged()
+                getRecipeLogic().updateTickSubscription()
                 player.sendSystemMessage(
                     "gtmthings.machine.wireless_energy_hatch.tooltip.unbind".toComponent
                 )
@@ -84,12 +77,15 @@ open class GTLAddWirelessWorkableElectricMultipleRecipesMachine(holder: IMachine
         return false
     }
 
-    override fun onMachinePlaced(player: LivingEntity?, stack: ItemStack) {
-        player?.let { this.uuid = it.getUUID() }
+    override fun setOwnerUUID(uuid: UUID) {
+        super.setOwnerUUID(uuid)
+        this.uuid = uuid
+        markAsChanged()
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         this.refreshTier()
     }
 
@@ -99,57 +95,41 @@ open class GTLAddWirelessWorkableElectricMultipleRecipesMachine(holder: IMachine
 
     fun refreshTier() {
         uuid?.let {
-            val totalEu = WirelessEnergyManager.getUserEU(it)
+            val totalEu = NativeWirelessEnergyAccount.balance(it)
             val longEu = NumberUtils.getLongValue(totalEu)
             this.tier = if (longEu == Long.MAX_VALUE) GTValues.MAX_TRUE else NumberUtils.getFakeVoltageTier(longEu)
         }
     }
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
-    companion object {
-        @JvmStatic
-        protected val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            GTLAddWirelessWorkableElectricMultipleRecipesMachine::class.java,
-            GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-        )
-
-        @JvmStatic
-        protected val SELF_WIRELESS_NETWORK_PROXY_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            GTLAddWirelessWorkableElectricMultipleRecipesMachine::class.java
-        )
-    }
 
     inner class SelfWirelessNetworkHandler :
-        MachineTrait(this),
+        MachineTrait(),
         IWirelessNetworkEnergyHandler {
 
         override fun consumeEnergy(energy: Int): Boolean = uuid != null &&
-            WirelessEnergyManager.addEUToGlobalEnergyMap(
+            NativeWirelessEnergyAccount.transfer(
                 uuid,
                 energy,
                 this@GTLAddWirelessWorkableElectricMultipleRecipesMachine
             )
 
         override fun consumeEnergy(energy: Long): Boolean = uuid != null &&
-            WirelessEnergyManager.addEUToGlobalEnergyMap(
+            NativeWirelessEnergyAccount.transfer(
                 uuid,
                 energy,
                 this@GTLAddWirelessWorkableElectricMultipleRecipesMachine
             )
 
         override fun consumeEnergy(energy: BigInteger): Boolean = uuid != null &&
-            WirelessEnergyManager.addEUToGlobalEnergyMap(
+            NativeWirelessEnergyAccount.transfer(
                 uuid,
                 energy,
                 this@GTLAddWirelessWorkableElectricMultipleRecipesMachine
             )
 
         override val maxAvailableEnergy: BigInteger
-            get() = if (uuid != null) WirelessEnergyManager.getUserEU(uuid) else BigInteger.ZERO
+            get() = if (uuid != null) NativeWirelessEnergyAccount.balance(uuid) else BigInteger.ZERO
 
         override val isOnline: Boolean
-            get() = uuid != null && WirelessEnergyManager.getUserEU(uuid).signum() > 0
-
-        override fun getFieldHolder(): ManagedFieldHolder = SELF_WIRELESS_NETWORK_PROXY_FIELD_HOLDER
+            get() = uuid != null && NativeWirelessEnergyAccount.balance(uuid).signum() > 0
     }
 }

@@ -7,13 +7,11 @@ import com.gregtechceu.gtceu.api.block.ICoilType
 import com.gregtechceu.gtceu.api.capability.recipe.EURecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.IO
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.MetaMachine
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
@@ -32,12 +30,7 @@ import com.gtladd.gtladditions.common.machine.multiblock.controller.mutable.Muta
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.RecipeCalculationHelper
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.longs.LongBooleanPair
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet
@@ -46,7 +39,6 @@ import net.minecraft.MethodsReturnNonnullByDefault
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.Item
 import net.minecraft.world.item.ItemStack
-import org.gtlcore.gtlcore.api.pattern.util.IValueContainer
 import org.gtlcore.gtlcore.api.recipe.IGTRecipe
 import org.gtlcore.gtlcore.api.recipe.IParallelLogic
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
@@ -62,15 +54,19 @@ import kotlin.math.*
 
 @ParametersAreNonnullByDefault
 @MethodsReturnNonnullByDefault
-open class TaixuTurbidArray(holder: IMachineBlockEntity) :
-    MutableTierCasingMachine(holder, "SCTier"),
-    IMachineLife,
+open class TaixuTurbidArray(holder: BlockEntityCreationInfo) :
+    MutableTierCasingMachine(holder, "SCTier", TaixuTurbidArrayLogic()),
     IAstralArrayInteractionMachine {
 
-    @field:Persisted
+    override fun modifyDrops(drops: MutableList<net.minecraft.world.item.ItemStack>) {
+        super.modifyDrops(drops)
+        addAstralArrayDrops(drops)
+    }
+
+    @field:SaveField
     val machineStorage: NotifiableItemStackHandler
 
-    @field:Persisted
+    @field:SaveField
     override var astralArrayCount: Int = 0
 
     private var coilType: ICoilType = CoilBlock.CoilType.CUPRONICKEL
@@ -88,7 +84,7 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
     private var successRateB: Double = 0.0
 
     init {
-        this.machineStorage = createMachineStorage()
+        this.machineStorage = attachTrait(createMachineStorage())
     }
 
     private fun filter(itemStack: ItemStack): Boolean = VALID_ITEMS.contains(itemStack.item)
@@ -103,7 +99,6 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
         return actualIncrease
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = TaixuTurbidArrayLogic(this)
 
     @Suppress("unused")
     fun supportsBatchProcessing(): Boolean = false
@@ -116,35 +111,23 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
     fun getRealParallel(): Long = maxParallel
 
     // ==================== Life Cycle ====================
-    private fun createMachineStorage(): NotifiableItemStackHandler {
-        val handler = NotifiableItemStackHandler(this, 1, IO.NONE, IO.BOTH) { _ ->
-            object : ItemStackTransfer(1) {
-                override fun onContentsChanged() {
-                    recalculateItemCache()
-                }
-            }
+    private fun createMachineStorage(): NotifiableItemStackHandler =
+        NotifiableItemStackHandler(1, IO.NONE, IO.BOTH).setFilter(::filter).also {
+            it.addChangedListener(::recalculateItemCache)
         }
-        handler.setFilter { itemStack -> filter(itemStack) }
-        return handler
-    }
 
     override fun beforeWorking(recipe: GTRecipe?): Boolean = true
 
-    override fun onMachineRemoved() = clearInventory(machineStorage.storage)
+    override fun onMachineDestroyed() { super.onMachineDestroyed() }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
-        val context = this.multiblockState.matchContext
-
-        val type = context.get<Any?>("CoilType")
-        if (type is ICoilType) {
-            this.coilType = type
-        }
-
-        val speedPipe = context.getOrCreate("SpeedPipeValue") { IValueContainer.noop() }.getValue()
-        if (speedPipe is Int) {
-            this.height = speedPipe - 2
-        }
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
+        val matchedCoil = com.gtladd.gtladditions.api.machine.multiblock.NativeCoilStructure.match(this, substructureName)
+            ?: return
+        this.coilType = matchedCoil
+        val data = org.gtlcore.gtlcore.api.pattern.PatternMatchData.of(defaultPatternState.context)
+        height = data.blockCount("SpeedPipe") - 2
 
         recalculateAll()
 
@@ -152,17 +135,16 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
     }
 
     // ==================== GUI ====================
-    override fun createUIWidget(): Widget {
-        val widget = super.createUIWidget()
-        if (widget is WidgetGroup) {
-            val size = widget.size
-            widget.addWidget(
-                SlotWidget(machineStorage.storage, 0, size.width - 30, size.height - 30, true, true)
-                    .setBackground(GuiTextures.SLOT)
-                    .setHoverTooltips(slotTooltips())
-            )
-        }
-        return widget
+    override fun buildMainUI(
+        mainWidget: brachy.modularui.widget.ParentWidget<*>, guiData: brachy.modularui.factory.PosGuiData,
+        syncManager: brachy.modularui.value.sync.PanelSyncManager, settings: brachy.modularui.screen.UISettings
+    ) {
+        super.buildMainUI(mainWidget, guiData, syncManager, settings)
+        val group = brachy.modularui.widgets.slot.SlotGroup("taixuStorage", 1, false)
+        syncManager.registerSlotGroup(group)
+        mainWidget.child(brachy.modularui.widgets.slot.ItemSlot().right(10).bottom(10)
+            .slot(brachy.modularui.value.sync.SyncHandlers.itemSlot(machineStorage.storage, 0).slotGroup(group))
+            .tooltipDynamic { tooltip -> slotTooltips().forEach(tooltip::addLine) })
     }
 
     private fun slotTooltips(): MutableList<Component> = mutableListOf(
@@ -175,8 +157,16 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
         "gtceu.machine.taixu.storage.tooltip.6".toComponent
     )
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("TaixuTurbidArrayStatus", syncManager, {
+            mutableListOf<Component>().also(::collectTaixuTurbidArrayStatusText)
+        }, 130)
+    )
+
+    private fun collectTaixuTurbidArrayStatusText(textList: MutableList<Component>) {
+        
         if (isFormed) {
             textList.add("gtceu.machine.taixu.gui.tooltip.0".toComponent(height))
             textList.add("gtceu.machine.taixu.gui.tooltip.1".toComponent(maxParallel))
@@ -292,11 +282,7 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
         )
         ).toLong()
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(TaixuTurbidArray::class.java, WorkableMultiblockMachine.MANAGED_FIELD_HOLDER)
 
         // Constants - Frame calculations
         private const val FRAME_A_BASE = 8.0
@@ -377,7 +363,7 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
             val modifiedRecipe = recipe.copy()
 
             // Build fluid outputs based on success rates
-            val builder = GTRecipeBuilder(GTLAdditions.id("uu"), GTRecipeTypes.DUMMY_RECIPES)
+            val builder = GTRecipeBuilder(GTLAdditions.id("uu"), GTRecipeTypes.DUMMY_RECIPES.get())
             modifiedRecipe.outputs.put(FluidRecipeCapability.CAP, ObjectArrayList())
 
             val random = ThreadLocalRandom.current()
@@ -386,18 +372,18 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
             if (machine.tier >= GTValues.UXV &&
                 random.nextDouble(MAX_SUCCESS_RATE) <= machine.successRateA
             ) {
-                builder.outputFluids(GTLMaterials.UuAmplifier.getFluid(machine.uuAmplifierAmount))
+                builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(GTLMaterials.UuAmplifier, machine.uuAmplifierAmount))
             }
 
             // UU Matter output (MAX+)
             if (machine.tier >= GTValues.MAX &&
                 random.nextDouble(MAX_SUCCESS_RATE) <= machine.successRateB
             ) {
-                builder.outputFluids(GTMaterials.UUMatter.getFluid(machine.uuMatterAmount))
+                builder.outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(GTMaterials.UUMatter, machine.uuMatterAmount))
             }
 
             // Add generated outputs to recipe
-            val generatedOutputs = builder.buildRawRecipe().outputs[FluidRecipeCapability.CAP]
+            val generatedOutputs = builder.build().outputs[FluidRecipeCapability.CAP]
             if (generatedOutputs != null && generatedOutputs.isNotEmpty()) {
                 modifiedRecipe.outputs[FluidRecipeCapability.CAP]!!.addAll(generatedOutputs)
             }
@@ -417,28 +403,27 @@ open class TaixuTurbidArray(holder: IMachineBlockEntity) :
             val parallelRecipe = modifiedRecipe.copy(ContentModifier.multiplier(minParallel.toDouble()), false)
             parallelRecipe.duration = RECIPE_DURATION
             parallelRecipe.tickInputs[EURecipeCapability.CAP] =
-                listOf(Content(RECIPE_EU_MULTIPLIER * GTValues.V[machine.tier], 10000, 10000, 0, null, null))
+                listOf(Content(RECIPE_EU_MULTIPLIER * GTValues.V[machine.tier], 10000, 10000))
             IGTRecipe.of(parallelRecipe).setHasTick(true)
 
             return parallelRecipe
         }
 
-        class TaixuTurbidArrayLogic(machine: TaixuTurbidArray) : AddMutableRecipesLogic<TaixuTurbidArray>(machine) {
+        class TaixuTurbidArrayLogic : AddMutableRecipesLogic<TaixuTurbidArray>() {
 
             override fun lookupRecipeSet(): Set<GTRecipe> {
                 val taixu = getMachine()
                 return if (isLock) {
                     when {
                         lockRecipe == null -> {
-                            lockRecipe = machine.recipeType.lookup.find(machine, this::checkRecipe)
+                            lockRecipe = machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull()
                             lockRecipe?.let { Collections.singleton(outputWithoutEutModifier(taixu, it)) } ?: emptySet()
                         }
-                        checkRecipe(lockRecipe) -> Collections.singleton(outputWithoutEutModifier(taixu, lockRecipe))
+                        matchesSourceRecipe(lockRecipe) -> Collections.singleton(outputWithoutEutModifier(taixu, lockRecipe))
                         else -> emptySet()
                     }
                 } else {
-                    machine.recipeType.lookup
-                        .getRecipeIterator(machine, this::checkRecipe)
+                    machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe)
                         .asSequence()
                         .map { outputWithoutEutModifier(taixu, it) }
                         .toCollection(ObjectOpenHashSet())

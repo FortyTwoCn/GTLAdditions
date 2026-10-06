@@ -2,7 +2,7 @@
 navigation:
   title: Apocalyptic Torsion Quantum Matrix
   icon: apocalyptic_torsion_quantum_matrix
-  parent: controller/multiblock_controller.md
+  parent: machine/controller/multiblock_controller.md
   position: 42
 categories:
   - multiblock controller

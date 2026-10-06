@@ -25,64 +25,19 @@ import java.util.*
 import java.util.function.BiPredicate
 import java.util.function.Predicate
 
-open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
-    protected val limited: IGTLAddMultiRecipeMachine
-    protected val recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>?
-    protected val beforeWorking: Predicate<IRecipeLogicMachine>?
+open class GTLAddMultipleRecipesLogic(
+    protected val recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>? = null,
+    protected val beforeWorking: Predicate<IRecipeLogicMachine>? = null
+) : MultipleRecipesLogic(), org.gtlcore.gtlcore.api.machine.trait.ILockRecipe,
+    org.gtlcore.gtlcore.api.machine.trait.IRecipeStatus {
+    protected val limited: IGTLAddMultiRecipeMachine get() = getMachine()
+    constructor(beforeWorking: Predicate<IRecipeLogicMachine>?) : this(null, beforeWorking)
 
-    constructor(parallel: GTLAddWorkableElectricMultipleRecipesMachine) : this(parallel, null, null)
-
-    constructor(
-        parallel: GTLAddWorkableElectricMultipleRecipesMachine,
-        recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>?
-    ) : this(parallel, recipeCheck, null)
-
-    constructor(
-        parallel: GTLAddWorkableElectricMultipleRecipesMachine,
-        beforeWorking: Predicate<IRecipeLogicMachine>?
-    ) : this(parallel, null, beforeWorking)
-
-    constructor(
-        parallel: GTLAddWorkableElectricMultipleRecipesMachine,
-        recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>?,
-        beforeWorking: Predicate<IRecipeLogicMachine>?
-    ) : super(parallel) {
-        this.limited = parallel
-        this.recipeCheck = recipeCheck
-        this.beforeWorking = beforeWorking
-    }
-
-    override fun findAndHandleRecipe() {
-        lastRecipe = null
-        recipeStatus = null
-        val match = getGTRecipe()
-        if (match != null && matchRecipeOutput(machine, match)) {
-            setupRecipe(match)
-        }
-    }
-
-    override fun onRecipeFinish() {
-        machine.afterWorking()
-        lastRecipe?.let { handleRecipeOutput(this.machine, it) }
-
-        val suspendableMachine = machine as? ISuspendableMachine
-        if (suspendableMachine?.`gtlcore$isSuspendAfterFinish`() == true) {
-            status = Status.SUSPEND
-            suspendableMachine.`gtlcore$setSuspendAfterFinish`(false)
-        } else {
-            getGTRecipe()?.takeIf { matchRecipeOutput(machine, it) }?.let {
-                setupRecipe(it)
-                return
-            }
-            status = Status.IDLE
-        }
-        progress = 0
-        duration = 0
-    }
+    override fun collectRecipes(): GTRecipe? = getGTRecipe()
 
     override fun getMachine(): GTLAddWorkableElectricMultipleRecipesMachine = super.getMachine() as GTLAddWorkableElectricMultipleRecipesMachine
 
-    open fun getMultipleThreads(): Int = Ints.saturatedCast(MAX_THREADS + getMachine().getAdditionalThread())
+    public override fun getMultipleThreads(): Int = Ints.saturatedCast(MAX_THREADS + getMachine().getAdditionalThread())
 
     protected open fun getGTRecipe(): GTRecipe? {
         if (!checkBeforeWorking()) return null
@@ -98,7 +53,7 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
     }
 
     protected open fun calculateParallels(): ParallelData? {
-        val recipes = lookupRecipeIterator()
+        val recipes = lookupRecipeSet()
         val totalParallel = parallel.maxParallel.toLong() * getMultipleThreads()
 
         return RecipeCalculationHelper.calculateParallelsWithFairAllocation(
@@ -109,7 +64,7 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
 
     protected open fun buildFinalNormalRecipe(parallelData: ParallelData): GTRecipe? {
         val maxEUt = getMachine().overclockVoltage
-        val (itemOutputs, fluidOutputs, totalEu) = RecipeCalculationHelper.processParallelDataNormal(
+        val batch = RecipeCalculationHelper.processParallelDataNormal(
             parallelData,
             machine,
             maxEUt,
@@ -117,7 +72,8 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
             { getTotalEuOfRecipe(it) }
         )
 
-        if (!RecipeCalculationHelper.hasOutputs(itemOutputs, fluidOutputs)) {
+        val (itemOutputs, fluidOutputs, totalEu) = batch
+        if (batch.consumedRecipes == 0) {
             if (recipeStatus == null || recipeStatus.isSuccess) RecipeResult.of(this.machine, RecipeResult.FAIL_FIND)
             return null
         }
@@ -131,7 +87,7 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
     ): WirelessGTRecipe? {
         if (!wirelessTrait.isOnline) return null
 
-        val (itemOutputs, fluidOutputs, totalEu) = RecipeCalculationHelper.processParallelDataWireless(
+        val batch = RecipeCalculationHelper.processParallelDataWireless(
             parallelData,
             machine,
             wirelessTrait.maxAvailableEnergy,
@@ -140,7 +96,8 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
             isEnergyConsumer()
         )
 
-        if (isEnergyConsumer() && !RecipeCalculationHelper.hasOutputs(itemOutputs, fluidOutputs)) {
+        val (itemOutputs, fluidOutputs, totalEu) = batch
+        if (batch.consumedRecipes == 0) {
             if (recipeStatus == null || recipeStatus.isSuccess) RecipeResult.of(this.machine, RecipeResult.FAIL_FIND)
             return null
         }
@@ -159,31 +116,31 @@ open class GTLAddMultipleRecipesLogic : MultipleRecipesLogic {
         totalEu
     )
 
-    protected open fun getWirelessRecipeEut(recipe: GTRecipe): Long = RecipeHelper.getInputEUt(recipe)
+    protected open fun getWirelessRecipeEut(recipe: GTRecipe): Long = recipe.inputEUt.totalEU
 
     protected open fun isEnergyConsumer(): Boolean = true
 
-    protected open fun lookupRecipeIterator(): Set<GTRecipe> = if (isLock) {
+    protected open fun lookupRecipeSet(): Set<GTRecipe> = if (isLock) {
         when {
             lockRecipe == null -> {
-                lockRecipe = machine.recipeType.lookup.find(machine, this::checkRecipe)
+                lockRecipe = machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull()
                 lockRecipe?.let { Collections.singleton(it) } ?: emptySet()
             }
-            checkRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
+            matchesSourceRecipe(lockRecipe) -> Collections.singleton(lockRecipe)
             else -> emptySet()
         }
     } else {
-        machine.recipeType.lookup.getRecipeIterator(machine, this::checkRecipe).asSequence()
+        machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe).asSequence()
             .toCollection(ObjectOpenHashSet())
     }
 
-    protected open fun checkRecipe(recipe: GTRecipe): Boolean = matchRecipe(machine, recipe) &&
+    protected open fun matchesSourceRecipe(recipe: GTRecipe): Boolean = matchRecipe(machine, recipe) &&
         IGTRecipe.of(recipe).euTier <= getMachine().tier &&
-        recipe.checkConditions(machine.recipeLogic).isSuccess &&
+        RecipeHelper.checkConditions(recipe, this).isSuccess &&
         (recipeCheck == null || recipeCheck.test(recipe, machine))
 
     protected open fun checkBeforeWorking(): Boolean {
-        if (!machine.hasProxies()) return false
+        if (!machine.hasCapabilityProxies()) return false
         if (getMachine().overclockVoltage <= 0) return false
         return beforeWorking == null || beforeWorking.test(machine)
     }

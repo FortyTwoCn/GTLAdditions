@@ -1,0 +1,157 @@
+// Loads the complete production mod and its normal runtime dependencies. Probe code is not packaged.
+sourceSets {
+    nativeProductionProbe {
+        java.srcDirs = ['migration/production-tests/src/main/java']
+        resources.srcDirs = ['migration/production-tests/src/main/resources']
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+configurations {
+    nativeProductionProbeImplementation.extendsFrom(implementation)
+    nativeProductionProbeCompileOnly.extendsFrom(compileOnly)
+    nativeProductionProbeRuntimeOnly.extendsFrom(runtimeOnly, localRuntime)
+}
+neoForge.addModdingDependenciesTo(sourceSets.nativeProductionProbe)
+dependencies {
+    nativeProductionProbeCompileOnly('org.gtlcore.dependencies:wildcard-pattern-neoforge:0.1.2-gtl.1')
+    def coreSource = file(providers.gradleProperty('gtlcore_source').get())
+    def coreBuild = gradle.includedBuilds.find { it.projectDir.canonicalFile == coreSource.canonicalFile }
+    nativeProductionProbeCompileOnly(files(provider {
+        fileTree(new File(coreSource, 'build/native-dependencies/common-storage-lib')) { include '**/*.jar' }
+    }).builtBy(coreBuild.task(':extractNativeCommonStorageApis')))
+}
+if (providers.gradleProperty('native_production_tests').orElse('false').get().toBoolean()) {
+    neoForge.mods {
+        gtl_native_probe { sourceSet(sourceSets.nativeProductionProbe) }
+    }
+    neoForge.runs {
+        productionGameTest {
+            type = 'gameTestServer'
+            sourceSet = sourceSets.nativeProductionProbe
+            gameDirectory = file('migration/full-gametest')
+            systemProperty 'neoforge.enabledGameTestNamespaces', 'gtl_native_probe'
+        }
+        productionClient {
+            client()
+            sourceSet = sourceSets.nativeProductionProbe
+            gameDirectory = file('migration/full-client')
+            systemProperty 'gtl.nativeProductionClient', 'true'
+            if (providers.gradleProperty('native_formed_only').orElse('false').get().toBoolean())
+                systemProperty 'gtl.nativeProductionFormedOnly', 'true'
+            programArguments.addAll('--width', '1280', '--height', '900')
+        }
+        productionDedicatedServer {
+            server()
+            sourceSet = sourceSets.nativeProductionProbe
+            gameDirectory = file('migration/full-dedicated/server')
+            systemProperty 'gtl.nativeProductionDedicatedServer', 'true'
+            programArgument '--nogui'
+            jvmArgument '-Xmx2G'
+            jvmArgument '-XX:ActiveProcessorCount=4'
+            if (providers.gradleProperty('native_inventory_trigger_jit_workaround').orElse('false').get().toBoolean()) {
+                jvmArgument '-XX:CompileCommand=exclude,net.minecraft.advancements.critereon.InventoryChangeTrigger*::*'
+                jvmArgument '-XX:CompileCommand=dontinline,net.minecraft.advancements.critereon.InventoryChangeTrigger*::*'
+            }
+        }
+        productionDedicatedClient {
+            client()
+            sourceSet = sourceSets.nativeProductionProbe
+            gameDirectory = file('migration/full-dedicated/client')
+            systemProperty 'gtl.nativeProductionDedicatedClient', 'true'
+            programArguments.addAll('--width', '1280', '--height', '900')
+            jvmArgument '-Xmx3G'
+            jvmArgument '-XX:ActiveProcessorCount=4'
+            environment 'LP_NUM_THREADS', '2'
+            environment 'OMP_NUM_THREADS', '2'
+        }
+    }
+    // Complete all compilation/preparation before starting either JVM; included builds share outputs.
+    tasks.register('prepareNativeProductionDedicated') {
+        group = 'verification'
+        def names = ['runProductionDedicatedServer', 'runProductionDedicatedClient']
+        dependsOn(provider {
+            names.collectMany { name ->
+                def run = tasks.named(name).get()
+                run.taskDependencies.getDependencies(run).toList()
+            }
+        })
+        doLast {
+            def definitions = [:]
+            names.each { name ->
+                def run = tasks.named(name).get()
+                run.classpath(run.classpathProvider)
+                def preparation = tasks.named('prepare' + name.substring(3) + 'Run').get()
+                def command = [run.javaLauncher.get().executablePath.asFile.absolutePath,
+                               '@' + preparation.vmArgsFile.get().asFile.absolutePath]
+                run.jvmArgumentProviders.each { command.addAll(it.asArguments()) }
+                command.addAll(['-cp', run.classpath.asPath, run.mainClass.get()])
+                command.addAll(run.args)
+                run.argumentProviders.each { command.addAll(it.asArguments()) }
+                definitions[name] = [
+                    command: command.collect { it.toString() },
+                    environment: run.environmentProperty.get(),
+                    directory: run.gameDirectory.get().asFile.absolutePath
+                ]
+            }
+            def destination = layout.buildDirectory.file('native-dedicated/launch.json').get().asFile
+            destination.parentFile.mkdirs()
+            destination.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(definitions)), 'UTF-8')
+        }
+    }
+    tasks.register('verifyNativeProductionDedicated', Exec) {
+        group = 'verification'
+        dependsOn 'prepareNativeProductionDedicated'
+        commandLine 'python3', file('migration/run_native_dedicated.py').absolutePath,
+                '--launch', layout.buildDirectory.file('native-dedicated/launch.json').get().asFile.absolutePath
+    }
+    tasks.register('verifyNativeProductionWorld') {
+        group = 'verification'
+        dependsOn 'runProductionGameTest'
+        doLast {
+            def contents = file('migration/full-gametest/logs/latest.log').getText('UTF-8')
+            if (!contents.contains('required tests passed') || !contents.contains('GTL_NATIVE_PRODUCTION_MACHINES')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_ROCKET tier=7')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_RECIPE')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_STATE')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_WILDCARD ')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_STRUCTURES')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_STRUCTURE_VARIANTS')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_OPTIONAL_DATA')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_COMPRESSION')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_STEAM')
+                    || !contents.contains('GTL_NATIVE_PRODUCTION_STARGATE')) {
+                throw new GradleException('Complete production machine test completion was not confirmed')
+            }
+            if (contents =~ /Parsing error loading recipe gtl(core|additions):/ ) {
+                throw new GradleException('A production Core or Additions recipe failed to load')
+            }
+            if (contents.contains('Input item is not one of:') || contents.contains('Output item is not one of:')) {
+                throw new GradleException('A native recipe builder silently rejected a production item ingredient')
+            }
+        }
+    }
+    tasks.register('verifyNativeProductionClient') {
+        group = 'verification'
+        dependsOn 'runProductionClient'
+        doLast {
+            def contents = file('migration/full-client/logs/latest.log').getText('UTF-8')
+            if (!contents.contains('GTL_NATIVE_PRODUCTION_CLIENT=PASS')) {
+                throw new GradleException('Complete production client validation did not finish')
+            }
+            if (!contents.contains('GTL_NATIVE_PRODUCTION_FORMED_CLIENT=PASS')) {
+                throw new GradleException('Original formed controller and bound-part GUI validation did not finish')
+            }
+            if (contents.contains('Found different data providers with same id gtceu:me_pattern_buffer')
+                    || contents.contains('Missing config translation: config.jade.plugin_gtlcore.')) {
+                throw new GradleException('Production native Jade integrations failed registration or localization')
+            }
+            if (contents.contains('[SIZING]') || contents.contains("Padding can't be applied correctly!")) {
+                throw new GradleException('Production native ModularUI reported a sizing failure')
+            }
+            if (contents.contains('Missing value transformer') || contents.contains('Sync: Failed to serialize/deserialize')) {
+                throw new GradleException('Production native machine field synchronization failed')
+            }
+        }
+    }
+}

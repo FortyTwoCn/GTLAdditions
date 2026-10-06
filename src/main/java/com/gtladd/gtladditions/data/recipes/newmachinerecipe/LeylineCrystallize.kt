@@ -1,4 +1,4 @@
-﻿package com.gtladd.gtladditions.data.recipes.newmachinerecipe
+package com.gtladd.gtladditions.data.recipes.newmachinerecipe
 
 import com.gregtechceu.gtceu.api.GTValues.MAX
 import com.gregtechceu.gtceu.api.GTValues.VEX
@@ -7,7 +7,7 @@ import com.gregtechceu.gtceu.api.data.tag.TagPrefix.dust
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.ingot
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.world.level.block.Blocks
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.common.data.GTLMaterials.*
@@ -15,7 +15,7 @@ import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object LeylineCrystallize {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         GTLAddRecipesTypes.LEYLINE_CRYSTALLIZE.recipeBuilder(GTLAdditions.id("magmatter_block"))
             .notConsumable(getItemStack("kubejs:dragon_stabilizer_core"))
             .inputItems(ingot, Magmatter, 64)

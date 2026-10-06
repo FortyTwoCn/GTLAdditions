@@ -28,11 +28,25 @@ src/generated/resources/.cache
 forge*changelog.txt
 /README.txt
 /LICENSE.txt
-/gradlew
-/gradle/wrapper/gradle-wrapper.properties
 /CREDITS.txt
 /changelog.txt
 /.gitattributes
 
 /docs
 /AGENTS.md
+/migration/full-server-smoke/
+/migration/full-gametest/
+/migration/full-client/
+/migration/full-dedicated/
+/.kotlin/
+/logs/
+
+# Native publication: runtime binaries and validation outputs are release assets.
+/libs/
+/logs/
+/javac.*.args
+/hs_err_pid*.log
+/migration/validation/
+/migration/full-dedicated/
+/.kotlin/
+**/__pycache__/

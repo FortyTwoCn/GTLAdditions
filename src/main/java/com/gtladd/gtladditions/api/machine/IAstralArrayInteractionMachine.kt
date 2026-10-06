@@ -1,16 +1,15 @@
 package com.gtladd.gtladditions.api.machine
 
-import com.gregtechceu.gtceu.api.machine.feature.IMachineModifyDrops
 import com.gtladd.gtladditions.common.items.GTLAddItems
 import net.minecraft.world.item.ItemStack
 import kotlin.math.min
 
-interface IAstralArrayInteractionMachine : IMachineModifyDrops {
+interface IAstralArrayInteractionMachine {
     fun increaseAstralArrayCount(amount: Int): Int
 
     val astralArrayCount: Int
 
-    override fun onDrops(list: MutableList<ItemStack>) {
+    fun addAstralArrayDrops(list: MutableList<ItemStack>) {
         var count = this.astralArrayCount
         while (count > 0) {
             val stackSize = min(64, count)

@@ -1,6 +1,6 @@
-﻿package com.gtladd.gtladditions.integration.jade.provider
+package com.gtladd.gtladditions.integration.jade.provider
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.machine.hatch.InfinityDualHatchPartMachine
 import net.minecraft.resources.ResourceLocation
@@ -13,19 +13,14 @@ import snownee.jade.api.Accessor
 import snownee.jade.api.view.*
 
 object GTItemStorageProvider :
-    IServerExtensionProvider<MetaMachineBlockEntity, ItemStack>,
+    IServerExtensionProvider<ItemStack>,
     IClientExtensionProvider<ItemStack, ItemView> {
-    override fun getGroups(
-        serverPlayer: ServerPlayer,
-        serverLevel: ServerLevel,
-        mmbe: MetaMachineBlockEntity,
-        b: Boolean
-    ): List<ViewGroup<ItemStack>>? {
-        val machine = mmbe.getMetaMachine()
+    override fun getGroups(accessor: Accessor<*>): List<ViewGroup<ItemStack>>? {
+        val machine = (accessor as? snownee.jade.api.BlockAccessor)?.blockEntity as? MetaMachine
         return if (machine is InfinityDualHatchPartMachine || machine is MEPatternBufferPartMachine) {
             listOf()
         } else {
-            ItemStorageProvider.INSTANCE.getGroups(serverPlayer, serverLevel, mmbe, b)
+            ItemStorageProvider.Extension.INSTANCE.getGroups(accessor)
         }
     }
 
@@ -34,5 +29,5 @@ object GTItemStorageProvider :
     override fun getClientGroups(
         accessor: Accessor<*>,
         list: List<ViewGroup<ItemStack>>
-    ): List<ClientViewGroup<ItemView>> = ItemStorageProvider.INSTANCE.getClientGroups(accessor, list)
+    ): List<ClientViewGroup<ItemView>> = ItemStorageProvider.Extension.INSTANCE.getClientGroups(accessor, list)
 }

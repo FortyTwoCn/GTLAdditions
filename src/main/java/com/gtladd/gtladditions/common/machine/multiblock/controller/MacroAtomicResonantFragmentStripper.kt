@@ -2,9 +2,9 @@ package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.google.common.base.Predicate
 import com.google.common.primitives.Ints
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.api.machine.IAstralArrayInteractionMachine
@@ -16,8 +16,7 @@ import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.STAR_CORE_STRIPP
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.RecipeCalculationHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
@@ -26,33 +25,44 @@ import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-class MacroAtomicResonantFragmentStripper(holder: IMachineBlockEntity) :
-    GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder),
+class MacroAtomicResonantFragmentStripper(holder: BlockEntityCreationInfo) :
+    GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder, MacroAtomicResonantFragmentStripperLogic()),
     IAstralArrayInteractionMachine {
 
-    @field:Persisted
+    override fun modifyDrops(drops: MutableList<net.minecraft.world.item.ItemStack>) {
+        super.modifyDrops(drops)
+        addAstralArrayDrops(drops)
+    }
+
+    @field:SaveField
     override var astralArrayCount: Int = 0
 
-    @field:Persisted
+    @field:SaveField
     private var parallelAmount: Long = 1
 
     fun getRealParallel(): Long = parallelAmount
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     override fun needConfirmMEStock(): Boolean = true
 
     override fun getMaxParallel(): Int = Ints.saturatedCast(getRealParallel())
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = MacroAtomicResonantFragmentStripperLogic(this)
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         parallelAmount = calculateParallelAmount(astralArrayCount, this.coilType.coilTemperature)
     }
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("MacroAtomicResonantFragmentStripperStatus", syncManager, {
+            mutableListOf<Component>().also(::collectMacroAtomicResonantFragmentStripperStatusText)
+        }, 130)
+    )
+
+    private fun collectMacroAtomicResonantFragmentStripperStatusText(textList: MutableList<Component>) {
+        
         if (isFormed) {
             textList.add(
                 "tooltip.gtladditions.astral_array_count".toComponent("$astralArrayCount / $MAX_ASTRAL_ARRAY_COUNT".literal.withStyle(ChatFormatting.GOLD))
@@ -60,7 +70,7 @@ class MacroAtomicResonantFragmentStripper(holder: IMachineBlockEntity) :
         }
     }
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         if (parallelAmount > 1) {
             textList.add(
                 "gtceu.multiblock.parallel".toComponent(FormattingUtil.formatNumbers(parallelAmount).literal.withStyle(ChatFormatting.DARK_PURPLE)).withStyle(ChatFormatting.GRAY)
@@ -118,12 +128,6 @@ class MacroAtomicResonantFragmentStripper(holder: IMachineBlockEntity) :
             }
         }
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(
-                MacroAtomicResonantFragmentStripper::class.java,
-                GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-            )
-
         /**
          * Formula: parallelMultiplier = 2^(6 + 10*((astralArrayCount - 1)/184)^2)
          */
@@ -135,7 +139,7 @@ class MacroAtomicResonantFragmentStripper(holder: IMachineBlockEntity) :
             return (base * 2.0.pow(exponent)).roundToLong()
         }
 
-        class MacroAtomicResonantFragmentStripperLogic(parallel: MacroAtomicResonantFragmentStripper) : GTLAddMultipleRecipesLogic(parallel, FRAGMENT_STRIPPER) {
+        class MacroAtomicResonantFragmentStripperLogic() : GTLAddMultipleRecipesLogic(FRAGMENT_STRIPPER) {
             init {
                 this.setReduction(4.0, 1.0)
             }
@@ -143,9 +147,9 @@ class MacroAtomicResonantFragmentStripper(holder: IMachineBlockEntity) :
             override fun getMachine(): MacroAtomicResonantFragmentStripper = super.getMachine() as MacroAtomicResonantFragmentStripper
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 val getParallelLimitForRecipe: (GTRecipe) -> Long =
-                    if (getMachine().recipeType == STAR_CORE_STRIPPER) {
+                    if (getMachine().recipeType == STAR_CORE_STRIPPER.get()) {
                         { getMachine().getRealParallel() }
                     } else {
                         { Long.MAX_VALUE }

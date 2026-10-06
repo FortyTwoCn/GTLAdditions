@@ -1,0 +1,14 @@
+{
+  "upstream": "net.povstalec.sgjourney / Stargate Journey 0.6.49",
+  "version_id": "mZTmQ1wW",
+  "artifact_sha256": "7bba45a24fff715df09fdd804d3fc34572301f45fe01a8532bbdd85ed4e542af",
+  "resource": "data/sgjourney/loot_table/chests/jaffa_house.json",
+  "source_sha256": "60dc5392e82d0d60d97e90ea6847e0df05fb9217bcac1239bbf3da9fdd5ffc84",
+  "changes": [
+    [
+      "sgjourney:liquid_naquadah",
+      "sgjourney:liquid_naquadah_ban"
+    ]
+  ],
+  "reason": "Preserve GTL disabled fluid IDs while decoding native component-based Jaffa house loot."
+}

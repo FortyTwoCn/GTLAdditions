@@ -6,8 +6,8 @@ import com.gtladd.gtladditions.client.render.machine.deferred.DeferredRenderEntr
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 
 @OnlyIn(Dist.CLIENT)
 object HeartDeferredRenderer {

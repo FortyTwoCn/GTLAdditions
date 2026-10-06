@@ -4,14 +4,14 @@ import com.gregtechceu.gtceu.api.GTValues
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.*
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.api.data.tag.GTLTagPrefix.nanoswarm
 import org.gtlcore.gtlcore.common.data.GTLMaterials
 import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object HeliofusionExoticizer {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         GTLAddRecipesTypes.MATTER_EXOTIC.recipeBuilder(GTLAdditions.id("high_energy_quark_gluon_matter_exotic"))
             .inputFluids(GTLMaterials.HeavyQuarkDegenerateMatter.getFluid(5760))
             .inputFluids(GTLMaterials.CosmicSuperconductor.getFluid(2880))

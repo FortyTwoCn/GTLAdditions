@@ -7,15 +7,12 @@ import com.gtladd.gtladditions.common.blocks.GTLAddBlocks
 import com.gtladd.gtladditions.common.machine.multiblock.structure.RingStructure
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.BufferBuilder
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import it.unimi.dsi.fastutil.objects.Object2IntMap
-import net.irisshaders.iris.shaderpack.materialmap.WorldRenderingSettings
-import net.irisshaders.iris.vertices.BlockSensitiveBufferBuilder
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.ChunkBufferBuilderPack
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.block.model.BakedQuad
@@ -28,9 +25,10 @@ import net.minecraft.world.level.EmptyBlockGetter
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.model.data.ModelData
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.model.data.ModelData
+import net.neoforged.fml.ModList
 import org.gtlcore.gtlcore.client.ClientUtil
 
 @OnlyIn(Dist.CLIENT)
@@ -164,82 +162,100 @@ object RingStructureVertexBuffer {
             prepareRing(RingStructure.RINGS[tier])
         }
 
-        return preparedRings.map { uploadTerrainRing(it, useBlockSensitiveBuilder) }.toTypedArray()
+        val uploaded = mutableListOf<UploadedTerrainRing>()
+        try {
+            preparedRings.forEach { uploaded.add(uploadTerrainRing(it, useBlockSensitiveBuilder)) }
+            return uploaded.toTypedArray()
+        } catch (failure: Throwable) {
+            uploaded.forEach { ring -> ring.buffersByRenderType.values.forEach(VertexBuffer::close) }
+            throw failure
+        }
     }
 
     @JvmStatic
     fun useShaderCompatibleTerrainUploadMode() {
+        // A new pipeline may assign different material IDs to the same block states.
+        closeRings(shaderTerrainUploadedRings)
+        shaderTerrainUploadedRings = null
         useShaderCompatibleTerrainUpload = true
-        currentTerrainUploadedRings = shaderTerrainUploadedRings
+        currentTerrainUploadedRings = null
     }
 
     @JvmStatic
     fun useVanillaCompatibleTerrainUploadMode() {
+        closeRings(shaderTerrainUploadedRings)
+        shaderTerrainUploadedRings = null
         useShaderCompatibleTerrainUpload = false
         currentTerrainUploadedRings = vanillaTerrainUploadedRings
     }
 
+    @JvmStatic
+    fun invalidate() {
+        closeRings(vanillaTerrainUploadedRings)
+        closeRings(shaderTerrainUploadedRings)
+        vanillaTerrainUploadedRings = null
+        shaderTerrainUploadedRings = null
+        currentTerrainUploadedRings = null
+    }
+
+    private fun closeRings(rings: Array<UploadedTerrainRing>?) {
+        rings?.forEach { ring -> ring.buffersByRenderType.values.forEach(VertexBuffer::close) }
+    }
+
     private fun uploadTerrainRing(preparedRing: PreparedRing, useBlockSensitiveBuilder: Boolean): UploadedTerrainRing {
         val poseStack = PoseStack()
-        val builderPack = if (useBlockSensitiveBuilder) ChunkBufferBuilderPack() else null
+        val irisLoaded = ModList.get().isLoaded("iris")
+        val shaderMode = useBlockSensitiveBuilder && irisLoaded
         val uploadedBuffers = linkedMapOf<RenderType, VertexBuffer>()
-
-        preparedRing.blocksByRenderType.forEach { (renderType, preparedBlocks) ->
-            val consumer = if (useBlockSensitiveBuilder) {
-                builderPack!!.builder(renderType)
-            } else {
-                BufferBuilder(renderType.bufferSize())
-            }
-            consumer.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
-            preparedBlocks.forEach { preparedBlock ->
-                poseStack.withPose {
-                    translate(
-                        preparedBlock.localX,
-                        preparedBlock.localY,
-                        preparedBlock.localZ
-                    )
-
-                    if (consumer is BlockSensitiveBufferBuilder) {
-                        consumer.beginBlock(
-                            resolveBlockStateId(preparedBlock.blockState),
-                            (-1).toShort(),
-                            preparedBlock.blockLocalX and 15,
-                            preparedBlock.blockLocalY and 15,
-                            preparedBlock.blockLocalZ and 15
-                        )
+        try {
+            preparedRing.blocksByRenderType.forEach { (renderType, preparedBlocks) ->
+                ByteBufferBuilder(renderType.bufferSize()).use { allocator ->
+                    val consumer = if (irisLoaded) {
+                        RingTerrainIrisCompat.createBuffer(allocator, shaderMode)
+                    } else {
+                        BufferBuilder(allocator, VertexFormat.Mode.QUADS, DefaultVertexFormat.BLOCK)
                     }
-
+                    preparedBlocks.forEach { preparedBlock ->
+                        poseStack.withPose {
+                            translate(preparedBlock.localX, preparedBlock.localY, preparedBlock.localZ)
+                            if (shaderMode) {
+                                RingTerrainIrisCompat.beginBlock(
+                                    consumer, preparedBlock.blockState,
+                                    preparedBlock.blockLocalX and 15,
+                                    preparedBlock.blockLocalY and 15,
+                                    preparedBlock.blockLocalZ and 15
+                                )
+                            }
+                            try {
+                                val pose = last()
+                                preparedBlock.quads.forEach { quad ->
+                                    consumer.putBulkData(pose, quad, 1f, 1f, 1f, 1f,
+                                        preparedBlock.light, OverlayTexture.NO_OVERLAY, true)
+                                }
+                            } finally {
+                                if (shaderMode) RingTerrainIrisCompat.endBlock(consumer)
+                            }
+                        }
+                    }
+                    val vertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC)
                     try {
-                        val pose = last()
-                        preparedBlock.quads.forEach { quad ->
-                            consumer.putBulkData(
-                                pose,
-                                quad,
-                                1.0f,
-                                1.0f,
-                                1.0f,
-                                1.0f,
-                                preparedBlock.light,
-                                OverlayTexture.NO_OVERLAY,
-                                true
-                            )
-                        }
+                        vertexBuffer.bind()
+                        // upload consumes and closes MeshData in Minecraft 1.21.
+                        vertexBuffer.upload(consumer.buildOrThrow())
+                        uploadedBuffers[renderType] = vertexBuffer
+                    } catch (failure: Throwable) {
+                        vertexBuffer.close()
+                        throw failure
                     } finally {
-                        if (consumer is BlockSensitiveBufferBuilder) {
-                            consumer.endBlock()
-                        }
+                        VertexBuffer.unbind()
                     }
                 }
             }
-
-            val vertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC)
-            vertexBuffer.bind()
-            vertexBuffer.upload(consumer.end())
-            VertexBuffer.unbind()
-            uploadedBuffers[renderType] = vertexBuffer
+            return UploadedTerrainRing(uploadedBuffers)
+        } catch (failure: Throwable) {
+            uploadedBuffers.values.forEach(VertexBuffer::close)
+            throw failure
         }
-
-        return UploadedTerrainRing(uploadedBuffers)
     }
 
     private fun renderUploadedTerrainRing(
@@ -283,13 +299,6 @@ object RingStructureVertexBuffer {
         return quads
     }
 
-    private fun resolveBlockStateId(blockState: BlockState): Short {
-        val ids = currentBlockStateIds() ?: return (-1).toShort()
-        return ids.getOrDefault(blockState, -1).toShort()
-    }
-
-    private fun currentBlockStateIds(): Object2IntMap<BlockState>? = WorldRenderingSettings.INSTANCE.blockStateIds
-
     private fun getVisibleFaces(
         struct: Array<Array<String>>,
         x: Int,
@@ -330,7 +339,7 @@ object RingStructureVertexBuffer {
         if (current != neighbor) return false
 
         val state = neighborBlock.defaultBlockState()
-        return state.isSolidRender(Minecraft.getInstance().level!!, BlockPos.ZERO)
+        return state.isSolidRender(EmptyBlockGetter.INSTANCE, BlockPos.ZERO)
     }
 
     private data class DirectionCheck(

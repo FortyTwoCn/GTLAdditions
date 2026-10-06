@@ -5,13 +5,13 @@ import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.content.Content
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
-import com.gregtechceu.gtceu.api.recipe.ingredient.SizedIngredient
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient as FluidIngredient
+import net.neoforged.neoforge.common.crafting.SizedIngredient
 import com.gregtechceu.gtceu.client.TooltipsHandler
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.lowdragmc.lowdraglib.gui.util.DrawerHelper
-import com.lowdragmc.lowdraglib.side.fluid.FluidHelper
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
+import com.lowdragmc.lowdraglib.utils.FluidHelper
+import net.neoforged.neoforge.fluids.FluidStack
 import com.lowdragmc.lowdraglib.utils.LocalizationUtils
 import guideme.document.LytRect
 import guideme.document.block.LytBlock
@@ -33,6 +33,7 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
 import org.gtlcore.gtlcore.utils.NumberUtils
 import java.util.Optional
 import java.util.concurrent.TimeUnit
@@ -171,8 +172,8 @@ class GTLytSlotGrid(private val width: Int, private val itemHeight: Int, fluidHe
             val font = Minecraft.getInstance().font
 
             when (val ingredient = content.content) {
-                is Ingredient -> {
-                    val item = getDisplayedItemStack(ingredient.items)
+                is SizedIngredient -> {
+                    val item = getDisplayedItemStack(LongIngredient.matchingIngredient(ingredient).items)
                     context.fillIcon(bounds, GuiAssets.SLOT)
                     if (!item.isEmpty) {
                         val pose = context.poseStack()
@@ -180,20 +181,21 @@ class GTLytSlotGrid(private val width: Int, private val itemHeight: Int, fluidHe
                         pose.translate(x + 1f, y + 1f, 2f)
                         graphics.renderItem(item, 0, 0)
                         pose.popPose()
-                        if (ingredient.guideAmount > 1) {
-                            StackSizeRenderer.renderSizeLabel(graphics, font, x + 1f, y + 1f, ingredient.guideAmount.toString(), true)
+                        val count = LongIngredient.amount(ingredient)
+                        if (count > 1) {
+                            StackSizeRenderer.renderSizeLabel(graphics, font, x + 1f, y + 1f, count.toString(), true)
                         }
                     }
                 }
                 is FluidIngredient -> {
-                    val fluid = getDisplayedFluidStack(ingredient.getStacks())
+                    val fluid = getDisplayedFluidStack(LongFluidIngredient.matchingIngredient(ingredient).getStacks())
                     context.fillIcon(bounds, FLUID_SLOT)
                     if (!fluid.isEmpty) {
-                        DrawerHelper.drawFluidForGui(graphics, fluid, ingredient.amount, x + 1, y + 1, width - 2, height - 2)
+                        DrawerHelper.drawFluidForGui(graphics, fluid, (x + 1).toFloat(), (y + 1).toFloat(), (width - 2).toFloat(), (height - 2).toFloat())
                         graphics.pose().pushPose()
                         graphics.pose().translate(0f, 0f, 400f)
                         graphics.pose().scale(.5f, .5f, 1f)
-                        var amount = fluid.amount
+                        var amount = LongFluidIngredient.amount(ingredient)
                         val amountText = if (amount >= 1000) {
                             amount /= 1000
                             NumberUtils.formatLong(amount) + "B"
@@ -221,13 +223,13 @@ class GTLytSlotGrid(private val width: Int, private val itemHeight: Int, fluidHe
         }
 
         override fun getTooltip(x: Float, y: Float): Optional<GuideTooltip> = when (val ingredient = content.content) {
-            is Ingredient -> {
-                val stack = ingredient.items.firstOrNull() ?: ItemStack.EMPTY
+            is SizedIngredient -> {
+                val stack = LongIngredient.matchingIngredient(ingredient).items.firstOrNull() ?: ItemStack.EMPTY
                 if (stack.isEmpty) Optional.empty() else Optional.of(ItemTooltip(stack))
             }
             is FluidIngredient -> {
                 val stack = ingredient.firstStack
-                if (stack.isEmpty) Optional.empty() else Optional.of(FluidTooltip(stack))
+                if (stack.isEmpty) Optional.empty() else Optional.of(FluidTooltip(stack, LongFluidIngredient.amount(ingredient)))
             }
             else -> Optional.empty()
         }
@@ -239,17 +241,18 @@ class GTLytSlotGrid(private val width: Int, private val itemHeight: Int, fluidHe
         }
 
         private fun getDisplayedFluidStack(stacks: Array<FluidStack>) = if (stacks.isEmpty()) {
-            FluidStack.empty()
+            FluidStack.EMPTY
         } else {
             stacks[(System.nanoTime() / TimeUnit.MILLISECONDS.toNanos(2000L) % stacks.size.toLong()).toInt()]
         }
     }
 
-    data class FluidTooltip(val fluidStack: FluidStack) : GuideTooltip {
+    data class FluidTooltip(val fluidStack: FluidStack, val amount: Long) : GuideTooltip {
         override fun getLines(): MutableList<ClientTooltipComponent> {
             val list = ObjectArrayList<Component>()
             list.add(FluidHelper.getDisplayName(fluidStack))
-            TooltipsHandler.appendFluidTooltips(fluidStack.fluid, fluidStack.amount, list::add, null)
+            TooltipsHandler.appendFluidTooltips(fluidStack, list::add, net.minecraft.world.item.TooltipFlag.NORMAL, null)
+            list.add(Component.translatable("gtceu.gui.fluid_amount").append(" " + NumberUtils.formatLong(amount) + " mB"))
             return list.stream().map { it.visualOrderText }.map { ClientTooltipComponent.create(it) }.toList()
         }
 
@@ -266,15 +269,8 @@ class GTLytSlotGrid(private val width: Int, private val itemHeight: Int, fluidHe
     }
 }
 
-private val Ingredient.guideAmount: Long
-    get() = when (this) {
-        is LongIngredient -> actualAmount
-        is SizedIngredient -> amount.toLong()
-        else -> 1L
-    }
-
 private val FluidIngredient.firstStack: FluidStack
     get() {
-        getStacks().forEach { if (it != null && !it.isEmpty) return it }
-        return FluidStack.empty()
+        LongFluidIngredient.matchingIngredient(this).getStacks().forEach { if (!it.isEmpty) return it }
+        return FluidStack.EMPTY
     }

@@ -9,6 +9,8 @@ import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
 import org.gtlcore.gtlcore.api.recipe.RecipeExtensionCopier
+import org.gtlcore.gtlcore.api.recipe.NativeContentState
+import org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient
 import kotlin.math.max
 
 object OreProcessorRecipeHelper {
@@ -23,23 +25,16 @@ object OreProcessorRecipeHelper {
             return recipe
         }
 
-        val copy = GTRecipe(
-            recipe.recipeType,
-            recipe.id,
-            copyContents(recipe.inputs, inputFluidMultiplier = inputFluidMultiplier),
-            copyContents(recipe.outputs, itemChanceBoost = itemChanceBoost, outputMultiplier = outputMultiplier),
-            recipe.tickInputs,
-            copyContents(recipe.tickOutputs, itemChanceBoost = itemChanceBoost, outputMultiplier = outputMultiplier),
-            recipe.inputChanceLogics,
-            recipe.outputChanceLogics,
-            recipe.tickInputChanceLogics,
-            recipe.tickOutputChanceLogics,
-            recipe.conditions,
-            recipe.ingredientActions,
-            recipe.data,
-            max((recipe.duration * durationMultiplier).toInt(), 1),
-            recipe.isFuel
-        )
+        require(itemChanceBoost >= 0 && listOf(outputMultiplier, inputFluidMultiplier, durationMultiplier)
+            .all { it.isFinite() && it > 0 }) { "Ore recipe multipliers must be finite and positive" }
+        val copy = recipe.copy()
+        copy.inputs.clear()
+        copy.inputs.putAll(copyContents(recipe.inputs, inputFluidMultiplier = inputFluidMultiplier))
+        copy.outputs.clear()
+        copy.outputs.putAll(copyContents(recipe.outputs, itemChanceBoost = itemChanceBoost, outputMultiplier = outputMultiplier))
+        copy.tickOutputs.clear()
+        copy.tickOutputs.putAll(copyContents(recipe.tickOutputs, itemChanceBoost = itemChanceBoost, outputMultiplier = outputMultiplier))
+        copy.duration = max((recipe.duration * durationMultiplier).toInt(), 1)
         RecipeExtensionCopier.copy(recipe, copy)
         return copy
     }
@@ -76,25 +71,22 @@ object OreProcessorRecipeHelper {
             capability == FluidRecipeCapability.CAP && inputFluidMultiplier != 1.0 -> ContentModifier.multiplier(inputFluidMultiplier)
             else -> null
         }
-        val copiedContent = if (modifier == null) {
+        val copiedContent = if (modifier == null || content.chance == 0) {
             capability.copyContent(content.content)
         } else {
             capability.copyContent(content.content, modifier)
         }
 
         return if (capability == FluidRecipeCapability.CAP &&
-            FluidRecipeCapability.CAP.of(copiedContent).amount <= 0
+            LongFluidIngredient.amount(FluidRecipeCapability.CAP.of(copiedContent)) <= 0
         ) {
             null
         } else {
-            Content(
-                copiedContent,
-                content.chance,
-                content.maxChance,
-                if (capability == ItemRecipeCapability.CAP) content.tierChanceBoost * itemChanceBoost else content.tierChanceBoost,
-                content.slotName,
-                content.uiName
-            )
+            NativeContentState.copy(content, Content(copiedContent, content.chance, content.maxChance)).also {
+                if (capability == ItemRecipeCapability.CAP) NativeContentState.of(it).`gtlcore$setTierChanceBoost`(
+                    Math.multiplyExact(NativeContentState.of(content).`gtlcore$getTierChanceBoost`(), itemChanceBoost)
+                )
+            }
         }
     }
 }

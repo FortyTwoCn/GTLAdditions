@@ -3,8 +3,8 @@ package com.gtladd.gtladditions.utils.antichrist
 import com.github.benmanes.caffeine.cache.Caffeine
 import com.gtladd.gtladditions.client.RenderMode
 import com.gtladd.gtladditions.common.machine.multiblock.controller.ForgeOfTheAntichrist
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 
 @OnlyIn(Dist.CLIENT)
 object ClientAnimationHelper {

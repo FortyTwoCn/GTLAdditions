@@ -1,0 +1,30 @@
+// Focused payload codec verification; the main source set remains part of the production build.
+sourceSets {
+    migrationApi
+    migrationRegression
+}
+kotlin.sourceSets.migrationApi.kotlin {
+    srcDir 'src/main/java'
+    include 'com/gtladd/gtladditions/common/data/MachineInfo.kt'
+    include 'com/gtladd/gtladditions/network/MachineDeltaPacket.kt'
+    include 'com/gtladd/gtladditions/network/SyncDimensionMachinesPacket.kt'
+}
+kotlin.sourceSets.migrationRegression.kotlin.srcDir('src/migrationRegression/kotlin')
+sourceSets.migrationRegression.compileClasspath += sourceSets.migrationApi.output
+sourceSets.migrationRegression.runtimeClasspath += sourceSets.migrationApi.output
+neoForge.addModdingDependenciesTo(sourceSets.migrationApi)
+neoForge.addModdingDependenciesTo(sourceSets.migrationRegression)
+
+dependencies {
+    migrationRegressionImplementation platform('org.junit:junit-bom:5.11.4')
+    migrationRegressionImplementation 'org.junit.jupiter:junit-jupiter'
+    migrationRegressionRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.register('migrationRegression', Test) {
+    group = 'verification'
+    description = 'Checks native payload fields, dimension identifiers, snapshots and malformed counts.'
+    testClassesDirs = sourceSets.migrationRegression.output.classesDirs
+    classpath = sourceSets.migrationRegression.runtimeClasspath
+    useJUnitPlatform()
+}

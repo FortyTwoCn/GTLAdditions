@@ -1,10 +1,10 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.google.common.primitives.Ints
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
@@ -15,8 +15,8 @@ import com.gtladd.gtladditions.api.recipe.ChanceParallelLogic
 import com.gtladd.gtladditions.common.data.ParallelData
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
 import com.gtladd.gtladditions.utils.RecipeCalculationHelper
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.longs.LongArrayList
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
@@ -25,20 +25,21 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerLevel
 import org.gtlcore.gtlcore.api.recipe.IGTRecipe
 import org.gtlcore.gtlcore.api.recipe.IParallelLogic
+import org.gtlcore.gtlcore.api.recipe.IAdvancedContentModifier
+import org.gtlcore.gtlcore.api.recipe.NativeContentState
 import org.gtlcore.gtlcore.api.recipe.RecipeExtensionCopier
 import org.gtlcore.gtlcore.api.recipe.RecipeRunnerHelper
 import org.gtlcore.gtlcore.common.data.GTLRecipeModifiers
 
-class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: Any?) :
+class ApocalypticTorsionQuantumMatrix(holder: BlockEntityCreationInfo, vararg args: Any?) :
     GTLAddWirelessWorkableElectricMultipleTypeRecipesMachine(
         holder,
-        GTLAddRecipesTypes.QUANTUM_OSCILLATION,
-        *args
-    ),
+        GTLAddRecipesTypes.QUANTUM_OSCILLATION.value()
+    , ApocalypticTorsionQuantumMatrixLogic()),
     IWirelessBindableSource<TimeSpaceDistorter> {
 
-    @field:DescSynced
-    @field:Persisted
+    @field:SyncToClient
+    @field:SaveField
     private var timeSpaceDistorterPos: BlockPos? = null
 
     private var timeSpaceDistorter: TimeSpaceDistorter? = null
@@ -49,7 +50,6 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
 
     override fun getMaxParallel(): Int = GTLRecipeModifiers.getHatchParallel(this)
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = ApocalypticTorsionQuantumMatrixLogic(this)
 
     override fun getRecipeLogic(): ApocalypticTorsionQuantumMatrixLogic = super.getRecipeLogic() as ApocalypticTorsionQuantumMatrixLogic
 
@@ -66,7 +66,7 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
             timeSpaceDistorter?.unbindSource()
         }
         timeSpaceDistorter = target
-        timeSpaceDistorterPos = target.pos
+        timeSpaceDistorterPos = target.blockPos
     }
 
     override fun onUnbound(target: TimeSpaceDistorter?) {
@@ -74,7 +74,7 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
     }
 
     fun disconnectTSD(target: TimeSpaceDistorter?, clearBinding: Boolean) {
-        if (target != null && timeSpaceDistorter != target && timeSpaceDistorterPos != target.pos) return
+        if (target != null && timeSpaceDistorter != target && timeSpaceDistorterPos != target.blockPos) return
         timeSpaceDistorter = null
         if (clearBinding) timeSpaceDistorterPos = null
     }
@@ -82,8 +82,7 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
     private fun reconnectTSD(): Boolean {
         if (!isFormed) return false
         val distorterPos = timeSpaceDistorterPos ?: return false
-        val machine = ((level as? ServerLevel)?.getBlockEntity(distorterPos) as? MetaMachineBlockEntity)
-            ?.metaMachine as? TimeSpaceDistorter
+        val machine = (level as? ServerLevel)?.let { MetaMachine.getMachine(it, distorterPos) as? TimeSpaceDistorter }
             ?: return false
         if (!machine.isFormed()) return false
         return machine.bindResolvedSource(this).isSuccess
@@ -104,18 +103,20 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         reconnectTSD()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         timeSpaceDistorter?.disconnectATQM(clearBinding = false)
         timeSpaceDistorter = null
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         timeSpaceDistorter?.unbindSource()
         timeSpaceDistorter = null
     }
@@ -131,9 +132,9 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
     // ========================================
 
     companion object {
-        val BINDING_TYPE: ResourceLocation = ResourceLocation("gtladditions", "apocalyptic_torsion_quantum_matrix")
+        val BINDING_TYPE: ResourceLocation = ResourceLocation.fromNamespaceAndPath("gtladditions", "apocalyptic_torsion_quantum_matrix")
 
-        class ApocalypticTorsionQuantumMatrixLogic(parallel: ApocalypticTorsionQuantumMatrix) : GTLAddMultipleTypeWirelessRecipesLogic(parallel) {
+        class ApocalypticTorsionQuantumMatrixLogic() : GTLAddMultipleTypeWirelessRecipesLogic() {
             init {
                 this.setReduction(0.2, 1.0)
             }
@@ -147,13 +148,12 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
                 recipe,
                 limit,
                 chanceCaches,
-                recipe.type.chanceFunction,
                 IGTRecipe.of(recipe).euTier,
                 getMachine().tier
             )
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 val totalParallel = getMachine().maxParallel.toLong() * getMultipleThreads()
 
                 var remain = totalParallel
@@ -173,7 +173,7 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
                         RecipeCalculationHelper.multipleRecipe(modified, p) { recipe ->
                             RecipeCalculationHelper.copyFixRecipe(
                                 recipe,
-                                ContentModifier.multiplier(p.toDouble()),
+                                IAdvancedContentModifier.preciseMultiplier(p),
                                 INPUT_CHANCE_RATIO
                             )
                         }
@@ -225,12 +225,9 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
                             if (cont.chance >= cont.maxChance) {
                                 contentList.add(cont)
                             } else if (cont.chance != 0) {
-                                val copy = cont.copy(cap, null)
-                                if (isInput) {
-                                    copy.maxChance = cont.maxChance * INPUT_CHANCE_RATIO
-                                } else {
-                                    copy.chance = cont.maxChance
-                                }
+                                val copy = NativeContentState.copy(cont, Content(cap.copyContent(cont.content),
+                                    if (isInput) cont.chance else cont.maxChance,
+                                    if (isInput) Math.multiplyExact(cont.maxChance, INPUT_CHANCE_RATIO) else cont.maxChance))
                                 contentList.add(copy)
                             }
                         }
@@ -240,23 +237,11 @@ class ApocalypticTorsionQuantumMatrix(holder: IMachineBlockEntity, vararg args: 
                 }
 
                 private fun modifyChance(recipe: GTRecipe): GTRecipe {
-                    val copy = GTRecipe(
-                        recipe.recipeType,
-                        recipe.id,
-                        modifyContents(recipe.inputs, true),
-                        modifyContents(recipe.outputs, false),
-                        recipe.tickInputs,
-                        recipe.tickOutputs,
-                        recipe.inputChanceLogics,
-                        recipe.outputChanceLogics,
-                        recipe.tickInputChanceLogics,
-                        recipe.tickOutputChanceLogics,
-                        recipe.conditions,
-                        recipe.ingredientActions,
-                        recipe.data,
-                        recipe.duration,
-                        recipe.isFuel
-                    )
+                    val copy = recipe.copy()
+                    copy.inputs.clear()
+                    copy.inputs.putAll(modifyContents(recipe.inputs, true))
+                    copy.outputs.clear()
+                    copy.outputs.putAll(modifyContents(recipe.outputs, false))
                     RecipeExtensionCopier.copy(recipe, copy)
                     return copy
                 }

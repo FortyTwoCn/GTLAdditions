@@ -1,8 +1,7 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineModifyDrops
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricParallelHatchMultipleRecipesMachine
@@ -11,9 +10,8 @@ import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.Constants.INT_MAX_BIG
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -31,22 +29,28 @@ import java.math.BigInteger
 import kotlin.math.ln
 import kotlin.math.max
 
-class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: Any?) :
-    GTLAddWorkableElectricParallelHatchMultipleRecipesMachine(holder, *args),
-    IMachineModifyDrops {
+class AntientropyCondensationCenter(holder: BlockEntityCreationInfo, vararg args: Any?) :
+    GTLAddWorkableElectricParallelHatchMultipleRecipesMachine(holder, AntientropyCondensationCenterLogic()) {
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var relativisticHeatCapacitorInstalled = false
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var lastCryotheumDustCost = 0
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = AntientropyCondensationCenterLogic(this)
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("AntientropyCondensationCenterStatus", syncManager, {
+            mutableListOf<Component>().also(::collectAntientropyCondensationCenterStatusText)
+        }, 130)
+    )
+
+    private fun collectAntientropyCondensationCenterStatusText(textList: MutableList<Component>) {
+        
         if (!isFormed()) return
         textList.addAll(
             arrayOf(
@@ -61,14 +65,10 @@ class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: An
         )
     }
 
-    override fun onUse(
-        state: BlockState,
-        world: Level,
-        pos: BlockPos,
-        player: Player,
-        hand: InteractionHand,
-        hit: BlockHitResult
-    ): InteractionResult {
+    override fun onUse(context: com.gregtechceu.gtceu.utils.ExtendedUseOnContext): InteractionResult {
+        val player = context.player ?: return super.onUse(context)
+        val hand = context.hand
+        val world = context.level
         val stack = player.getItemInHand(hand)
         if (stack.`is`(GTLAddItems.RELATIVISTIC_HEAT_CAPACITOR.asItem())) {
             if (world.isClientSide) return InteractionResult.SUCCESS
@@ -84,6 +84,8 @@ class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: An
                 else -> {
                     if (!player.isCreative) stack.shrink(HEAT_CAPACITOR_STACK_SIZE)
                     relativisticHeatCapacitorInstalled = true
+                    setChanged()
+                    syncDataHolder.markClientSyncFieldDirty("relativisticHeatCapacitorInstalled")
                     serverPlayer?.sendSystemMessage("gtladditions.message.antientropy_condensation_center.heat_capacitor_installed".toComponent)
                 }
             }
@@ -91,12 +93,14 @@ class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: An
             return InteractionResult.SUCCESS
         }
 
-        return super.onUse(state, world, pos, player, hand, hit)
+        return super.onUse(context)
     }
 
-    override fun onDrops(list: MutableList<ItemStack>) {
+    override fun modifyDrops(list: MutableList<ItemStack>) {
         if (relativisticHeatCapacitorInstalled) {
             list.add(ItemStack(GTLAddItems.RELATIVISTIC_HEAT_CAPACITOR.asItem(), HEAT_CAPACITOR_STACK_SIZE))
+            relativisticHeatCapacitorInstalled = false
+            setChanged()
         }
     }
 
@@ -127,8 +131,6 @@ class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: An
         }
     }
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
         private const val HEAT_CAPACITOR_STACK_SIZE = 64
 
@@ -136,12 +138,7 @@ class AntientropyCondensationCenter(holder: IMachineBlockEntity, vararg args: An
             total.add(BigInteger.valueOf(parallel.coerceAtLeast(0L)))
         }
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            AntientropyCondensationCenter::class.java,
-            GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-        )
-
-        private class AntientropyCondensationCenterLogic(machine: AntientropyCondensationCenter) : GTLAddMultipleRecipesLogic(machine) {
+        private class AntientropyCondensationCenterLogic() : GTLAddMultipleRecipesLogic() {
 
             override fun getMachine(): AntientropyCondensationCenter = super.getMachine() as AntientropyCondensationCenter
 

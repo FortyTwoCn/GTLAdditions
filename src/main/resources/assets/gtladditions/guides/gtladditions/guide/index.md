@@ -8,7 +8,7 @@ categories:
 
 # About GTLAdditions
 
-This guide includes migrated machine, recipe, and modification content.
+Browse GTLAdditions machines, recipes, and modifications.
 
 * [GTLAdditions Machines](machine/machine_index.md)
 * [GTLAdditions Recipes](recipe/recipe_index.md)

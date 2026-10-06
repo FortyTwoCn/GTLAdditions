@@ -1,0 +1,401 @@
+{
+  "baseline": "8caff5e93a5e65914d10dd176d48d66e7ec8c329",
+  "namespace": "gtceu",
+  "entries": [
+    {
+      "field": "PHOTON_MATRIX_ETCH",
+      "id": "gtceu:photon_matrix_etch",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        3,
+        1,
+        1,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "EM_RESONANCE_CONVERSION_FIELD",
+      "id": "gtceu:em_resonance_conversion_field",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "TECTONIC_FAULT_GENERATOR",
+      "id": "gtceu:tectonic_fault_generator",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "BIOLOGICAL_SIMULATION",
+      "id": "gtceu:biological_simulation",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        3,
+        7,
+        2,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "VOIDFLUX_REACTION",
+      "id": "gtceu:voidflux_reaction",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        3,
+        0,
+        0,
+        1
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "STELLAR_LGNITION",
+      "id": "gtceu:stellar_lgnition",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "progress": "PROGRESS_BAR_ARC_FURNACE",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "CHAOTIC_ALCHEMY",
+      "id": "gtceu:chaotic_alchemy",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        9,
+        0,
+        3,
+        1
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "ANTIENTROPY_CONDENSATION",
+      "id": "gtceu:antientropy_condensation",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        2,
+        2,
+        1
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "MOLECULAR_DECONSTRUCTION",
+      "id": "gtceu:molecular_deconstruction",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "progress": "PROGRESS_BAR_EXTRACT",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "UNIVERSE_SANDBOX",
+      "id": "gtceu:universe_sandbox",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        120,
+        1,
+        18
+      ],
+      "progress": "PROGRESS_BAR_EXTRACT",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "CHAOS_WEAVE",
+      "id": "gtceu:chaos_weave",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_EXTRACT",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "GENESIS_ENGINE",
+      "id": "gtceu:genesis_engine",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        1,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTLAddSoundEntries.GENESIS_ENGINE",
+      "eu_io": "OUT",
+      "visible": true
+    },
+    {
+      "field": "STAR_CORE_STRIPPER",
+      "id": "gtceu:star_core_stripper",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        3,
+        12,
+        1,
+        1
+      ],
+      "progress": "PROGRESS_BAR_MACERATE",
+      "sound": "GTSoundEntries.MINER",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "MATTER_EXOTIC",
+      "id": "gtceu:matter_exotic",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        1,
+        4,
+        1
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTLSoundEntries.FUSIONLOOP",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "LEYLINE_CRYSTALLIZE",
+      "id": "gtceu:leyline_crystallize",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        9,
+        1,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.ARC",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "INTER_STELLAR",
+      "id": "gtceu:inter_stellar",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTLAddSoundEntries.INTER_STELLAR",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "NIGHTMARE_CRAFTING",
+      "id": "gtceu:nightmare_crafting",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        16,
+        1,
+        1,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.SCIENCE",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "SPACE_ORE_PROCESSOR",
+      "id": "gtceu:space_ore_processor",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        2,
+        9,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.MACERATOR",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "TRANSMUTATION_BLOCK_CONVERSION",
+      "id": "gtceu:transmutation_block_conversion",
+      "group": "DUMMY",
+      "max_io": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "progress": null,
+      "sound": "GTLAddSoundEntries.INTER_STELLAR",
+      "eu_io": null,
+      "visible": false
+    },
+    {
+      "field": "SPACETIME_STASIS",
+      "id": "gtceu:spacetime_stasis",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.SCIENCE",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "SUPRATEMPORAL_BOOSTING",
+      "id": "gtceu:supratemporal_boosting",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTLAddSoundEntries.GENESIS_ENGINE",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "TIME_SPACE_DISTORTION",
+      "id": "gtceu:time_space_distortion",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTLAddSoundEntries.QUANTUM_OSCILLATION",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "COMPRESSED_ASTRAL_ARRAY",
+      "id": "gtceu:compressed_astral_array",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        4,
+        0,
+        1,
+        0
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.SCIENCE",
+      "eu_io": "IN",
+      "visible": false
+    },
+    {
+      "field": "EVOLUTION_OF_PRIMORDIAL",
+      "id": "gtceu:evolution_of_primordial",
+      "group": "MULTIBLOCK",
+      "max_io": [
+        1,
+        1,
+        2,
+        16
+      ],
+      "progress": "PROGRESS_BAR_ARROW",
+      "sound": "GTSoundEntries.CHEMICAL",
+      "eu_io": "IN",
+      "visible": true
+    },
+    {
+      "field": "FORGE_OF_THE_ANTICHRIST",
+      "id": "gtceu:forge_of_the_antichrist",
+      "group": "DUMMY",
+      "max_io": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "progress": null,
+      "sound": "GTLAddSoundEntries.FORGE_OF_THE_ANTICHRIST",
+      "eu_io": null,
+      "visible": false
+    },
+    {
+      "field": "QUANTUM_OSCILLATION",
+      "id": "gtceu:quantum_oscillation",
+      "group": "DUMMY",
+      "max_io": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "progress": null,
+      "sound": "GTLAddSoundEntries.QUANTUM_OSCILLATION",
+      "eu_io": null,
+      "visible": false
+    }
+  ],
+  "multi_recipe_fields": [
+    "FORGE_OF_THE_ANTICHRIST",
+    "QUANTUM_OSCILLATION",
+    "COSMOS_SIMULATION_RECIPES"
+  ]
+}

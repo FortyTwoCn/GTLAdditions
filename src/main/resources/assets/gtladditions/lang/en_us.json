@@ -1,4 +1,8 @@
 {
+  "config.jade.plugin_gtladditions.cloud_binding": "Cloud binding",
+  "config.jade.plugin_gtladditions.biosphere_iii_energy": "Biosphere III energy",
+  "config.jade.plugin_gtladditions.wireless_energy_network_terminal": "Wireless energy terminal",
+  "config.jade.plugin_gtceu.infinity_dual_hatch": "Infinity dual hatch contents",
   "block.gtladditions.antientropy_condensation_center": "Antientropy Condensation Center",
   "block.gtladditions.apocalyptic_torsion_quantum_matrix": "Apocalyptic Torsion Quantum Matrix",
   "block.gtladditions.arcane_cache_vault": "Arcane Cache Vault",
@@ -401,5 +405,11 @@
   "tooltip.gtladditions.stargate_structure.6": "◆■□□□■◆",
   "tooltip.gtladditions.stargate_structure.7": "□■◆★◆■□",
   "tooltip.gtladditions.stargate_structure.8": "§b■§r: 14x§6Stargate Ring Block",
-  "tooltip.gtladditions.stargate_structure.9": "§b◆§r: 9x§6Stargate Chevron Block"
+  "tooltip.gtladditions.stargate_structure.9": "§b◆§r: 9x§6Stargate Chevron Block",
+  "gtladditions.subtitle.forgeofantichrist": "Forge of the Antichrist",
+  "gtladditions.subtitle.quantumoscillation": "Quantum Oscillation",
+  "gtladditions.subtitle.genesisengine": "Genesis Engine",
+  "gtladditions.subtitle.interstellar": "Interstellar",
+  "tooltip.gtladditions.astral_compression_collected": "Collected astral arrays: %s",
+  "tooltip.gtladditions.astral_compression_pending": "Compressed arrays awaiting output: %s"
 }

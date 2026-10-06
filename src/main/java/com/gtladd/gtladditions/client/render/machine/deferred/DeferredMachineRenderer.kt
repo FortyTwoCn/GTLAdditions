@@ -10,11 +10,12 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
-import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 import org.joml.Matrix4f
 
 @OnlyIn(Dist.CLIENT)
@@ -58,9 +59,9 @@ internal class DeferredRenderContext(
 }
 
 @OnlyIn(Dist.CLIENT)
-@Mod.EventBusSubscriber(
+@EventBusSubscriber(
     modid = GTLAdditions.MOD_ID,
-    bus = Mod.EventBusSubscriber.Bus.FORGE,
+    bus = EventBusSubscriber.Bus.GAME,
     value = [Dist.CLIENT]
 )
 object DeferredMachineRenderer {
@@ -120,7 +121,7 @@ object DeferredMachineRenderer {
             RenderSystem.setProjectionMatrix(context.projectionMatrix, VertexSorting.DISTANCE_TO_ORIGIN)
 
             val poseStack = PoseStack()
-            poseStack.mulPoseMatrix(context.poseMatrix)
+            poseStack.mulPose(context.poseMatrix)
             renderEntries(
                 DeferredRenderContext(
                     context.cameraPosition,

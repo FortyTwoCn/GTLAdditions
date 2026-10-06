@@ -1,0 +1,70 @@
+{
+  "type": "avaritia:shaped_table",
+  "category": "misc",
+  "pattern": [
+    "ABBCDCBBA",
+    "BEFGHGFEB",
+    "BEIGJGIEB",
+    "CKLMMMLKC",
+    "DKNMOMNKD",
+    "CKLMMMLKC",
+    "BEIGPGIEB",
+    "BEFGHGFEB",
+    "ABBCDCBBA"
+  ],
+  "key": {
+    "A": {
+      "item": "gtladditions:recursive_reverse_array"
+    },
+    "B": {
+      "item": "sgjourney:reaction_chamber"
+    },
+    "C": {
+      "item": "gtlcore:ultimate_tea"
+    },
+    "D": {
+      "item": "gtceu:cosmic_nanoswarm"
+    },
+    "E": {
+      "item": "gtladditions:time_space_distorter"
+    },
+    "F": {
+      "item": "gtladditions:super_dense_magmatter_plate"
+    },
+    "G": {
+      "item": "gtladditions:stargate_shielding_foil"
+    },
+    "H": {
+      "item": "gtladditions:stargate_chevron_upgrade"
+    },
+    "I": {
+      "item": "kubejs:create_ultimate_battery"
+    },
+    "J": {
+      "item": "gtlcore:item_infinity_cell"
+    },
+    "K": {
+      "item": "gtladditions:compressed_astral_array"
+    },
+    "L": {
+      "item": "gtladditions:forge_of_the_antichrist"
+    },
+    "M": {
+      "item": "sgjourney:classic_stargate_chevron_block"
+    },
+    "N": {
+      "item": "gtladditions:apocalyptic_torsion_quantum_matrix"
+    },
+    "O": {
+      "item": "sgjourney:crystal_base"
+    },
+    "P": {
+      "item": "gtlcore:fluid_infinity_cell"
+    }
+  },
+  "result": {
+    "id": "sgjourney:classic_stargate_base_block"
+  },
+  "show_notification": true,
+  "tier": 4
+}

@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.integration.jade.provider
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.common.machine.multiblock.electric.research.ResearchStationMachine
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.machine.CloudOpticalComputationMonitorMachine
@@ -33,8 +33,8 @@ class CloudBindingProvider :
     override fun getUid(): ResourceLocation = GTLAdditions.id("cloud_binding")
 
     private fun getCloudBindable(accessor: BlockAccessor): IBindable? {
-        val blockEntity = accessor.blockEntity as? IMachineBlockEntity ?: return null
-        return when (val machine = blockEntity.metaMachine) {
+        val blockEntity = accessor.blockEntity as? MetaMachine ?: return null
+        return when (val machine = blockEntity) {
             is CloudOpticalComputationMonitorMachine,
             is CloudOpticalDataMachine,
             is CloudOpticalComputationHatchMachine,

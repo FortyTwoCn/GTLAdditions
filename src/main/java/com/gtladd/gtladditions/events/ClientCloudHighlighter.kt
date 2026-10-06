@@ -1,6 +1,5 @@
-﻿package com.gtladd.gtladditions.events
+package com.gtladd.gtladditions.events
 
-import com.gtladd.gtladditions.GTLAdditions
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
@@ -11,14 +10,15 @@ import net.minecraft.client.renderer.RenderStateShard
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent
-import net.minecraftforge.client.event.RenderLevelStageEvent
-import net.minecraftforge.eventbus.api.SubscribeEvent
-import net.minecraftforge.fml.common.Mod
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent
+import net.neoforged.bus.api.SubscribeEvent
+import net.neoforged.fml.common.Mod
+import net.neoforged.fml.common.EventBusSubscriber
 import java.awt.Color
 
-@Mod.EventBusSubscriber(modid = GTLAdditions.MOD_ID, value = [Dist.CLIENT])
+@EventBusSubscriber(modid = "gtladditions", value = [Dist.CLIENT])
 object ClientCloudHighlighter {
 
     private data class Entry(val pos: BlockPos, val dimensionId: String, val expireTick: Long)

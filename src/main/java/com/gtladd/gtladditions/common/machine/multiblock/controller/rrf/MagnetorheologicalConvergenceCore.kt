@@ -1,15 +1,14 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.sound.SoundEntry
 import com.gregtechceu.gtceu.common.data.GTSoundEntries
 import com.gregtechceu.gtceu.common.machine.multiblock.part.ItemBusPartMachine
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.hepdd.gtmthings.common.block.machine.multiblock.part.HugeBusPartMachine
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ObjectIntPair
 import net.minecraft.ChatFormatting
 import net.minecraft.nbt.CompoundTag
@@ -24,33 +23,45 @@ import org.gtlcore.gtlcore.common.machine.multiblock.part.HugeFluidHatchPartMach
 import org.gtlcore.gtlcore.utils.Registries
 import kotlin.random.Random
 
-class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModuleMachine(holder) {
+class MagnetorheologicalConvergenceCore(holder: BlockEntityCreationInfo) : RRFModuleMachine(holder) {
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var focus = false
 
-    @Persisted
+    @SaveField
     private var failItem1: Byte = 0
 
-    @Persisted
+    @SaveField
     private var failItem2: Byte = 0
 
-    @Persisted
+    @SaveField
     private var failFluid: Byte = 3
 
-    @Persisted
+    @SaveField
     private var hasMagmatter = false
 
-    @Persisted
+    @SaveField
     private var tick = 0
 
     private var itemHatch1: HugeBusPartMachine? = null
     private var itemHatch2: HugeBusPartMachine? = null
     private var fluidHatch: HugeFluidHatchPartMachine? = null
     private var magmatterHatch: ItemBusPartMachine? = null
-    private var requestedFluid: FluidStack? = null
-    private val requestedItems = arrayOfNulls<ObjectIntPair<Item>>(2)
+    @field:SaveField
+    private var requestedFluid: FluidStack = FluidStack.EMPTY
+    @field:SaveField
+    private var requestedItem1 = ItemStack.EMPTY
+    @field:SaveField
+    private var requestedItem2 = ItemStack.EMPTY
+    @field:SaveField
+    private var requestedAmount1 = 0
+    @field:SaveField
+    private var requestedAmount2 = 0
+    private val requestedItems: Array<ObjectIntPair<Item>?> get() = arrayOf(
+        if (requestedItem1.isEmpty) null else ObjectIntPair.of(requestedItem1.item, requestedAmount1),
+        if (requestedItem2.isEmpty) null else ObjectIntPair.of(requestedItem2.item, requestedAmount2)
+    )
 
     // ========================================
     // Recursive reverse buff
@@ -64,7 +75,7 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
     // Working sound
     // ========================================
 
-    override fun getWorkingSound(): SoundEntry = GTSoundEntries.ELECTROLYZER
+    override fun getWorkingSound(): SoundEntry = GTSoundEntries.ELECTROLYZER.get()
 
     override fun shouldPlayWorkingSound(): Boolean = isReadyForRecursiveReverseBuff()
 
@@ -81,18 +92,21 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
 
     private fun initRequests() {
         val shuffled = (0..2).shuffled().take(2).sorted()
-        requestedItems[0] = ObjectIntPair.of(itemForIndex(shuffled[0]), Random.nextInt(1, 16385))
-        requestedItems[1] = ObjectIntPair.of(itemForIndex(shuffled[1]), Random.nextInt(1, 16385))
+        requestedItem1 = ItemStack(itemForIndex(shuffled[0]))
+        requestedItem2 = ItemStack(itemForIndex(shuffled[1]))
+        requestedAmount1 = Random.nextInt(1, 16385)
+        requestedAmount2 = Random.nextInt(1, 16385)
 
         requestedFluid = if (Random.nextBoolean()) {
-            GTLMaterials.ExcitedDtec.getFluid(Random.nextLong(1, 1638401))
+            GTLMaterials.ExcitedDtec.getFluid(Random.nextInt(1, 1638401))
         } else {
-            GTLMaterials.ExcitedDtsc.getFluid(Random.nextLong(1, 1638401))
+            GTLMaterials.ExcitedDtsc.getFluid(Random.nextInt(1, 1638401))
         }
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         itemHatch1 = null
         itemHatch2 = null
         fluidHatch = null
@@ -110,17 +124,24 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
         }
     }
 
-    override fun onStructureInvalid() {
+    override fun invalidateStructure(substructureName: String) {
         itemHatch1 = null
         itemHatch2 = null
         fluidHatch = null
         magmatterHatch = null
         hasMagmatter = false
-        super.onStructureInvalid()
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
     }
 
-    override fun onMachinePlaced(player: LivingEntity?, stack: ItemStack?) {
-        initRequests()
+    override fun onLoad() {
+        super.onLoad()
+        scheduleForNextServerTick {
+            if (requestedItem1.isEmpty || requestedItem2.isEmpty || requestedFluid.isEmpty) {
+                initRequests()
+                setChanged()
+            }
+        }
     }
 
     // ========================================
@@ -159,8 +180,8 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
     }
 
     private fun consumeTargetFluid() {
-        val requested = requestedFluid ?: return
-        val stored = fluidHatch?.tank?.storages?.firstOrNull()?.fluid ?: FluidStack.empty()
+        val requested = requestedFluid.takeUnless { it.isEmpty } ?: return
+        val stored = fluidHatch?.tank?.storages?.firstOrNull()?.fluid ?: FluidStack.EMPTY
         if (!stored.isEmpty) {
             if (stored.fluid == requested.fluid) {
                 failFluid = when {
@@ -169,7 +190,7 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
                     else -> -1
                 }
             }
-            fluidHatch?.tank?.drainInternal(requested, false)
+            fluidHatch?.tank?.drainInternal(requested, net.neoforged.neoforge.fluids.capability.IFluidHandler.FluidAction.EXECUTE)
         }
     }
 
@@ -195,8 +216,16 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("MagnetorheologicalConvergenceCoreStatus", syncManager, {
+            mutableListOf<Component>().also(::collectMagnetorheologicalConvergenceCoreStatusText)
+        }, 130)
+    )
+
+    private fun collectMagnetorheologicalConvergenceCoreStatusText(textList: MutableList<Component>) {
+        
         if (!isFormed) return
         textList.add(
             Component.translatable(
@@ -247,42 +276,14 @@ class MagnetorheologicalConvergenceCore(holder: IMachineBlockEntity) : RRFModule
     // Persistence
     // ========================================
 
-    override fun saveCustomPersistedData(tag: CompoundTag, forDrop: Boolean) {
-        super.saveCustomPersistedData(tag, forDrop)
-        requestedFluid?.saveToTag(tag)
-        val list = ListTag()
-        requestedItems.forEach {
-            if (it != null) {
-                val itemTag = CompoundTag()
-                itemTag.putIntArray("itemCount", intArrayOf(Item.getId(it.first()), it.rightInt()))
-                list.add(itemTag)
-            }
-        }
-        if (list.isNotEmpty()) tag.put("RequestedItems", list)
-    }
-
-    override fun loadCustomPersistedData(tag: CompoundTag) {
-        super.loadCustomPersistedData(tag)
-        requestedFluid = FluidStack.loadFromTag(tag)
-        if (tag.contains("RequestedItems")) {
-            val list = tag.getList("RequestedItems", 10)
-            for (i in 0 until minOf(2, list.size)) {
-                val itemData = list.getCompound(i).getIntArray("itemCount")
-                requestedItems[i] = ObjectIntPair.of(Item.byId(itemData[0]), itemData[1])
-            }
-        }
-    }
-
     // ========================================
     // Metadata
     // ========================================
 
     override fun getModuleDisplayNameKey(): String = "block.gtladditions.magnetorheological_convergence_core"
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(MagnetorheologicalConvergenceCore::class.java, RRFModuleMachine.MANAGED_FIELD_HOLDER)
+
         private val BLACK_BODY_NAQUADRIA_SUPERSOLID = Registries.getItem("kubejs:black_body_naquadria_supersolid")
         private val QUANTUM_ANOMALY = Registries.getItem("kubejs:quantum_anomaly")
         private val HYPER_STABLE_SELF_HEALING_ADHESIVE = Registries.getItem("kubejs:hyper_stable_self_healing_adhesive")

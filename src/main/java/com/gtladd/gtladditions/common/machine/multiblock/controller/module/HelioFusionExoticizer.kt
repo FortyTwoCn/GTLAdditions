@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.module
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
@@ -10,17 +10,13 @@ import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 
-class HelioFusionExoticizer(holder: IMachineBlockEntity, vararg args: Any?) :
-    ForgeOfTheAntichristModuleBase(
-        holder,
-        *args
-    ) {
+class HelioFusionExoticizer(holder: BlockEntityCreationInfo, vararg args: Any?) :
+    ForgeOfTheAntichristModuleBase(holder, HelioFusionExoticizerLogic()) {
 
-    override fun createRecipeLogic(vararg args: Any): HelioFusionExoticizerLogic = HelioFusionExoticizerLogic(this)
 
-    override fun getRecipeLogic(): HelioFusionExoticizerLogic = recipeLogic as HelioFusionExoticizerLogic
+    override fun getRecipeLogic(): HelioFusionExoticizerLogic = super<ForgeOfTheAntichristModuleBase>.getRecipeLogic() as HelioFusionExoticizerLogic
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         textList.add(
             "gtceu.multiblock.parallel".toComponent(
                 createLanguageRainbowComponentOnServer(
@@ -32,16 +28,16 @@ class HelioFusionExoticizer(holder: IMachineBlockEntity, vararg args: Any?) :
 
     companion object {
         class HelioFusionExoticizerLogic(
-            parallel: HelioFusionExoticizer
-        ) : ForgeOfTheAntichristModuleBase.Companion.ForgeOfTheAntichristModuleBaseLogic(parallel, BEFORE_WORKING) {
+            
+        ) : ForgeOfTheAntichristModuleBase.Companion.ForgeOfTheAntichristModuleBaseLogic(BEFORE_WORKING) {
             init {
                 this.setReduction(0.5, 1.0)
             }
 
-            override fun getMachine(): HelioFusionExoticizer = machine as HelioFusionExoticizer
+            override fun getMachine(): HelioFusionExoticizer = super.getMachine() as HelioFusionExoticizer
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 if (recipes.isEmpty()) return null
 
                 recipes.first().let { recipe ->
@@ -62,13 +58,12 @@ class HelioFusionExoticizer(holder: IMachineBlockEntity, vararg args: Any?) :
                 return null
             }
 
-            override fun lookupRecipeIterator(): Set<GTRecipe> {
+            override fun lookupRecipeSet(): Set<GTRecipe> {
                 lockRecipe?.let {
-                    return if (checkRecipe(it)) setOf(it) else setOf()
+                    return if (matchesSourceRecipe(it)) setOf(it) else setOf()
                 }
 
-                return machine.recipeType.lookup
-                    .find(machine) { recipe: GTRecipe -> checkRecipe(recipe) }
+                return machine.recipeType.searchRecipe(machine, this::matchesSourceRecipe).asSequence().firstOrNull()
                     ?.also {
                         isLock = true
                         lockRecipe = it

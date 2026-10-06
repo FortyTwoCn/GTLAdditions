@@ -5,14 +5,14 @@ import com.gregtechceu.gtceu.api.GTValues.VA
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.dust
 import com.gregtechceu.gtceu.common.data.GTMaterials.*
 import com.gtladd.gtladditions.GTLAdditions.Companion.id
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.common.data.GTLMaterials.*
 import org.gtlcore.gtlcore.common.data.GTLRecipeTypes.QFT_RECIPES
 import org.gtlcore.gtlcore.utils.Registries.getItemStack
 import java.util.function.Consumer
 
 object Qft {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         QFT_RECIPES.recipeBuilder(id("resonating_gem"))
             .notConsumable(getItemStack("kubejs:eternity_catalyst"))
             .inputItems(dust, Sapphire, 64)

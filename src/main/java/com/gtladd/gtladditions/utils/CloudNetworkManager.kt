@@ -40,9 +40,9 @@ object CloudNetworkManager {
 
     private val machineLocationOrder =
         compareBy<MetaMachine> { getDimensionId(it) }
-            .thenBy { it.pos.x }
-            .thenBy { it.pos.y }
-            .thenBy { it.pos.z }
+            .thenBy { it.blockPos.x }
+            .thenBy { it.blockPos.y }
+            .thenBy { it.blockPos.z }
 
     private val providerLocationOrder = Comparator<IOpticalComputationProvider> { first, second ->
         machineLocationOrder.compare(first as MetaMachine, second as MetaMachine)
@@ -297,10 +297,10 @@ object CloudNetworkManager {
     ): CloudMachineSnapshot {
         val level = machine.level
         val dimensionId = getDimensionId(machine)
-        val frontPos = level?.let { machine.pos.relative(machine.frontFacing) }
+        val frontPos = level?.let { machine.blockPos.relative(machine.frontFacing) }
         return CloudMachineSnapshot(
             dimensionId,
-            machine.pos,
+            machine.blockPos,
             frontPos,
             machine.definition.asStack(),
             currentCwu,
@@ -328,6 +328,6 @@ object CloudNetworkManager {
 
     private fun keyOf(machine: MetaMachine): GlobalPos? {
         val level = machine.level as? ServerLevel ?: return null
-        return GlobalPos.of(level.dimension(), machine.pos.immutable())
+        return GlobalPos.of(level.dimension(), machine.blockPos.immutable())
     }
 }

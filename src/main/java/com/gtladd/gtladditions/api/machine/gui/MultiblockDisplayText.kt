@@ -105,7 +105,7 @@ object MultiblockDisplayText {
         fun addMachineModeLine(recipeType: GTRecipeType): Builder {
             if (!isStructureFormed) return this
             textList.add(
-                "gtceu.gui.machinemode".toComponent(recipeType.registryName.toLanguageKey().translatable).withStyle(ChatFormatting.AQUA)
+                "gtceu.gui.machinemode".toComponent(recipeType.id.toLanguageKey("recipe_type").translatable).withStyle(ChatFormatting.AQUA)
             )
             return this
         }

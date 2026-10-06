@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
@@ -11,70 +11,70 @@ import org.gtlcore.gtlcore.common.machine.multiblock.electric.SpaceElevatorMachi
 import org.gtlcore.gtlcore.utils.MachineUtil
 import org.gtlcore.gtlcore.utils.datastructure.ModuleRenderInfo
 
-class SpaceElevatorMKII(holder: IMachineBlockEntity) : SpaceElevatorMachine(holder) {
+class SpaceElevatorMKII(holder: BlockEntityCreationInfo) : SpaceElevatorMachine(holder) {
     override fun getModuleScanPositions(): Array<BlockPos> {
-        val powerCore = getPowerCore(pos, level ?: return MachineUtil.EMPTY_POS_ARRAY)
+        val powerCore = getPowerCore(blockPos, level ?: return MachineUtil.EMPTY_POS_ARRAY)
             ?: return MachineUtil.EMPTY_POS_ARRAY
         return MODULE_OFFSETS.map { (x, y, z) -> powerCore.offset(x, y, z) }.toTypedArray()
     }
 
     override fun getModulesForRendering(): List<ModuleRenderInfo> = listOf(
-        module(4, 14, Direction.NORTH, RESOURCE_COLLECTION),
-        module(4, -8, Direction.SOUTH, ASSEMBLER_MODULE),
-        module(-4, 14, Direction.NORTH, RESOURCE_COLLECTION),
-        module(-4, -8, Direction.SOUTH, ASSEMBLER_MODULE),
-        module(11, 7, Direction.WEST, RESOURCE_COLLECTION),
-        module(-11, 7, Direction.EAST, ASSEMBLER_MODULE),
-        module(11, -1, Direction.WEST, RESOURCE_COLLECTION),
-        module(-11, -1, Direction.EAST, ASSEMBLER_MODULE),
-        module(18, 11, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(18, -5, Direction.NORTH, ASSEMBLER_MODULE),
-        module(-18, 11, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(-18, -5, Direction.NORTH, ASSEMBLER_MODULE),
-        module(8, 21, Direction.EAST, RESOURCE_COLLECTION),
-        module(8, -15, Direction.EAST, ASSEMBLER_MODULE),
-        module(-8, 21, Direction.WEST, RESOURCE_COLLECTION),
-        module(-8, -15, Direction.WEST, ASSEMBLER_MODULE),
-        module(1, 24, Direction.WEST, RESOURCE_COLLECTION),
-        module(1, -18, Direction.WEST, ASSEMBLER_MODULE),
-        module(-1, 24, Direction.EAST, RESOURCE_COLLECTION),
-        module(-1, -18, Direction.EAST, ASSEMBLER_MODULE),
-        module(21, 4, Direction.WEST, RESOURCE_COLLECTION),
-        module(21, 2, Direction.WEST, ASSEMBLER_MODULE),
-        module(-21, 4, Direction.EAST, RESOURCE_COLLECTION),
-        module(-21, 2, Direction.EAST, ASSEMBLER_MODULE),
-        module(7, 25, Direction.EAST, RESOURCE_COLLECTION),
-        module(7, -19, Direction.EAST, ASSEMBLER_MODULE),
-        module(-7, 25, Direction.WEST, RESOURCE_COLLECTION),
-        module(-7, -19, Direction.WEST, ASSEMBLER_MODULE),
-        module(22, 10, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(22, -4, Direction.NORTH, ASSEMBLER_MODULE),
-        module(-22, 10, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(-22, -4, Direction.NORTH, ASSEMBLER_MODULE),
-        module(26, 9, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(26, -3, Direction.NORTH, ASSEMBLER_MODULE),
-        module(-26, 9, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(-26, -3, Direction.NORTH, ASSEMBLER_MODULE),
-        module(6, 29, Direction.EAST, RESOURCE_COLLECTION),
-        module(6, -23, Direction.EAST, ASSEMBLER_MODULE),
-        module(-6, 29, Direction.WEST, RESOURCE_COLLECTION),
-        module(-6, -23, Direction.WEST, ASSEMBLER_MODULE),
-        module(16, 22, Direction.EAST, RESOURCE_COLLECTION),
-        module(16, -16, Direction.EAST, ASSEMBLER_MODULE),
-        module(-16, 22, Direction.WEST, RESOURCE_COLLECTION),
-        module(-16, -16, Direction.WEST, ASSEMBLER_MODULE),
-        module(19, 19, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(19, -13, Direction.NORTH, ASSEMBLER_MODULE),
-        module(-19, 19, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(-19, -13, Direction.NORTH, ASSEMBLER_MODULE),
-        module(16, 26, Direction.EAST, RESOURCE_COLLECTION),
-        module(16, -20, Direction.EAST, ASSEMBLER_MODULE),
-        module(-16, 26, Direction.WEST, RESOURCE_COLLECTION),
-        module(-16, -20, Direction.WEST, ASSEMBLER_MODULE),
-        module(23, 19, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(23, -13, Direction.NORTH, ASSEMBLER_MODULE),
-        module(-23, 19, Direction.SOUTH, RESOURCE_COLLECTION),
-        module(-23, -13, Direction.NORTH, ASSEMBLER_MODULE)
+        module(4, 14, Direction.NORTH, RESOURCE_COLLECTION.get()),
+        module(4, -8, Direction.SOUTH, ASSEMBLER_MODULE.get()),
+        module(-4, 14, Direction.NORTH, RESOURCE_COLLECTION.get()),
+        module(-4, -8, Direction.SOUTH, ASSEMBLER_MODULE.get()),
+        module(11, 7, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-11, 7, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(11, -1, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-11, -1, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(18, 11, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(18, -5, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(-18, 11, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(-18, -5, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(8, 21, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(8, -15, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(-8, 21, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-8, -15, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(1, 24, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(1, -18, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(-1, 24, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(-1, -18, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(21, 4, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(21, 2, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(-21, 4, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(-21, 2, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(7, 25, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(7, -19, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(-7, 25, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-7, -19, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(22, 10, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(22, -4, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(-22, 10, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(-22, -4, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(26, 9, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(26, -3, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(-26, 9, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(-26, -3, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(6, 29, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(6, -23, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(-6, 29, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-6, -23, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(16, 22, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(16, -16, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(-16, 22, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-16, -16, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(19, 19, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(19, -13, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(-19, 19, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(-19, -13, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(16, 26, Direction.EAST, RESOURCE_COLLECTION.get()),
+        module(16, -20, Direction.EAST, ASSEMBLER_MODULE.get()),
+        module(-16, 26, Direction.WEST, RESOURCE_COLLECTION.get()),
+        module(-16, -20, Direction.WEST, ASSEMBLER_MODULE.get()),
+        module(23, 19, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(23, -13, Direction.NORTH, ASSEMBLER_MODULE.get()),
+        module(-23, 19, Direction.SOUTH, RESOURCE_COLLECTION.get()),
+        module(-23, -13, Direction.NORTH, ASSEMBLER_MODULE.get())
     )
 
     private fun getPowerCore(controllerPos: BlockPos, level: Level): BlockPos? =

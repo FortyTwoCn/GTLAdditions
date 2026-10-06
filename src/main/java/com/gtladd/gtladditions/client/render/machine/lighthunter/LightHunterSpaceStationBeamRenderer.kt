@@ -1,4 +1,4 @@
-﻿package com.gtladd.gtladditions.client.render.machine.lighthunter
+package com.gtladd.gtladditions.client.render.machine.lighthunter
 
 import com.gtladd.gtladditions.client.render.machine.antichrist.AntichristBeamRenderer
 import com.gtladd.gtladditions.client.render.machine.deferred.DeferredMachineRenderer
@@ -6,8 +6,8 @@ import com.gtladd.gtladditions.client.render.machine.deferred.DeferredRenderCont
 import com.gtladd.gtladditions.client.render.machine.deferred.DeferredRenderEntry
 import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.phys.Vec3
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 
 @OnlyIn(Dist.CLIENT)
 object LightHunterSpaceStationBeamRenderer {

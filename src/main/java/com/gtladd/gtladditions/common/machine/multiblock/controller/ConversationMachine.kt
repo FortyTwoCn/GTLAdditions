@@ -1,4 +1,4 @@
-﻿package com.gtladd.gtladditions.common.machine.multiblock.controller
+package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import appeng.api.config.Actionable
 import appeng.api.stacks.AEItemKey
@@ -9,15 +9,11 @@ import com.gregtechceu.gtceu.api.GTValues.VA
 import com.gregtechceu.gtceu.api.capability.recipe.IO
 import com.gregtechceu.gtceu.api.data.chemical.ChemicalHelper.getBlock
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.block
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.gui.fancy.ConfiguratorPanel
-import com.gregtechceu.gtceu.api.gui.fancy.IFancyConfiguratorButton
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineModifyDrops
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.multiblock.CoilWorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
-import com.gregtechceu.gtceu.api.machine.trait.NotifiableItemStackHandler
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder
@@ -25,12 +21,7 @@ import com.gtladd.gtladditions.api.machine.gui.MultiblockDisplayText
 import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.common.machine.hatch.MEBlockConversationHatch
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.gui.widget.SlotWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.Hash
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap
 import net.minecraft.network.chat.Component
@@ -47,23 +38,22 @@ import org.gtlcore.gtlcore.utils.Registries.getBlock
 import kotlin.math.min
 import kotlin.math.pow
 
-class ConversationMachine(holder: IMachineBlockEntity) :
-    CoilWorkableElectricMultiblockMachine(holder),
-    IMachineModifyDrops {
+class ConversationMachine(holder: BlockEntityCreationInfo) :
+    CoilWorkableElectricMultiblockMachine(holder, ConversationRecipeLogic()) {
 
     private var bcHatch: MEBlockConversationHatch? = null
 
-    @Persisted
-    private val machineStorage: NotifiableItemStackHandler = NotifiableItemStackHandler(this, 1, IO.NONE, IO.BOTH) {
-        object : ItemStackTransfer(1) {
+    @SaveField
+    private val machineStorage: NotifiableItemStackHandler = attachTrait(NotifiableItemStackHandler(1, IO.NONE, IO.BOTH) {
+        object : com.gregtechceu.gtceu.api.transfer.item.CustomItemStackHandler(1) {
             override fun getSlotLimit(slot: Int): Int = 1
         }
-    }.setFilter(::filter).also { it.addChangedListener(::refreshParallel) }
+    }.setFilter(::filter)).also { it.addChangedListener(::refreshParallel) }
 
-    @Persisted
+    @SaveField
     var cardId = 0
 
-    @Persisted
+    @SaveField
     var parallel = 0L
 
     private fun filter(stack: ItemStack) = stack.`is`(CARD_1) || stack.`is`(CARD_2) || stack.`is`(CARD_3) || stack.`is`(CARD_4)
@@ -95,8 +85,9 @@ class ConversationMachine(holder: IMachineBlockEntity) :
     }
 
     private fun tickConsume(): Boolean {
-        if (this.maxVoltage > EUT && EUT <= energyContainer.energyStored) {
-            energyContainer.changeEnergy((-EUT))
+        val energy = energyContainer ?: return false
+        if (this.maxVoltage > EUT && EUT <= energy.energyStored) {
+            energy.changeEnergy(-EUT)
             return true
         }
         return false
@@ -104,7 +95,6 @@ class ConversationMachine(holder: IMachineBlockEntity) :
 
     override fun getRecipeLogic() = super.getRecipeLogic() as ConversationRecipeLogic
 
-    override fun createRecipeLogic(vararg args: Any) = ConversationRecipeLogic(this)
 
     @Suppress("unused")
     fun supportsBatchProcessing(): Boolean = false
@@ -112,8 +102,9 @@ class ConversationMachine(holder: IMachineBlockEntity) :
     @Suppress("unused")
     fun canConfigureBatchProcessing(): Boolean = false
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         refreshParallel()
         parts.forEach {
             if (it is MEBlockConversationHatch) {
@@ -123,12 +114,12 @@ class ConversationMachine(holder: IMachineBlockEntity) :
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         this.bcHatch = null
     }
 
-    override fun onDrops(drops: MutableList<ItemStack>) = this.clearInventory(this.machineStorage.storage)
 
     override fun afterWorking() {
         super.afterWorking()
@@ -161,7 +152,15 @@ class ConversationMachine(holder: IMachineBlockEntity) :
         }
     }
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("ConversationMachineStatus", syncManager, {
+            mutableListOf<Component>().also(::collectConversationMachineStatusText)
+        }, 130)
+    )
+
+    private fun collectConversationMachineStatusText(textList: MutableList<Component>) {
         MultiblockDisplayText.builder(textList, isFormed())
             .setWorkingStatus(recipeLogic.isWorkingEnabled, recipeLogic.isActive)
             .addEnergyUsageLine(energyContainer)
@@ -171,45 +170,31 @@ class ConversationMachine(holder: IMachineBlockEntity) :
             .addProgressLine(recipeLogic.progressPercent)
     }
 
-    override fun attachConfigurators(configuratorPanel: ConfiguratorPanel) {
-        configuratorPanel.attachConfigurators(
-            IFancyConfiguratorButton.Toggle(
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.0, 1.0, 0.5),
-                GuiTextures.BUTTON_POWER.getSubTexture(0.0, 0.5, 1.0, 0.5),
-                { this.isWorkingEnabled },
-                { _, pressed -> this.isWorkingEnabled = pressed }
-            )
-                .setTooltipsSupplier { listOf(if (it) "behaviour.soft_hammer.enabled".toComponent else "behaviour.soft_hammer.disabled".toComponent) }
-        )
+    override fun buildMainUI(
+        mainWidget: brachy.modularui.widget.ParentWidget<*>,
+        guiData: brachy.modularui.factory.PosGuiData,
+        syncManager: brachy.modularui.value.sync.PanelSyncManager,
+        settings: brachy.modularui.screen.UISettings
+    ) {
+        // The native coil UI indexes vanilla coils by tier; this controller also accepts pack coils.
+        mainWidget.child(getMainTextPanel(syncManager).margin(4, 2))
+        val group = brachy.modularui.widgets.slot.SlotGroup("conversationCard", 1, false)
+        syncManager.registerSlotGroup(group)
+        mainWidget.child(brachy.modularui.widgets.slot.ItemSlot().right(10).bottom(10)
+            .slot(brachy.modularui.value.sync.SyncHandlers.itemSlot(machineStorage.storage, 0).slotGroup(group)))
     }
-
-    override fun createUIWidget(): Widget = (super.createUIWidget() as WidgetGroup).let {
-        return it.addWidget(
-            SlotWidget(
-                machineStorage.storage,
-                0,
-                it.sizeWidth - 30,
-                it.sizeHeight - 30,
-                true,
-                true
-            ).setBackground(GuiTextures.SLOT)
-        )
-    }
-
-    override fun getFieldHolder() = MANAGED_FIELD_HOLDER
 
     companion object {
         val CARD_1: Item by lazy { CONVERSION_SIMULATE_CARD.asItem() }
         val CARD_2: Item by lazy { FAST_CONVERSION_SIMULATE_CARD.asItem() }
         val CARD_3: Item by lazy { GTLAddItems.ULTIMATE_CONVERSATION_CARD.asItem() }
         val CARD_4: Item by lazy { GTLAddItems.ASTRAL_ARRAY.asItem() }
-        val RAW_RECIPE: GTRecipe by lazy { GTRecipeBuilder.ofRaw().inputEU(EUT).buildRawRecipe() }
+        val RAW_RECIPE: GTRecipe by lazy { GTRecipeBuilder.ofRaw().inputEU(EUT).build() }
         val EUT: Long = VA[UHV].toLong()
-        val MANAGED_FIELD_HOLDER = ManagedFieldHolder(ConversationMachine::class.java, WorkableElectricMultiblockMachine.MANAGED_FIELD_HOLDER)
 
         val HASH_STRATEGY = object : Hash.Strategy<Item> {
             override fun hashCode(o: Item?) = o?.hashCode() ?: 0
-            override fun equals(a: Item?, b: Item?) = a?.hashCode() == b?.hashCode()
+            override fun equals(a: Item?, b: Item?) = a === b
         }
 
         val blockMap: Map<Item, Item> by lazy {
@@ -217,16 +202,18 @@ class ConversationMachine(holder: IMachineBlockEntity) :
             map[BONE_BLOCK.asItem()] = getBlock("kubejs:essence_block").asItem()
             map[OAK_LOG.asItem()] = CRIMSON_STEM.asItem()
             map[BIRCH_LOG.asItem()] = WARPED_STEM.asItem()
-            map[getBlock(block, GTMaterials.Calcium).asItem()] = BONE_BLOCK.asItem()
+            map[requireNotNull(getBlock(block, GTMaterials.Calcium)).asItem()] = BONE_BLOCK.asItem()
             map[MOSS_BLOCK.asItem()] = SCULK.asItem()
             map[GRASS_BLOCK.asItem()] = MOSS_BLOCK.asItem()
             map[getBlock("kubejs:infused_obsidian").asItem()] = getBlock("kubejs:draconium_block_charged").asItem()
             return@lazy map
         }
 
-        class ConversationRecipeLogic(val cMachine: ConversationMachine) :
-            RecipeLogic(cMachine),
+        class ConversationRecipeLogic :
+            RecipeLogic(),
             IRecipeStatus {
+
+            private val cMachine: ConversationMachine get() = machine as ConversationMachine
 
             override fun findAndHandleRecipe() {
                 lastRecipe = null
@@ -234,7 +221,7 @@ class ConversationMachine(holder: IMachineBlockEntity) :
             }
 
             override fun setupRecipe(recipe: GTRecipe) {
-                if (recipe.checkConditions(this).isSuccess) {
+                if (com.gregtechceu.gtceu.api.recipe.RecipeHelper.checkConditions(recipe, this).isSuccess) {
                     this.lastRecipe = recipe
                     this.status = Status.WORKING
                     this.progress = 0
@@ -256,7 +243,7 @@ class ConversationMachine(holder: IMachineBlockEntity) :
                 } else {
                     this.setWaiting(null)
                 }
-                if (this.status == Status.WAITING) this.doDamping()
+                if (this.status == Status.WAITING) this.regressRecipe()
             }
 
             override fun onRecipeFinish() {

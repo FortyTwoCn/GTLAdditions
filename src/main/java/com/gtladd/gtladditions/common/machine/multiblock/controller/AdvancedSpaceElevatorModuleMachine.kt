@@ -1,15 +1,13 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
 import com.gtladd.gtladditions.api.machine.multiblock.GTLAddWorkableElectricMultipleRecipesMachine
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
@@ -19,23 +17,20 @@ import org.gtlcore.gtlcore.common.machine.multiblock.electric.SpaceElevatorMachi
 import org.gtlcore.gtlcore.utils.MachineUtil
 import kotlin.math.pow
 
-class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
-    GTLAddWorkableElectricMultipleRecipesMachine(holder),
-    IModularMachineModule<SpaceElevatorMachine, AdvancedSpaceElevatorModuleMachine>,
-    IMachineLife {
+class AdvancedSpaceElevatorModuleMachine(holder: BlockEntityCreationInfo) :
+    GTLAddWorkableElectricMultipleRecipesMachine(holder, GTLAddMultipleRecipesLogic { machine ->
+        (machine as AdvancedSpaceElevatorModuleMachine).host != null
+    }),
+    IModularMachineModule<SpaceElevatorMachine, AdvancedSpaceElevatorModuleMachine> {
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder =
-            ManagedFieldHolder(
-                AdvancedSpaceElevatorModuleMachine::class.java,
-                GTLAddWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-            )
+
     }
 
-    @field:DescSynced
+    @field:SyncToClient
     private var spaceElevatorTier = 0
     private var moduleTier = 0
 
-    @field:Persisted
+    @field:SaveField
     private var hostPosition: BlockPos? = null
     private var host: SpaceElevatorMachine? = null
 
@@ -52,8 +47,6 @@ class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
     override fun setHostPosition(pos: BlockPos?) {
         this.hostPosition = pos
     }
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     // ========================================
     // Update subscription for 80tick limit
@@ -93,7 +86,7 @@ class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
 
     override fun getHostScanPositions(): Array<out BlockPos?>? {
         (level as? ServerLevel)?.let { serverLevel ->
-            val pos = getPos()
+            val pos = blockPos
             val coordinates: Array<BlockPos> = arrayOf(
                 pos.offset(8, -2, 3),
                 pos.offset(8, -2, -3),
@@ -138,19 +131,18 @@ class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
         moduleTier = 0
     }
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = GTLAddMultipleRecipesLogic(
-        this
-    ) { machine -> (machine as AdvancedSpaceElevatorModuleMachine).host != null }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) {
             removeFromHost(this.host)
         }
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(this.host)
     }
 
@@ -159,7 +151,7 @@ class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
         removeFromHost(this.host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(this.host)
     }
 
@@ -172,8 +164,16 @@ class AdvancedSpaceElevatorModuleMachine(holder: IMachineBlockEntity) :
         return value
     }
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("AdvancedSpaceElevatorModuleMachineStatus", syncManager, {
+            mutableListOf<Component>().also(::collectAdvancedSpaceElevatorModuleMachineStatusText)
+        }, 130)
+    )
+
+    private fun collectAdvancedSpaceElevatorModuleMachineStatusText(textList: MutableList<Component>) {
+        
         if (this.isFormed) {
             if (this.offsetTimer % 10L == 0L) this.getSpaceElevatorTier()
             textList.add((if (this.spaceElevatorTier < 1) "tooltip.gtlcore.space_elevator_not_connected" else "tooltip.gtlcore.space_elevator_connected").toComponent)

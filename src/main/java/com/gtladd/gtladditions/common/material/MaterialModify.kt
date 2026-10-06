@@ -55,14 +55,14 @@ object MaterialModify {
         )
         GTLMaterials.Eternity.setProperty(
             PropertyKey.WIRE,
-            WireProperties(Int.MAX_VALUE, 4194304, 0, true)
+            WireProperties(Int.MAX_VALUE.toLong(), 4194304, 0, true)
         )
         GTLMaterials.MetastableOganesson.setProperty(PropertyKey.INGOT, IngotProperty())
-        GTMaterials.Plutonium241.getProperty(PropertyKey.FLUID)
+        GTMaterials.Plutonium241.getProperty(PropertyKey.FLUID)!!
             .enqueueRegistration(FluidStorageKeys.PLASMA, (FluidBuilder()).state(FluidState.PLASMA))
         GTLMaterials.TranscendentMetal.setProperty(
             PropertyKey.FLUID_PIPE,
-            FluidPipeProperties(Int.MAX_VALUE, Int.MAX_VALUE.toLong(), true, true, true, true)
+            FluidPipeProperties(Int.MAX_VALUE, Int.MAX_VALUE, true, true, true, true)
         )
     }
 

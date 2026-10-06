@@ -1,7 +1,6 @@
 package com.gtladd.gtladditions.utils.antichrist
 
 import com.gtladd.gtladditions.common.data.MachineInfo
-import com.gtladd.gtladditions.network.GTLAddNetworking
 import com.gtladd.gtladditions.network.MachineDeltaPacket
 import com.gtladd.gtladditions.network.SyncDimensionMachinesPacket
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap
@@ -13,7 +12,7 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.level.Level
-import net.minecraftforge.network.PacketDistributor
+import net.neoforged.neoforge.network.PacketDistributor
 
 object ServerMachineManager {
     private val DIMENSION_MACHINES = Object2ReferenceOpenHashMap<ResourceKey<Level>, Long2ReferenceMap<Direction>>()
@@ -35,14 +34,14 @@ object ServerMachineManager {
 
     fun syncAllToPlayer(player: ServerPlayer) {
         val dimensionKey = player.serverLevel().dimension()
-        val machines = DIMENSION_MACHINES[dimensionKey] ?: return
+        val machines = DIMENSION_MACHINES[dimensionKey]
 
-        val machineArray = machines.long2ReferenceEntrySet().map { entry ->
+        val machineArray = machines?.long2ReferenceEntrySet()?.map { entry ->
             MachineInfo(entry.longKey, entry.value)
-        }.toTypedArray()
+        }?.toTypedArray() ?: emptyArray()
 
-        GTLAddNetworking.CHANNEL.send(
-            PacketDistributor.PLAYER.with { player },
+        PacketDistributor.sendToPlayer(
+            player,
             SyncDimensionMachinesPacket(dimensionKey, machineArray)
         )
     }
@@ -51,8 +50,8 @@ object ServerMachineManager {
         val packet = MachineDeltaPacket(level.dimension(), pos, facing, add)
         for (player in level.players()) {
             if (player is ServerPlayer) {
-                GTLAddNetworking.CHANNEL.send(
-                    PacketDistributor.PLAYER.with { player },
+                PacketDistributor.sendToPlayer(
+                    player,
                     packet
                 )
             }

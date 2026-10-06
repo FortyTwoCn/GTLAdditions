@@ -13,13 +13,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class InterfaceScreenMixin {
 
     @Shadow(remap = false)
-    protected EditBox commandEdit;
+    protected EditBox editBox;
 
-    @Inject(method = "init()V", at = @At("TAIL"))
+    @Inject(method = "init()V", at = @At("TAIL"), require = 1)
     private void disableEnergyTargetField(CallbackInfo ci) {
-        if (commandEdit != null) {
-            commandEdit.setVisible(false);
-            commandEdit.active = false;
+        if (editBox != null) {
+            editBox.setVisible(false);
+            editBox.active = false;
         }
     }
 }

@@ -1,6 +1,6 @@
 package com.gtladd.gtladditions.integration.jade
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gtladd.gtladditions.integration.jade.provider.BiosphereIIIEnergyProvider
 import com.gtladd.gtladditions.integration.jade.provider.CloudBindingProvider
 import com.gtladd.gtladditions.integration.jade.provider.GTFluidStorageProvider
@@ -22,8 +22,8 @@ class GTLAddJadePlugin : IWailaPlugin {
         registration.registerBlockDataProvider(CloudBindingProvider(), BlockEntity::class.java)
         registration.registerBlockDataProvider(WirelessEnergyNetworkTerminalProvider(), BlockEntity::class.java)
         registration.registerBlockDataProvider(InfinityDualHatchProvider(), BlockEntity::class.java)
-        registration.registerItemStorage(GTItemStorageProvider, MetaMachineBlockEntity::class.java)
-        registration.registerFluidStorage(GTFluidStorageProvider, MetaMachineBlockEntity::class.java)
+        registration.registerItemStorage(GTItemStorageProvider, MetaMachine::class.java)
+        registration.registerFluidStorage(GTFluidStorageProvider, MetaMachine::class.java)
     }
 
     override fun registerClient(registration: IWailaClientRegistration) {

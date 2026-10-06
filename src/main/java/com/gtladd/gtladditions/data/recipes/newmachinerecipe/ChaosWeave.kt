@@ -1,15 +1,15 @@
 package com.gtladd.gtladditions.data.recipes.newmachinerecipe
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.data.tag.TagUtil
+import com.gregtechceu.gtceu.utils.TagUtil
 import com.gtladd.gtladditions.GTLAdditions
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import org.gtlcore.gtlcore.utils.Registries
 import java.util.function.Consumer
 
 object ChaosWeave {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         generateTagRecipes(
             provider,
             TagRecipeConfig("dusts"),
@@ -22,7 +22,7 @@ object ChaosWeave {
         )
     }
 
-    private fun generateTagRecipes(provider: Consumer<FinishedRecipe?>, vararg configs: TagRecipeConfig) {
+    private fun generateTagRecipes(provider: RecipeOutput, vararg configs: TagRecipeConfig) {
         for (config in configs) {
             val tagKey = TagUtil.createItemTag(config.tag)
             GTLAddRecipesTypes.CHAOS_WEAVE.recipeBuilder(GTLAdditions.id("chaos_weave_${tagKey.location.path}"))

@@ -4,8 +4,8 @@ import com.gregtechceu.gtceu.api.GTValues.*
 import com.gregtechceu.gtceu.api.data.tag.TagPrefix.*
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
 import com.gregtechceu.gtceu.api.recipe.ResearchRecipeBuilder.StationRecipeBuilder
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
-import com.gregtechceu.gtceu.common.data.GCyMRecipeTypes.ALLOY_BLAST_RECIPES
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient as FluidIngredient
+import com.gregtechceu.gtceu.common.data.GCYMRecipeTypes.ALLOY_BLAST_RECIPES
 import com.gregtechceu.gtceu.common.data.GTItems.EMITTER_OpV
 import com.gregtechceu.gtceu.common.data.GTItems.FIELD_GENERATOR_OpV
 import com.gregtechceu.gtceu.common.data.GTItems.SENSOR_OpV
@@ -36,9 +36,9 @@ import com.gtladd.gtladditions.common.material.GTLAddMaterial.PROTO_HALKONITE
 import com.gtladd.gtladditions.common.material.GTLAddMaterial.PROTO_HALKONITE_BASE
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.CHAOTIC_ALCHEMY
 import com.gtladd.gtladditions.common.recipe.GTLAddRecipesTypes.COMPRESSED_ASTRAL_ARRAY
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
+import net.neoforged.neoforge.fluids.FluidStack
 import dev.latvian.mods.kubejs.KubeJS
-import net.minecraft.data.recipes.FinishedRecipe
+import net.minecraft.data.recipes.RecipeOutput
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.Blocks
@@ -62,7 +62,7 @@ import java.util.function.Consumer
 import kotlin.math.pow
 
 object Misc {
-    fun init(provider: Consumer<FinishedRecipe?>) {
+    fun init(provider: RecipeOutput) {
         DECAY_HASTENER_RECIPES.recipeBuilder(id("tiranium50"))
             .inputFluids(Titanium.getFluid(144))
             .outputFluids(Titanium50.getFluid(144))
@@ -70,12 +70,12 @@ object Misc {
         DOOR_OF_CREATE_RECIPES.recipeBuilder(id("command_block"))
             .inputItems(block, MagnetohydrodynamicallyConstrainedStarMatter)
             .outputItems(Blocks.COMMAND_BLOCK.asItem())
-            .dimension(ResourceLocation("overworld"))
+            .dimension(ResourceLocation.parse("overworld"))
             .EUt(V[14]).duration(5).save(provider)
         DOOR_OF_CREATE_RECIPES.recipeBuilder(id("magmatter_block"))
             .inputItems(ingot, Magmatter, 64)
             .outputItems(block, Magmatter)
-            .dimension(ResourceLocation("overworld"))
+            .dimension(ResourceLocation.parse("overworld"))
             .EUt(V[14]).duration(5).save(provider)
         CREATE_AGGREGATION_RECIPES.recipeBuilder(id("chain_command_block"))
             .inputItems(getItemStack("kubejs:chain_command_block_core"))
@@ -95,7 +95,7 @@ object Misc {
             MAGIC_MANUFACTURER_RECIPES.recipeBuilder(id(String.format("mana_%d", i - 1)))
                 .notConsumable(FIELD_GENERATOR_MAX.asStack(4.0.pow(i - 1).toInt()))
                 .circuitMeta(i)
-                .outputFluids(Mana.getFluid(10000000L * 4.0.pow(i - 1).toInt()))
+                .outputFluids(org.gtlcore.gtlcore.common.recipe.GTLRecipeContents.fluid(org.gtlcore.gtlcore.common.data.GTLMaterials.Mana, 10000000L * 4.0.pow(i - 1).toInt()))
                 .duration(20 * i).EUt(VA[MAX].toLong())
                 .save(provider)
         }
@@ -103,7 +103,7 @@ object Misc {
             .inputFluids(IsopropylAlcohol.getFluid(2000))
             .inputFluids(Oxygen.getFluid(1000))
             .outputFluids(Acetone.getFluid(2000))
-            .outputFluids(HydrogenPeroxide.getFluid(2000))
+            .outputFluids(org.gtlcore.gtlcore.common.data.GTLMaterials.HydrogenPeroxide.getFluid(2000))
             .duration(600).EUt(VA[HV].toLong())
             .save(provider)
         SUPRACHRONAL_ASSEMBLY_LINE_RECIPES.recipeBuilder(id("astral_array"))
@@ -130,7 +130,7 @@ object Misc {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(MultiBlockMachine.ARCANIC_ASTROGRAPH.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(67108864, 2147483647)
+                    .EUt(VA[MAX].toLong()).CWUt(67108864, 2147483647)
             }
             .save(provider)
         COMPRESSED_ASTRAL_ARRAY.recipeBuilder(id("compressed_astral_array"))
@@ -162,7 +162,7 @@ object Misc {
             .stationResearch { b: StationRecipeBuilder? ->
                 b!!.researchStack(BLACK_HOLE_SEED.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[MAX]).CWUt(16384)
+                    .EUt(VA[MAX].toLong()).CWUt(16384)
             }
             .save(provider)
         PRECISION_ASSEMBLER_RECIPES.recipeBuilder(id("strange_annihilation_fuel_rod"))
@@ -209,7 +209,7 @@ object Misc {
             .inputItems(block, Eternity, 64)
             .outputItems(
                 ItemStack(getItem("avaritia:singularity")).apply {
-                    orCreateTag.putString("Id", "avaritia:spacetime")
+                    set(committee.nova.mods.avaritia.init.registry.ModDataComponents.SINGULARITY_ID.get(), net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("avaritia", "spacetime"))
                 },
                 64
             )
@@ -252,7 +252,7 @@ object Misc {
         SPS_CRAFTING_RECIPES.recipeBuilder(id("long_magnetohydrodynamicallyconstrainedstarmatter_rod"))
             .inputItems(rodLong, Eternity)
             .inputItems(getItemStack("kubejs:solar_light_splitter", 16))
-            .inputFluids(Mana.getFluid(10000))
+            .inputFluids(org.gtlcore.gtlcore.common.data.GTLMaterials.Mana.getFluid(10000))
             .inputFluids(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(144))
             .inputFluids(DimensionallyTranscendentResidue.getFluid(1000))
             .outputItems(rodLong, MagnetohydrodynamicallyConstrainedStarMatter)
@@ -285,7 +285,7 @@ object Misc {
             .stationResearch {
                 it.researchStack(GTLItems.FAST_CONVERSION_SIMULATE_CARD.asStack())
                     .dataStack(TOOL_DATA_MODULE.asStack())
-                    .EUt(VA[OpV]).CWUt(1024)
+                    .EUt(VA[OpV].toLong()).CWUt(1024)
             }
             .save(provider)
         WORLD_DATA_SCANNER_RECIPES.recipeBuilder(id("barnarda_data"))
@@ -302,7 +302,7 @@ object Misc {
             .inputItems(TOOL_DATA_STICK.asStack(64))
             .inputItems(block, Magmatter, 64)
             .inputItems(PRIMARY_SOC_WAFER, 64)
-            .inputFluids(FluidIngredient.of(FluidStack.create(org.gtlcore.gtlcore.utils.Registries.getFluid("kubejs:gelid_cryotheum"), 800)))
+            .inputFluids(FluidIngredient.of(FluidStack(org.gtlcore.gtlcore.utils.Registries.getFluid("kubejs:gelid_cryotheum"), 800)))
             .inputFluids(MagnetohydrodynamicallyConstrainedStarMatter.getFluid(64000))
             .outputItems(GTLAddItems.CREATE_DATA.asStack())
             .EUt(536870912).duration(4000)
@@ -341,7 +341,7 @@ object Misc {
         }
     }
 
-    fun initAdditionMaterial(provider: Consumer<FinishedRecipe?>) {
+    fun initAdditionMaterial(provider: RecipeOutput) {
         FUSION_RECIPES.recipeBuilder(id("plutonium241_plasma"))
             .inputFluids(Lutetium.getFluid(16))
             .inputFluids(Vanadium.getFluid(16))

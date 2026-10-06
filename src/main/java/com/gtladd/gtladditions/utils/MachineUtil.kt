@@ -1,9 +1,9 @@
 package com.gtladd.gtladditions.utils
 
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableMultiblockMachine
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient as FluidIngredient
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
+import net.neoforged.neoforge.fluids.FluidStack
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.item.crafting.Ingredient
 import org.gtlcore.gtlcore.api.recipe.RecipeRunnerHelper
@@ -18,7 +18,7 @@ object MachineUtil {
     fun inputItem(machine: WorkableMultiblockMachine, stack: ItemStack, amount: Long): Boolean =
         input(machine).item(stack, amount).execute()
 
-    fun inputItem(machine: WorkableMultiblockMachine, ingredient: LongIngredient, stack: ItemStack): Boolean =
+    fun inputItem(machine: WorkableMultiblockMachine, ingredient: net.neoforged.neoforge.common.crafting.SizedIngredient, stack: ItemStack): Boolean =
         input(machine).item(ingredient).execute()
 
     fun input(machine: WorkableMultiblockMachine): InputBuilder = InputBuilder(machine)
@@ -35,6 +35,14 @@ object MachineUtil {
             return this
         }
 
+        fun fluid(ingredient: FluidIngredient): InputBuilder {
+            if (!ingredient.ingredient().isEmpty) {
+                builder.inputFluids(ingredient)
+                hasInput = true
+            }
+            return this
+        }
+
         fun item(stack: ItemStack): InputBuilder {
             if (!stack.isEmpty) {
                 builder.inputItems(stack)
@@ -44,10 +52,10 @@ object MachineUtil {
         }
 
         fun item(stack: ItemStack, amount: Long): InputBuilder =
-            item(LongIngredient.create(Ingredient.of(stack), amount))
+            if (amount <= 0 || stack.isEmpty) this else item(LongIngredient.create(stack, amount))
 
-        fun item(ingredient: LongIngredient): InputBuilder {
-            if (!ingredient.isEmpty) {
+        fun item(ingredient: net.neoforged.neoforge.common.crafting.SizedIngredient): InputBuilder {
+            if (!ingredient.ingredient().isEmpty) {
                 builder.inputItems(ingredient)
                 hasInput = true
             }
@@ -56,7 +64,7 @@ object MachineUtil {
 
         fun execute(): Boolean {
             if (!hasInput) return true
-            val recipe = builder.buildRawRecipe()
+            val recipe = builder.build()
             if (matchRecipeInputNocache(machine, recipe)) {
                 return handleRecipeInputNocache(machine, recipe)
             }
@@ -64,10 +72,10 @@ object MachineUtil {
         }
     }
 
-    fun outputItem(machine: WorkableMultiblockMachine, ingredient: LongIngredient): Boolean {
-        if (ingredient.isEmpty) return true
+    fun outputItem(machine: WorkableMultiblockMachine, ingredient: net.neoforged.neoforge.common.crafting.SizedIngredient): Boolean {
+        if (ingredient.ingredient().isEmpty) return true
 
-        val recipe = GTRecipeBuilder.ofRaw().outputItems(ingredient).buildRawRecipe()
+        val recipe = GTRecipeBuilder.ofRaw().outputItems(ingredient).build()
 
         return RecipeRunnerHelper.matchRecipeOutput(machine, recipe) &&
             RecipeRunnerHelper.handleRecipeOutput(machine, recipe)

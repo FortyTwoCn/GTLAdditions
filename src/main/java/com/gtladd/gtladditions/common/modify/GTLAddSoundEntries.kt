@@ -1,19 +1,19 @@
 package com.gtladd.gtladditions.common.modify
 
 import com.gregtechceu.gtceu.api.sound.SoundEntry
-import com.gtladd.gtladditions.GTLAdditions
+import net.neoforged.neoforge.registries.DeferredHolder
 import com.gtladd.gtladditions.api.registry.GTLAddRegistration.Companion.REGISTRATE
 
 object GTLAddSoundEntries {
-    val FORGE_OF_THE_ANTICHRIST: SoundEntry
-    val QUANTUM_OSCILLATION: SoundEntry
-    val GENESIS_ENGINE: SoundEntry
-    val INTER_STELLAR: SoundEntry
+    val FORGE_OF_THE_ANTICHRIST: DeferredHolder<SoundEntry, SoundEntry>
+    val QUANTUM_OSCILLATION: DeferredHolder<SoundEntry, SoundEntry>
+    val GENESIS_ENGINE: DeferredHolder<SoundEntry, SoundEntry>
+    val INTER_STELLAR: DeferredHolder<SoundEntry, SoundEntry>
 
     fun init() {
     }
 
-    private fun register(name: String, attenuationDistance: Int): SoundEntry = REGISTRATE.sound(GTLAdditions.id(name)).attenuationDistance(attenuationDistance).build()
+    private fun register(name: String, attenuationDistance: Int): DeferredHolder<SoundEntry, SoundEntry> = REGISTRATE.sound(name).attenuationDistance(attenuationDistance).register()
 
     init {
         FORGE_OF_THE_ANTICHRIST = register("forgeofantichrist", 64)

@@ -1,14 +1,13 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
 import com.gregtechceu.gtceu.api.fluids.store.FluidStorageKeys
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.common.data.GTMaterials
 import com.gtladd.gtladditions.common.machine.hatch.VientianeTranscriptionNode
 import com.gtladd.gtladditions.utils.MachineUtil.inputFluid
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import net.neoforged.neoforge.fluids.FluidStack
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.material.Fluids
@@ -20,14 +19,14 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
-class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?) : RRFWorkableModuleMachine(holder, *args) {
+class SupratemporalBoostingEngine(holder: BlockEntityCreationInfo, vararg args: Any?) : RRFWorkableModuleMachine(holder) {
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var temperature = MIN_TEMPERATURE
 
-    @Persisted
-    @DescSynced
+    @SaveField
+    @SyncToClient
     private var overheated = false
 
     private var loadTemperatureLockTicks = 0
@@ -60,7 +59,7 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
             return
         }
 
-        val hostWorking = getHost()?.let { it.isFormed && it.getPos() != null } == true
+        val hostWorking = getHost()?.let { it.isFormed && !it.isRemoved } == true
         if (recipeLogic.isWorking && hostWorking && !overheated) {
             safePlusTemperature(WORKING_HEAT_PER_SECOND)
         } else {
@@ -78,8 +77,9 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
         }
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         redstoneNode = null
         for (part in parts) {
             if (part is VientianeTranscriptionNode) {
@@ -89,10 +89,11 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
         }
     }
 
-    override fun onStructureInvalid() {
+    override fun invalidateStructure(substructureName: String) {
         redstoneNode?.controlMachine = false
         redstoneNode = null
-        super.onStructureInvalid()
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
     }
 
     // ========================================
@@ -154,8 +155,16 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("SupratemporalBoostingEngineStatus", syncManager, {
+            mutableListOf<Component>().also(::collectSupratemporalBoostingEngineStatusText)
+        }, 130)
+    )
+
+    private fun collectSupratemporalBoostingEngineStatusText(textList: MutableList<Component>) {
+        
         textList.add(Component.translatable("gtladditions.machine.supratemporal_boosting_engine.temperature", temperature))
         textList.add(
             Component.translatable(
@@ -171,10 +180,7 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
     // Metadata
     // ========================================
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(SupratemporalBoostingEngine::class.java, RRFWorkableModuleMachine.MANAGED_FIELD_HOLDER)
 
         private const val MIN_TEMPERATURE = 48000
         private const val OPTIMAL_MIN = 93000
@@ -185,11 +191,11 @@ class SupratemporalBoostingEngine(holder: IMachineBlockEntity, vararg args: Any?
         private const val OVERHEAT_COOLING_PER_SECOND = 7125
         private const val LOAD_TEMPERATURE_LOCK_TICKS = 100
 
-        private val LAVA = FluidStack.create(Fluids.LAVA, 100000)
+        private val LAVA = FluidStack(Fluids.LAVA, 100000)
         private val BLAZE = GTMaterials.Blaze.getFluid(100000)
         private val RAW_STAR_MATTER_PLASMA = GTLMaterials.RawStarMatter.getFluid(FluidStorageKeys.PLASMA, 100000)
         private val ICE = GTMaterials.Ice.getFluid(100000)
         private val HELIUM = GTMaterials.Helium.getFluid(FluidStorageKeys.LIQUID, 100000)
-        private val CRYOTHEUM by lazy { FluidStack.create(Registries.getFluid("kubejs:gelid_cryotheum"), 100000) }
+        private val CRYOTHEUM by lazy { FluidStack(Registries.getFluid("kubejs:gelid_cryotheum"), 100000) }
     }
 }

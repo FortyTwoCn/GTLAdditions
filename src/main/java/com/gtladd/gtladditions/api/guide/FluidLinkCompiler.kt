@@ -1,8 +1,8 @@
 package com.gtladd.gtladditions.api.guide
 
 import com.gregtechceu.gtceu.client.TooltipsHandler
-import com.lowdragmc.lowdraglib.side.fluid.FluidHelper
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack
+import com.lowdragmc.lowdraglib.utils.FluidHelper
+import net.neoforged.neoforge.fluids.FluidStack
 import guideme.compiler.PageCompiler
 import guideme.compiler.tags.FlowTagCompiler
 import guideme.document.flow.LytFlowParent
@@ -13,6 +13,8 @@ import guideme.siteexport.ResourceExporter
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent
 import net.minecraft.network.chat.Component
 import net.minecraft.world.item.ItemStack
+import net.minecraft.world.item.Item
+import net.minecraft.world.item.TooltipFlag
 import org.gtlcore.gtlcore.utils.Registries
 
 class FluidLinkCompiler : FlowTagCompiler() {
@@ -25,7 +27,7 @@ class FluidLinkCompiler : FlowTagCompiler() {
             return
         }
 
-        val fluidStack = FluidStack.create(Registries.getFluid(id), 1000)
+        val fluidStack = FluidStack(Registries.getFluid(id), 1000)
         val span = LytTooltipSpan()
         span.modifyStyle { it.bold(true) }
         span.appendComponent(FluidHelper.getDisplayName(fluidStack))
@@ -37,7 +39,7 @@ class FluidLinkCompiler : FlowTagCompiler() {
         override fun getLines(): MutableList<ClientTooltipComponent> {
             val list = mutableListOf<Component>()
             list.add(FluidHelper.getDisplayName(fluidStack))
-            TooltipsHandler.appendFluidTooltips(fluidStack.fluid, fluidStack.amount, list::add, null)
+            TooltipsHandler.appendFluidTooltips(fluidStack, list::add, TooltipFlag.NORMAL, Item.TooltipContext.EMPTY)
             return list.map { ClientTooltipComponent.create(it.visualOrderText) }.toMutableList()
         }
 

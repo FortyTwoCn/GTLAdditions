@@ -1,37 +1,43 @@
 package com.gtladd.gtladditions.client.render.machine
 
 import com.gregtechceu.gtceu.GTCEu
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.client.renderer.machine.WorkableCasingMachineRenderer
 import com.gtladd.gtladditions.client.render.machine.heart.HeartBlackHoleRenderProfile
 import com.gtladd.gtladditions.client.render.machine.heart.HeartDeferredRenderer
 import com.gtladd.gtladditions.common.machine.multiblock.controller.HeartOfTheUniverse
 import com.gtladd.gtladditions.utils.CommonUtils.getRotatedRenderPosition
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRender
+import com.gregtechceu.gtceu.client.renderer.machine.DynamicRenderType
+import com.mojang.serialization.MapCodec
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.core.Direction
 import net.minecraft.world.level.block.entity.BlockEntity
-import net.minecraftforge.api.distmarker.Dist
-import net.minecraftforge.api.distmarker.OnlyIn
+import net.neoforged.api.distmarker.Dist
+import net.neoforged.api.distmarker.OnlyIn
 import org.gtlcore.gtlcore.utils.RenderUtil
 
-class HeartOfTheUniverseRenderer :
-    WorkableCasingMachineRenderer(
-        GTCEu.id("block/casings/hpca/high_power_casing"),
-        GTCEu.id("block/multiblock/cosmos_simulation")
-    ) {
+class HeartOfTheUniverseRenderer : DynamicRender<HeartOfTheUniverse, HeartOfTheUniverseRenderer>() {
+    override fun getType(): DynamicRenderType<HeartOfTheUniverse, HeartOfTheUniverseRenderer> = TYPE
+
+    companion object {
+        @JvmField val CODEC: MapCodec<HeartOfTheUniverseRenderer> = MapCodec.unit { HeartOfTheUniverseRenderer() }
+        @JvmField val TYPE = DynamicRenderType(CODEC)
+    }
+
 
     @OnlyIn(Dist.CLIENT)
     override fun render(
-        blockEntity: BlockEntity,
+        machine: HeartOfTheUniverse,
         partialTicks: Float,
         poseStack: PoseStack,
         buffer: MultiBufferSource,
         combinedLight: Int,
         combinedOverlay: Int
     ) {
-        if (blockEntity is IMachineBlockEntity) {
-            val machine = blockEntity.metaMachine as? HeartOfTheUniverse ?: return
+        val blockEntity = machine
+        run {
             if (machine.recipeLogic.isWorking) {
                 val tick = RenderUtil.getSmoothTick(machine, partialTicks)
                 val starPos = getRotatedRenderPosition(Direction.SOUTH, machine.frontFacing, 0.0, 36.0, -39.0)
@@ -43,10 +49,12 @@ class HeartOfTheUniverseRenderer :
     }
 
     @OnlyIn(Dist.CLIENT)
-    override fun hasTESR(blockEntity: BlockEntity): Boolean = true
+    override fun isBlockEntityRenderer(): Boolean = true
 
     @OnlyIn(Dist.CLIENT)
-    override fun isGlobalRenderer(blockEntity: BlockEntity): Boolean = true
+    override fun shouldRenderOffScreen(machine: HeartOfTheUniverse): Boolean = true
+
+    override fun getRenderBoundingBox(machine: HeartOfTheUniverse): AABB = AABB(machine.blockPos).inflate(viewDistance.toDouble())
 
     @OnlyIn(Dist.CLIENT)
     override fun getViewDistance(): Int = 384

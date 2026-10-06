@@ -1,16 +1,16 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
-import com.gregtechceu.gtceu.api.blockentity.MetaMachineBlockEntity
+import com.gregtechceu.gtceu.api.machine.MetaMachine
 import com.gregtechceu.gtceu.api.capability.recipe.FluidRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.ItemRecipeCapability
 import com.gregtechceu.gtceu.api.capability.recipe.RecipeCapability
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
-import com.gregtechceu.gtceu.api.recipe.ingredient.FluidIngredient
+import net.neoforged.neoforge.fluids.crafting.SizedFluidIngredient as FluidIngredient
 import com.gregtechceu.gtceu.utils.FormattingUtil
 import com.gtladd.gtladditions.api.machine.IWirelessBindableSource
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleTypeWirelessRecipesLogic
@@ -32,9 +32,8 @@ import com.gtladd.gtladditions.utils.RecipeCalculationHelper.isRecipeCycleContai
 import com.gtladd.gtladditions.utils.StarGradient
 import com.gtladd.gtladditions.utils.antichrist.AntichristPosHelper
 import com.gtladd.gtladditions.utils.antichrist.ServerMachineManager
-import com.lowdragmc.lowdraglib.syncdata.annotation.DescSynced
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import it.unimi.dsi.fastutil.objects.ObjectArrayList
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
@@ -55,23 +54,22 @@ import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.roundToLong
 
-class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
+class ForgeOfTheAntichrist(holder: BlockEntityCreationInfo, vararg args: Any?) :
     GTLAddWirelessWorkableElectricMultipleTypeRecipesMachine(
         holder,
-        GTLAddRecipesTypes.FORGE_OF_THE_ANTICHRIST,
-        *args
-    ),
+        GTLAddRecipesTypes.FORGE_OF_THE_ANTICHRIST.value()
+    , ForgeOfTheAntichristLogic()),
     IModularMachineHost<ForgeOfTheAntichrist>,
     IWirelessBindableSource<RecursiveReverseArray> {
     private val modules: Set<IModularMachineModule<ForgeOfTheAntichrist, *>> =
         ReferenceOpenHashSet<IModularMachineModule<ForgeOfTheAntichrist, *>>()
 
-    @field:Persisted
-    @field:DescSynced
+    @field:SaveField
+    @field:SyncToClient
     var runningSecs: Long = 0
         private set
 
-    @field:DescSynced
+    @field:SyncToClient
     private var stasisAnchoredActive = false
 
     private var runningSecSubs: TickableSubscription? = null
@@ -79,16 +77,15 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     private var cachedRecursiveReverseBuffState: RecursiveReverseBuffState? = null
     private var cachedRecursiveReverseBuffTick: Long = -1
 
-    @field:DescSynced
-    @field:Persisted
+    @field:SyncToClient
+    @field:SaveField
     private var recursiveReverseArrayPos: BlockPos? = null
     private var recursiveReverseArray: RecursiveReverseArray? = null
 
-    @field:Persisted
-    @field:DescSynced
-    val starRitual: StarRitualTrait = StarRitualTrait(this)
+    @field:SaveField
+    @field:SyncToClient
+    val starRitual: StarRitualTrait = attachTrait(StarRitualTrait())
 
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = ForgeOfTheAntichristLogic(this)
 
     override fun getRecipeLogic(): ForgeOfTheAntichristLogic = super.getRecipeLogic() as ForgeOfTheAntichristLogic
 
@@ -98,8 +95,16 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component?>) {
-        super.addDisplayText(textList)
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = super.getWidgetsForDisplay(syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("ForgeOfTheAntichristStatus", syncManager, {
+            mutableListOf<Component>().also(::collectForgeOfTheAntichristStatusText)
+        }, 130)
+    )
+
+    private fun collectForgeOfTheAntichristStatusText(textList: MutableList<Component>) {
+        
         if (!isFormed) return
 
         textList.add(
@@ -138,7 +143,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
         )
     }
 
-    override fun addParallelDisplay(textList: MutableList<Component?>) {
+    override fun addParallelDisplay(textList: MutableList<Component>) {
         textList.add(
             "gtceu.multiblock.parallel".toComponent(
                 createLanguageRainbowComponentOnServer(
@@ -160,7 +165,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     // ========================================
 
     override fun getModuleSet(): Set<IModularMachineModule<ForgeOfTheAntichrist, *>> = modules
-    override fun getModuleScanPositions(): Array<out BlockPos> = AntichristPosHelper.calculateModulePositions(pos, frontFacing)
+    override fun getModuleScanPositions(): Array<out BlockPos> = AntichristPosHelper.calculateModulePositions(blockPos, frontFacing)
 
     override fun getModulesForRendering(): List<ModuleRenderInfo> = listOf(
         ModuleRenderInfo(
@@ -169,7 +174,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.UP,
             Direction.NORTH,
-            MultiBlockMachine.HELIOTHERMAL_PLASMA_FABRICATOR
+            MultiBlockMachine.HELIOTHERMAL_PLASMA_FABRICATOR.get()
         ),
         ModuleRenderInfo(
             BlockPos(-13, 0, -14),
@@ -177,7 +182,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.NORTH,
             Direction.NORTH,
-            MultiBlockMachine.HELIOFLARE_POWER_FORGE
+            MultiBlockMachine.HELIOFLARE_POWER_FORGE.get()
         ),
         ModuleRenderInfo(
             BlockPos(-13, -14, 0),
@@ -185,7 +190,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.DOWN,
             Direction.NORTH,
-            MultiBlockMachine.HELIOFUSION_EXOTICIZER
+            MultiBlockMachine.HELIOFUSION_EXOTICIZER.get()
         ),
         ModuleRenderInfo(
             BlockPos(-13, 0, 14),
@@ -193,26 +198,28 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             Direction.UP,
             Direction.SOUTH,
             Direction.NORTH,
-            MultiBlockMachine.HELIOFLUIX_MELTING_CORE
+            MultiBlockMachine.HELIOFLUIX_MELTING_CORE.get()
         )
     )
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         recursiveReverseArray?.unbindForge(clearBinding = false)
         recursiveReverseArray = null
         safeClearModules()
         unregisterFromServerManager()
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         recursiveReverseArray?.unbindSource()
         safeClearModules()
         unregisterFromServerManager()
     }
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         safeClearModules()
         scanAndConnectModules()
         registerToServerManager()
@@ -230,7 +237,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             recursiveReverseArray?.unbindSource()
         }
         recursiveReverseArray = target
-        recursiveReverseArrayPos = target.pos
+        recursiveReverseArrayPos = target.blockPos
     }
 
     override fun onUnbound(target: RecursiveReverseArray?) {
@@ -238,7 +245,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     }
 
     fun disconnectRecursiveReverseArray(target: RecursiveReverseArray?, clearBinding: Boolean) {
-        if (target != null && recursiveReverseArray != target && recursiveReverseArrayPos != target.pos) return
+        if (target != null && recursiveReverseArray != target && recursiveReverseArrayPos != target.blockPos) return
         recursiveReverseArray = null
         if (clearBinding) recursiveReverseArrayPos = null
     }
@@ -304,13 +311,13 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
 
     private fun registerToServerManager() {
         (level as? ServerLevel)?.let { serverLevel ->
-            ServerMachineManager.registerMachine(serverLevel, pos, frontFacing)
+            ServerMachineManager.registerMachine(serverLevel, blockPos, frontFacing)
         }
     }
 
     private fun unregisterFromServerManager() {
         (level as? ServerLevel)?.let { serverLevel ->
-            ServerMachineManager.unregisterMachine(serverLevel, pos)
+            ServerMachineManager.unregisterMachine(serverLevel, blockPos)
         }
     }
 
@@ -382,8 +389,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     private fun reconnectRecursiveReverseArray(): Boolean {
         if (!isFormed) return false
         val arrayPos = recursiveReverseArrayPos ?: return false
-        val machine = ((level as? ServerLevel)?.getBlockEntity(arrayPos) as? MetaMachineBlockEntity)
-            ?.metaMachine as? RecursiveReverseArray
+        val machine = (level as? ServerLevel)?.let { MetaMachine.getMachine(it, arrayPos) as? RecursiveReverseArray }
             ?: return false
         if (!machine.isFormed()) return false
         return machine.bindResolvedSource(this).isSuccess
@@ -392,8 +398,6 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
     // ========================================
     // Metadata
     // ========================================
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
 
     companion object {
         // 1 -> 1 / MAX_MULTIPLIER
@@ -404,17 +408,12 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
             ).toDouble() / MAX_EFFICIENCY_SEC
             ).pow(2.5)
 
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            ForgeOfTheAntichrist::class.java,
-            GTLAddWirelessWorkableElectricMultipleRecipesMachine.MANAGED_FIELD_HOLDER
-        )
-
         const val MAX_EFFICIENCY_SEC = 14400
         private const val MAX_OUTPUT_RATIO = 15
         private const val MIN_EU_RATIO = 0.2
-        val BINDING_TYPE: ResourceLocation = ResourceLocation("gtladditions", "forge_of_the_antichrist")
+        val BINDING_TYPE: ResourceLocation = ResourceLocation.fromNamespaceAndPath("gtladditions", "forge_of_the_antichrist")
 
-        class ForgeOfTheAntichristLogic(parallel: ForgeOfTheAntichrist) : GTLAddMultipleTypeWirelessRecipesLogic(parallel) {
+        class ForgeOfTheAntichristLogic() : GTLAddMultipleTypeWirelessRecipesLogic() {
             init {
                 this.setReduction(0.2, 1.0)
             }
@@ -430,7 +429,7 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
                 getMachine().getRecursiveReverseBuffState().euMultiplier
 
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 val focus = getMachine().getRecursiveReverseBuffState().magnetorheologicalConvergenceActive
                 val modifier = ContentModifier.multiplier(getMachine().recipeOutputMultiply)
 
@@ -446,23 +445,11 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
         }
 
         private fun copyAndModifyRecipe(recipe: GTRecipe, modifier: ContentModifier, focus: Boolean): GTRecipe {
-            val copy = GTRecipe(
-                recipe.recipeType,
-                recipe.id,
-                modifyInputContents(recipe.inputs, modifier, recipe.id),
-                modifyOutputContents(recipe.outputs, modifier, focus),
-                recipe.tickInputs,
-                recipe.tickOutputs,
-                recipe.inputChanceLogics,
-                recipe.outputChanceLogics,
-                recipe.tickInputChanceLogics,
-                recipe.tickOutputChanceLogics,
-                recipe.conditions,
-                recipe.ingredientActions,
-                recipe.data,
-                recipe.duration,
-                recipe.isFuel
-            )
+            val copy = recipe.copy()
+            copy.inputs.clear()
+            copy.inputs.putAll(modifyInputContents(recipe.inputs, modifier, recipe.id))
+            copy.outputs.clear()
+            copy.outputs.putAll(modifyOutputContents(recipe.outputs, modifier, focus))
             RecipeExtensionCopier.copy(recipe, copy)
             return copy
         }
@@ -543,16 +530,16 @@ class ForgeOfTheAntichrist(holder: IMachineBlockEntity, vararg args: Any?) :
 
             val first = contentList[0]
             val firstFluid = first.content as? FluidIngredient ?: return false
-            var totalAmount: Long = firstFluid.amount
+            var totalAmount = org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient.amount(firstFluid)
 
             for (i in 1..<contentList.size) {
                 val fluid = contentList[i].content as? FluidIngredient ?: return false
-                totalAmount += fluid.amount
+                totalAmount = Math.addExact(totalAmount, org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient.amount(fluid))
             }
 
-            val copy = first.copy(FluidRecipeCapability.CAP, null)
-            val fluid = copy.content as? FluidIngredient ?: return false
-            fluid.amount = totalAmount
+            val copy = org.gtlcore.gtlcore.api.recipe.NativeContentState.copy(first, Content(
+                org.gtlcore.gtlcore.api.recipe.ingredient.LongFluidIngredient.withAmount(firstFluid, totalAmount),
+                first.chance(), first.maxChance()))
             copyList.add(copy.copy(FluidRecipeCapability.CAP, modifier))
             return true
         }

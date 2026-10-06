@@ -1,12 +1,22 @@
 package com.gtladd.gtladditions.common.machine.multiblock.part
 
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widgets.layout.Flow
+import brachy.modularui.widgets.slot.ItemSlot
+import brachy.modularui.widgets.slot.ModularSlot
+import brachy.modularui.widgets.slot.SlotGroup
 import com.google.common.primitives.Ints
-import com.gregtechceu.gtceu.api.gui.GuiTextures
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
+import com.gregtechceu.gtceu.api.capability.recipe.IO
+import com.gregtechceu.gtceu.api.machine.feature.IMuiMachine
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.feature.multiblock.IMultiController
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
 import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
+import com.gregtechceu.gtceu.api.machine.trait.notifiable.NotifiableItemStackHandler
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import com.gtladd.gtladditions.api.machine.IThreadModifierMachine
 import com.gtladd.gtladditions.api.machine.feature.IThreadModifierPart
 import com.gtladd.gtladditions.api.machine.logic.MutableRecipesLogic
@@ -14,105 +24,59 @@ import com.gtladd.gtladditions.common.items.GTLAddItems
 import com.gtladd.gtladditions.utils.ComponentExtensions.literal
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
 import com.gtladd.gtladditions.utils.ThreadMultiplierStrategy.getAdditionalMultiplier
-import com.lowdragmc.lowdraglib.gui.widget.*
-import com.lowdragmc.lowdraglib.misc.ItemStackTransfer
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gtladd.gtladditions.api.gui.NativeHatchUI
 import net.minecraft.ChatFormatting
-import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.chat.Style
-import net.minecraft.world.item.ItemStack
 
-open class ThreadPartMachine(holder: IMachineBlockEntity) :
-    MultiblockPartMachine(holder),
-    IThreadModifierPart,
-    IMachineLife {
-    @field:Persisted
-    private val astralArrayInventory: ItemStackTransfer = ItemStackTransfer(1)
-
+open class ThreadPartMachine(holder: BlockEntityCreationInfo) : MultiblockPartMachine(holder), IThreadModifierPart, IMuiMachine {
+    @field:SaveField
+    private val astralArrayInventory = attachTrait(NotifiableItemStackHandler(1, IO.NONE, IO.BOTH)
+        .setFilter { it.`is`(GTLAddItems.ASTRAL_ARRAY.asItem()) })
     private var threadMultiplier = 0
     private var threadCount = 0
 
-    init {
-        astralArrayInventory.setFilter { stack: ItemStack? -> astralArrayFilter(stack!!) }
-    }
+    init { astralArrayInventory.addChangedListener(::reCalculateThreadCount) }
 
     private fun reCalculateThreadCount() {
         threadCount = Ints.saturatedCast(astralArrayInventory.getStackInSlot(0).count * 64L * threadMultiplier)
     }
 
-    override fun createUIWidget(): Widget {
-        val group = WidgetGroup(0, 0, 150, 70)
-        group.addWidget(
-            DraggableScrollableWidgetGroup(4, 4, 142, 62).setBackground(GuiTextures.DISPLAY)
-                .addWidget(
-                    ComponentPanelWidget(4, 5) { list: MutableList<Component?>? ->
-                        list!!.add(
-                            "gtladditions.thread_modifier_hatch.thread_multiplier".toComponent(threadMultiplier.toString().literal.withStyle(ChatFormatting.GOLD))
-                                .setStyle(
-                                    Style.EMPTY.withHoverEvent(
-                                        HoverEvent(
-                                            HoverEvent.Action.SHOW_TEXT,
-                                            "gtladditions.thread_modifier_hatch.hover".toComponent
-                                        )
-                                    )
-                                )
-                        )
-                        list.add(
-                            "gtladditions.thread_modifier_hatch.thread_count".toComponent(
-                                threadCount.toString().literal
-                                    .withStyle(ChatFormatting.GOLD)
-                            )
-                        )
-                    }
+    override fun buildMainUI(main: ParentWidget<*>, data: PosGuiData, manager: PanelSyncManager, settings: UISettings) {
+        val group = SlotGroup("astralArray", 1)
+        manager.registerSlotGroup(group)
+        main.child(Flow.column().widthRel(1f).coverChildrenHeight().padding(4)
+            .child(NativeHatchUI.componentList("threadModifier", manager, {
+                listOf(
+                    "gtladditions.thread_modifier_hatch.thread_multiplier".toComponent(threadMultiplier.toString().literal.withStyle(ChatFormatting.GOLD))
+                        .setStyle(Style.EMPTY.withHoverEvent(HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            "gtladditions.thread_modifier_hatch.hover".toComponent))),
+                    "gtladditions.thread_modifier_hatch.thread_count".toComponent(threadCount.toString().literal.withStyle(ChatFormatting.GOLD))
                 )
-        ).setBackground(GuiTextures.BACKGROUND_INVERSE)
-        group.addWidget(
-            SlotWidget(astralArrayInventory, 0, 120, 40, true, true)
-                .setChangeListener { this.reCalculateThreadCount() }
-                .setBackground(GuiTextures.SLOT)
-                .setHoverTooltips("gtladditions.thread_modifier_hatch.base_thread".toComponent)
-        )
-        return group
+            }, 65))
+            .child(ItemSlot().slot(ModularSlot(astralArrayInventory.storage, 0).slotGroup(group))
+                .tooltip { it.addLine("gtladditions.thread_modifier_hatch.base_thread".toComponent) }))
     }
 
-    override fun onMachineRemoved() {
-        clearInventory(astralArrayInventory)
-    }
-
-    override fun addedToController(controller: IMultiController) {
-        super.addedToController(controller)
+    override fun addedToController(controller: MultiblockControllerMachine, substructureName: String) {
+        super.addedToController(controller, substructureName)
+        threadMultiplier = 0
         if (controller is IThreadModifierMachine) {
             controller.setThreadPartMachine(this)
             if (controller is IRecipeLogicMachine) {
                 (controller.recipeLogic as? MutableRecipesLogic<*>)?.setUseMultipleRecipes(true)
-                this.threadMultiplier = getAdditionalMultiplier(controller.self().definition)
+                threadMultiplier = getAdditionalMultiplier(controller.definition)
             }
-        } else {
-            this.threadMultiplier = 0
         }
         reCalculateThreadCount()
     }
 
-    override fun removedFromController(controller: IMultiController) {
+    override fun removedFromController(controller: MultiblockControllerMachine) {
         super.removedFromController(controller)
         threadMultiplier = 0
         threadCount = 0
     }
 
-    override fun canShared(): Boolean = false
-
+    override fun canShared(controller: MultiblockControllerMachine, substructureName: String): Boolean = false
     override fun getThreadCount(): Int = threadCount
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
-    companion object {
-        protected val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            ThreadPartMachine::class.java,
-            MultiblockPartMachine.MANAGED_FIELD_HOLDER
-        )
-
-        private fun astralArrayFilter(stack: ItemStack): Boolean = stack.`is`(GTLAddItems.ASTRAL_ARRAY.asItem())
-    }
 }

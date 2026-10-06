@@ -2,10 +2,11 @@ package com.gtladd.gtladditions.mixin.gtceu.xei;
 
 import com.gregtechceu.gtceu.client.TooltipsHandler;
 
-import com.lowdragmc.lowdraglib.side.fluid.FluidStack;
+import com.gtladd.gtladditions.integration.xei.LongFluidStack;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.world.item.Item;
 
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.material.Fluid;
@@ -36,7 +37,7 @@ public abstract class FluidEmiStackMixin extends EmiStack {
     private Fluid fluid;
     @Shadow(remap = false)
     @Final
-    private CompoundTag nbt;
+    private DataComponentPatch componentChanges;
 
     @Shadow(remap = false)
     public List<Component> getTooltipText() {
@@ -57,10 +58,9 @@ public abstract class FluidEmiStackMixin extends EmiStack {
             list.add(EmiTooltipComponents.getAmount(this));
         }
 
-        TooltipsHandler.appendFluidTooltips(FluidStack.create(this.fluid, this.getAmount(), nbt).getFluid(),
-                this.getAmount(),
+        TooltipsHandler.appendFluidTooltips(LongFluidStack.create(this.fluid.builtInRegistryHolder(), this.getAmount(), componentChanges),
                 component -> list.add(EmiTooltipComponents.of(component)),
-                TooltipFlag.NORMAL);
+                TooltipFlag.NORMAL, Item.TooltipContext.EMPTY);
         String namespace = EmiPort.getFluidRegistry().getKey(this.fluid).getNamespace();
         EmiTooltipComponents.appendModName(list, namespace);
         list.addAll(super.getTooltip());

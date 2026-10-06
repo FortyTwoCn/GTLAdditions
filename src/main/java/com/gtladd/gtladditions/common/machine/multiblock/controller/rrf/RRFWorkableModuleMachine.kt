@@ -1,14 +1,12 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller.rrf
 
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.TickableSubscription
-import com.gregtechceu.gtceu.api.machine.feature.IMachineLife
 import com.gregtechceu.gtceu.api.machine.multiblock.WorkableElectricMultiblockMachine
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gtladd.gtladditions.api.machine.gui.MultiblockDisplayText
 import com.gtladd.gtladditions.utils.ComponentExtensions.toComponent
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
 import net.minecraft.ChatFormatting
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
@@ -16,12 +14,11 @@ import org.gtlcore.gtlcore.api.machine.multiblock.IModularMachineModule
 import org.gtlcore.gtlcore.api.machine.trait.IRecipeStatus
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
 
-abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args: Any?) :
-    WorkableElectricMultiblockMachine(holder, *args),
-    IModularMachineModule<RecursiveReverseArray, RRFWorkableModuleMachine>,
-    IMachineLife {
+abstract class RRFWorkableModuleMachine(holder: BlockEntityCreationInfo, logic: com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic = com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic()) :
+    WorkableElectricMultiblockMachine(holder, logic),
+    IModularMachineModule<RecursiveReverseArray, RRFWorkableModuleMachine> {
 
-    @Persisted
+    @SaveField
     private var hostPosition: BlockPos? = null
 
     private var host: RecursiveReverseArray? = null
@@ -58,10 +55,10 @@ abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args
     override fun getHostType(): Class<RecursiveReverseArray> = RecursiveReverseArray::class.java
 
     override fun getHostScanPositions(): Array<BlockPos> = arrayOf(
-        pos.offset(33, 7, 0),
-        pos.offset(-33, 7, 0),
-        pos.offset(0, 7, 33),
-        pos.offset(0, 7, -33)
+        blockPos.offset(33, 7, 0),
+        blockPos.offset(-33, 7, 0),
+        blockPos.offset(0, 7, 33),
+        blockPos.offset(0, 7, -33)
     )
 
     override fun onConnected(host: RecursiveReverseArray) {
@@ -91,14 +88,16 @@ abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args
     // Lifecycle
     // ========================================
 
-    override fun onStructureFormed() {
-        super.onStructureFormed()
+    override fun formStructure(substructureName: String) {
+        super.formStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE || !isFormed) return
         if (!findAndConnectToHost()) removeFromHost(host)
         updateArrayTickSubscription()
     }
 
-    override fun onStructureInvalid() {
-        super.onStructureInvalid()
+    override fun invalidateStructure(substructureName: String) {
+        super.invalidateStructure(substructureName)
+        if (substructureName != DEFAULT_STRUCTURE) return
         removeFromHost(host)
         updateArrayTickSubscription()
     }
@@ -108,7 +107,7 @@ abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args
         removeFromHost(host)
     }
 
-    override fun onMachineRemoved() {
+    override fun onMachineDestroyed() {
         removeFromHost(host)
     }
 
@@ -132,7 +131,15 @@ abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args
     // GUI
     // ========================================
 
-    override fun addDisplayText(textList: MutableList<Component>) {
+    override fun getWidgetsForDisplay(
+        syncManager: brachy.modularui.value.sync.PanelSyncManager
+    ): List<brachy.modularui.api.widget.IWidget> = definition.additionalDisplay.apply(this, syncManager) + listOf(
+        com.gtladd.gtladditions.api.gui.NativeHatchUI.componentList("RRFWorkableModuleMachineStatus", syncManager, {
+            mutableListOf<Component>().also(::collectRRFWorkableModuleMachineStatusText)
+        }, 130)
+    )
+
+    private fun collectRRFWorkableModuleMachineStatusText(textList: MutableList<Component>) {
         MultiblockDisplayText.builder(textList, isFormed())
             .setWorkingStatus(recipeLogic.isWorkingEnabled, recipeLogic.isActive)
             .addEnergyUsageLine(energyContainer)
@@ -153,13 +160,7 @@ abstract class RRFWorkableModuleMachine(holder: IMachineBlockEntity, vararg args
     // Metadata
     // ========================================
 
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
-
     companion object {
-        val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            RRFWorkableModuleMachine::class.java,
-            WorkableElectricMultiblockMachine.MANAGED_FIELD_HOLDER
-        )
 
         val FAIL_NOT_CONNECTED_TO_RECURSIVE_REVERSE_ARRAY: RecipeResult = RecipeResult.fail(
             "gtladditions.recipe.fail.not_connected_to_recursive_reverse_array".toComponent

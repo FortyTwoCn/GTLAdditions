@@ -1,0 +1,14 @@
+// Compile actual migrated integrations against the pinned native dependency.
+// This source set is not packaged and never replaces main.
+sourceSets {
+    nativeStargateApi {
+        java {
+            srcDir 'src/main/java'
+            include 'com/gtladd/gtladditions/mixin/stargatejourney/**'
+            include 'com/gtladd/gtladditions/integration/sgjourney/**'
+            include 'com/gtladd/gtladditions/mixin/mc/RecipeManagerMixin.java'
+        }
+    }
+}
+neoForge.addModdingDependenciesTo(sourceSets.nativeStargateApi)
+dependencies { nativeStargateApiImplementation('maven.modrinth:sgjourney:mZTmQ1wW') }

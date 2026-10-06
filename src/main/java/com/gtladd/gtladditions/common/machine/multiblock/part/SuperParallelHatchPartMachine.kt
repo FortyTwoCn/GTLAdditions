@@ -1,62 +1,50 @@
 package com.gtladd.gtladditions.common.machine.multiblock.part
 
-import com.gregtechceu.gtceu.api.capability.IParallelHatch
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
-import com.gregtechceu.gtceu.api.machine.feature.IFancyUIMachine
+import com.gregtechceu.gtceu.api.GTValues
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.multiblock.part.MultiblockPartMachine
-import com.gtladd.gtladditions.api.gui.widget.SafeIntInputWidget
-import com.lowdragmc.lowdraglib.gui.widget.Widget
-import com.lowdragmc.lowdraglib.gui.widget.WidgetGroup
-import com.lowdragmc.lowdraglib.syncdata.annotation.Persisted
-import com.lowdragmc.lowdraglib.syncdata.field.ManagedFieldHolder
+import com.gregtechceu.gtceu.api.machine.multiblock.MultiblockControllerMachine
+import com.gregtechceu.gtceu.api.sync_system.annotations.SaveField
+import com.gregtechceu.gtceu.api.sync_system.annotations.SyncToClient
+import com.gregtechceu.gtceu.common.machine.multiblock.part.ParallelHatchPartMachine
+import brachy.modularui.factory.PosGuiData
+import brachy.modularui.screen.UISettings
+import brachy.modularui.value.sync.IntSyncValue
+import brachy.modularui.value.sync.PanelSyncManager
+import brachy.modularui.widget.ParentWidget
+import brachy.modularui.widgets.textfield.TextFieldWidget
 import net.minecraft.util.Mth
 
-class SuperParallelHatchPartMachine(holder: IMachineBlockEntity) :
-    MultiblockPartMachine(holder),
-    IFancyUIMachine,
-    IParallelHatch {
-    @field:Persisted
-    private var currentParallel: Int = MAX_PARALLEL
+// GT8 discovers parallel hatches by their native class, rather than the removed IParallelHatch.
+class SuperParallelHatchPartMachine(info: BlockEntityCreationInfo) :
+    ParallelHatchPartMachine(info, GTValues.MAX) {
+    @field:SaveField
+    @field:SyncToClient
+    private var configuredParallel: Int = MAX_PARALLEL
 
-    fun setCurrentParallel(parallelAmount: Int) {
-        this.currentParallel = Mth.clamp(parallelAmount, MIN_PARALLEL, MAX_PARALLEL)
-
-        for (controller in this.controllers) {
-            if (controller is IRecipeLogicMachine) {
-                controller.recipeLogic.markLastRecipeDirty()
-            }
+    override fun setCurrentParallel(parallelAmount: Int) {
+        configuredParallel = Mth.clamp(parallelAmount, MIN_PARALLEL, MAX_PARALLEL)
+        for (controller in controllers) {
+            if (controller is IRecipeLogicMachine) controller.recipeLogic.markLastRecipeDirty()
         }
     }
 
-    override fun createUIWidget(): Widget {
-        val parallelAmountGroup = WidgetGroup(0, 0, 100, 20)
-        parallelAmountGroup.addWidget(
-            (
-                SafeIntInputWidget(
-                    { this.currentParallel },
-                    { parallelAmount: Int? ->
-                        this.setCurrentParallel(
-                            parallelAmount!!
-                        )
-                    }
-                )
-                ).setMin(MIN_PARALLEL).setMax(MAX_PARALLEL)
+    override fun getCurrentParallel(): Int = configuredParallel
+
+    override fun buildMainUI(
+        mainWidget: ParentWidget<*>, guiData: PosGuiData,
+        syncManager: PanelSyncManager, settings: UISettings
+    ) {
+        val parallels = IntSyncValue(this::getCurrentParallel, this::setCurrentParallel).allowC2S()
+        mainWidget.child(
+            TextFieldWidget().width(100).height(20)
+                .setNumbers(MIN_PARALLEL, MAX_PARALLEL).value(parallels)
         )
-        return parallelAmountGroup
     }
 
-    override fun canShared(): Boolean = true
-
-    override fun getCurrentParallel(): Int = this.currentParallel
-
-    override fun getFieldHolder(): ManagedFieldHolder = MANAGED_FIELD_HOLDER
+    override fun canShared(controller: MultiblockControllerMachine, substructureName: String?): Boolean = true
 
     companion object {
-        private val MANAGED_FIELD_HOLDER: ManagedFieldHolder = ManagedFieldHolder(
-            SuperParallelHatchPartMachine::class.java,
-            MultiblockPartMachine.MANAGED_FIELD_HOLDER
-        )
         private const val MAX_PARALLEL = Int.MAX_VALUE
         private const val MIN_PARALLEL = 1
     }

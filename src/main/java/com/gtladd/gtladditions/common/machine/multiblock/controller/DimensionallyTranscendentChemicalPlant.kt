@@ -1,9 +1,9 @@
 package com.gtladd.gtladditions.common.machine.multiblock.controller
 
 import com.gregtechceu.gtceu.api.GTValues
-import com.gregtechceu.gtceu.api.machine.IMachineBlockEntity
+import com.gregtechceu.gtceu.api.blockentity.BlockEntityCreationInfo
 import com.gregtechceu.gtceu.api.machine.feature.IRecipeLogicMachine
-import com.gregtechceu.gtceu.api.machine.trait.RecipeLogic
+import com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic
 import com.gregtechceu.gtceu.api.recipe.GTRecipe
 import com.gtladd.gtladditions.api.machine.EBFChecks
 import com.gtladd.gtladditions.api.machine.logic.GTLAddMultipleRecipesLogic
@@ -14,18 +14,16 @@ import it.unimi.dsi.fastutil.longs.LongBooleanPair
 import org.gtlcore.gtlcore.api.recipe.IGTRecipe
 import java.util.function.BiPredicate
 
-class DimensionallyTranscendentChemicalPlant(holder: IMachineBlockEntity) : GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder) {
-    override fun createRecipeLogic(vararg args: Any): RecipeLogic = DimensionallyTranscendentChemicalPlantLogic(this, EBFChecks.EBF_CHECK)
+class DimensionallyTranscendentChemicalPlant(holder: BlockEntityCreationInfo) : GTLAddCoilWorkableElectricMultipleRecipesMultiblockMachine(holder, DimensionallyTranscendentChemicalPlantLogic(EBFChecks.EBF_CHECK)) {
 
     override fun getRecipeLogic(): DimensionallyTranscendentChemicalPlantLogic = super.getRecipeLogic() as DimensionallyTranscendentChemicalPlantLogic
 
     companion object {
         class DimensionallyTranscendentChemicalPlantLogic(
-            parallel: DimensionallyTranscendentChemicalPlant,
             recipeCheck: BiPredicate<GTRecipe, IRecipeLogicMachine>
-        ) : GTLAddMultipleRecipesLogic(parallel, recipeCheck) {
+        ) : GTLAddMultipleRecipesLogic(recipeCheck) {
             override fun calculateParallels(): ParallelData? {
-                val recipes = lookupRecipeIterator()
+                val recipes = lookupRecipeSet()
                 val totalParallel = parallel.maxParallel.toLong() * getMultipleThreads()
 
                 return RecipeCalculationHelper.calculateParallelsWithFairAllocation(

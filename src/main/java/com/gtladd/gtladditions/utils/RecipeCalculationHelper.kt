@@ -10,10 +10,12 @@ import com.gregtechceu.gtceu.api.recipe.GTRecipeType
 import com.gregtechceu.gtceu.api.recipe.chance.logic.ChanceLogic
 import com.gregtechceu.gtceu.api.recipe.content.Content
 import com.gregtechceu.gtceu.api.recipe.content.ContentModifier
+import com.gregtechceu.gtceu.api.recipe.ingredient.EnergyStack
 import com.gregtechceu.gtceu.common.data.GTRecipeTypes
 import com.gregtechceu.gtceu.data.recipe.builder.GTRecipeBuilder
 import com.gtladd.gtladditions.api.recipe.WirelessGTRecipe
 import com.gtladd.gtladditions.api.recipe.WirelessGTRecipeBuilder
+import com.gtladd.gtladditions.api.recipe.NativeWirelessRecipeState
 import com.gtladd.gtladditions.common.data.ParallelData
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntList
@@ -29,8 +31,11 @@ import net.minecraft.world.item.Item
 import net.minecraft.world.item.crafting.Ingredient
 import org.gtlcore.gtlcore.api.recipe.IGTRecipe
 import org.gtlcore.gtlcore.api.recipe.IParallelLogic
+import org.gtlcore.gtlcore.api.recipe.IAdvancedContentModifier
+import org.gtlcore.gtlcore.api.recipe.NativeContentState
 import org.gtlcore.gtlcore.api.recipe.RecipeExtensionCopier
 import org.gtlcore.gtlcore.api.recipe.RecipeResult
+import org.gtlcore.gtlcore.api.recipe.RecipeChancePreview
 import org.gtlcore.gtlcore.api.recipe.RecipeRunnerHelper
 import org.gtlcore.gtlcore.api.recipe.ingredient.LongIngredient
 import org.gtlcore.gtlcore.utils.Registries
@@ -42,6 +47,20 @@ import kotlin.math.roundToInt
 
 object RecipeCalculationHelper {
 
+    data class NormalBatch(
+        val itemOutputs: ObjectArrayList<Content>,
+        val fluidOutputs: ObjectArrayList<Content>,
+        val totalEu: Double,
+        val consumedRecipes: Int
+    )
+
+    data class WirelessBatch(
+        val itemOutputs: ObjectArrayList<Content>,
+        val fluidOutputs: ObjectArrayList<Content>,
+        val totalEu: BigInteger,
+        val consumedRecipes: Int
+    )
+
     // ===================================================
     // Process Recipe
     // ===================================================
@@ -51,19 +70,20 @@ object RecipeCalculationHelper {
         parallel: Long,
         crossinline copyRecipe: (GTRecipe) -> GTRecipe
     ): GTRecipe {
+        require(parallel > 0) { "Recipe parallel count must be positive" }
         val processed = if (parallel > 1) {
             copyRecipe(recipe).also { RecipeExtensionCopier.copy(recipe, it) }
         } else {
             recipe
         }
-        IGTRecipe.of(processed).realParallels = parallel
+        IGTRecipe.of(processed).realParallels = Math.multiplyExact(IGTRecipe.of(recipe).realParallels, parallel)
         return processed
     }
 
     fun multipleRecipe(
         recipe: GTRecipe,
         parallel: Long
-    ): GTRecipe = multipleRecipe(recipe, parallel) { recipe -> recipe.copy(ContentModifier.multiplier(parallel.toDouble()), false) }
+    ): GTRecipe = multipleRecipe(recipe, parallel) { recipe -> recipe.copy(IAdvancedContentModifier.preciseMultiplier(parallel), false) }
 
     inline fun processParallelDataNormal(
         parallelData: ParallelData,
@@ -72,16 +92,20 @@ object RecipeCalculationHelper {
         euMultiplier: Double,
         getTotalRecipeEu: (GTRecipe) -> Double,
         crossinline shouldBreak: (Double) -> Boolean = { totalEu -> totalEu / maxEUt > 20 * 500 }
-    ): Triple<ObjectArrayList<Content>, ObjectArrayList<Content>, Double> {
+    ): NormalBatch {
         val itemOutputs = ObjectArrayList<Content>()
         val fluidOutputs = ObjectArrayList<Content>()
         var totalEu = 0.0
+        var consumedRecipes = 0
 
         for (i in parallelData.originRecipeList.indices) {
             val r = parallelData.originRecipeList[i]
             val p = parallelData.parallels[i]
             if (parallelData.shouldProcess) {
-                val processedRecipe = IParallelLogic.getRecipeOutputChance(machine, multipleRecipe(r, p))
+                val processedRecipe = multipleRecipe(r, p)
+                RecipeChancePreview.output(
+                    processedRecipe, machine, processedRecipe.outputs, machine.recipeLogic.chanceCaches, false
+                )
 
                 if (RecipeRunnerHelper.matchRecipeInput(
                         machine,
@@ -93,17 +117,19 @@ object RecipeCalculationHelper {
                     )
                 ) {
                     totalEu += getTotalRecipeEu(r) * p * euMultiplier
-                    collectOutputs(processedRecipe, itemOutputs, fluidOutputs)
+                    consumedRecipes++
+                    collectOutputs(IParallelLogic.getRecipeOutputChance(machine, processedRecipe), itemOutputs, fluidOutputs)
                 }
 
                 if (shouldBreak(totalEu)) break
             } else {
                 totalEu += getTotalRecipeEu(r) * p * euMultiplier
+                consumedRecipes++
                 collectOutputs(parallelData.processedRecipeList!![i], itemOutputs, fluidOutputs)
             }
         }
 
-        return Triple(itemOutputs, fluidOutputs, totalEu)
+        return NormalBatch(itemOutputs, fluidOutputs, totalEu, consumedRecipes)
     }
 
     inline fun processParallelDataWireless(
@@ -113,10 +139,11 @@ object RecipeCalculationHelper {
         euMultiplier: Double,
         getRecipeEut: (GTRecipe) -> Long,
         isEnergyConsumer: Boolean = true
-    ): Triple<ObjectArrayList<Content>, ObjectArrayList<Content>, BigInteger> {
+    ): WirelessBatch {
         val itemOutputs = ObjectArrayList<Content>()
         val fluidOutputs = ObjectArrayList<Content>()
         var accumulatedEu = BigInteger.ZERO
+        var consumedRecipes = 0
 
         for (i in parallelData.originRecipeList.indices) {
             val r = parallelData.originRecipeList[i]
@@ -136,7 +163,10 @@ object RecipeCalculationHelper {
                     break
                 }
 
-                val paralleledRecipe = IParallelLogic.getRecipeOutputChance(machine, multipleRecipe(r, p))
+                val paralleledRecipe = multipleRecipe(r, p)
+                RecipeChancePreview.output(
+                    paralleledRecipe, machine, paralleledRecipe.outputs, machine.recipeLogic.chanceCaches, false
+                )
 
                 if (RecipeRunnerHelper.matchRecipeInput(
                         machine,
@@ -148,16 +178,18 @@ object RecipeCalculationHelper {
                     )
                 ) {
                     accumulatedEu = tempAccumulatedEu
-                    collectOutputs(paralleledRecipe, itemOutputs, fluidOutputs)
+                    consumedRecipes++
+                    collectOutputs(IParallelLogic.getRecipeOutputChance(machine, paralleledRecipe), itemOutputs, fluidOutputs)
                 }
             } else {
                 accumulatedEu = tempAccumulatedEu
+                consumedRecipes++
                 collectOutputs(parallelData.processedRecipeList!![i], itemOutputs, fluidOutputs)
             }
         }
 
         val totalEu = if (isEnergyConsumer) accumulatedEu else accumulatedEu.negate()
-        return Triple(itemOutputs, fluidOutputs, totalEu)
+        return WirelessBatch(itemOutputs, fluidOutputs, totalEu, consumedRecipes)
     }
 
     fun buildNormalRecipe(
@@ -167,13 +199,16 @@ object RecipeCalculationHelper {
         maxEUt: Long,
         minDuration: Int
     ): GTRecipe {
-        val recipe = GTRecipeBuilder.ofRaw().buildRawRecipe()
+        require(totalEu.isFinite() && totalEu >= 0 && maxEUt > 0 && minDuration > 0) {
+            "Batch energy, voltage and duration must be finite and positive"
+        }
+        val recipe = GTRecipeBuilder.ofRaw().build()
         recipe.outputs[ItemRecipeCapability.CAP] = itemOutputs
         recipe.outputs[FluidRecipeCapability.CAP] = fluidOutputs
 
         val d = totalEu / maxEUt
         val eut = if (d > minDuration) maxEUt else (totalEu / minDuration).toLong()
-        recipe.tickInputs[EURecipeCapability.CAP] = listOf(Content(eut, 10000, 10000, 0, null, null))
+        EURecipeCapability.putEUContent(recipe.tickInputs, EnergyStack(eut))
         recipe.duration = maxOf(d, minDuration.toDouble()).roundToInt()
         IGTRecipe.of(recipe).setHasTick(true)
         IGTRecipe.of(recipe).isBatchProcessed = true
@@ -185,8 +220,9 @@ object RecipeCalculationHelper {
         fluidOutputs: List<Content>,
         duration: Int,
         totalEu: BigInteger,
-        recipeType: GTRecipeType = GTRecipeTypes.DUMMY_RECIPES
+        recipeType: GTRecipeType = GTRecipeTypes.DUMMY_RECIPES.value()
     ): WirelessGTRecipe {
+        require(duration > 0) { "Wireless batch duration must be positive" }
         val eut = totalEu.divide(BigInteger.valueOf(duration.toLong())).negate()
         val recipe = WirelessGTRecipeBuilder
             .ofRaw(recipeType)
@@ -196,6 +232,7 @@ object RecipeCalculationHelper {
             .setWirelessEut(eut)
             .buildRawRecipe()
         IGTRecipe.of(recipe).isBatchProcessed = true
+        recipe.data.putByteArray(NativeWirelessRecipeState.TOTAL_KEY, totalEu.negate().toByteArray())
         return recipe
     }
 
@@ -275,14 +312,14 @@ object RecipeCalculationHelper {
             val p = pair.firstLong()
             if (p <= 0) continue
 
-            val paralleledRecipe = IParallelLogic.getRecipeOutputChance(
-                machine,
-                multipleRecipe(match, p)
+            val paralleledRecipe = multipleRecipe(match, p)
+            RecipeChancePreview.output(
+                paralleledRecipe, machine, paralleledRecipe.outputs, machine.recipeLogic.chanceCaches, false
             )
             if (RecipeRunnerHelper.handleRecipeInput(machine, paralleledRecipe)) {
                 remain -= pair.secondLong()
                 recipeList.add(match)
-                processedRecipeList.add(paralleledRecipe)
+                processedRecipeList.add(IParallelLogic.getRecipeOutputChance(machine, paralleledRecipe))
                 parallelsList.add(p)
             }
         }
@@ -318,13 +355,13 @@ object RecipeCalculationHelper {
 
             if (parallel > 0) {
                 if (preProcessRecipes) {
-                    val paralleledRecipe = IParallelLogic.getRecipeOutputChance(
-                        machine,
-                        createParalleledRecipe(modified, parallel)
+                    val paralleledRecipe = createParalleledRecipe(modified, parallel)
+                    RecipeChancePreview.output(
+                        paralleledRecipe, machine, paralleledRecipe.outputs, machine.recipeLogic.chanceCaches, false
                     )
                     if (RecipeRunnerHelper.handleRecipeInput(machine, paralleledRecipe)) {
                         recipeList.add(if (useModifiedRecipe) modified else recipe)
-                        processedRecipeList!!.add(paralleledRecipe)
+                        processedRecipeList!!.add(IParallelLogic.getRecipeOutputChance(machine, paralleledRecipe))
                         parallelsList.add(parallel)
                     }
                 } else {
@@ -447,27 +484,19 @@ object RecipeCalculationHelper {
     // Recipe Copy Boost Fix ( > 10000 max chance)
     // ===================================================
 
-    fun copyFixRecipe(origin: GTRecipe, modifier: ContentModifier, fixMultiplier: Int) =
-        RecipeExtensionCopier.copy(
-            origin,
-            GTRecipe(
-                origin.recipeType,
-                origin.id,
-                copyFixContents(origin.inputs, modifier, fixMultiplier),
-                copyFixContents(origin.outputs, modifier, fixMultiplier),
-                copyFixContents(origin.tickInputs, modifier, fixMultiplier),
-                copyFixContents(origin.tickOutputs, modifier, fixMultiplier),
-                Reference2ReferenceArrayMap(origin.inputChanceLogics),
-                Reference2ReferenceArrayMap(origin.outputChanceLogics),
-                Reference2ReferenceArrayMap(origin.tickInputChanceLogics),
-                Reference2ReferenceArrayMap(origin.tickOutputChanceLogics),
-                ObjectArrayList(origin.conditions),
-                ObjectArrayList(origin.ingredientActions),
-                origin.data,
-                origin.duration,
-                origin.isFuel
-            )
-        )
+    fun copyFixRecipe(origin: GTRecipe, modifier: ContentModifier, fixMultiplier: Int): GTRecipe {
+        require(fixMultiplier > 0) { "Chance boost divisor must be positive" }
+        val copy = origin.copy()
+        copy.inputs.clear()
+        copy.inputs.putAll(copyFixContents(origin.inputs, modifier, fixMultiplier))
+        copy.outputs.clear()
+        copy.outputs.putAll(copyFixContents(origin.outputs, modifier, fixMultiplier))
+        copy.tickInputs.clear()
+        copy.tickInputs.putAll(copyFixContents(origin.tickInputs, modifier, fixMultiplier))
+        copy.tickOutputs.clear()
+        copy.tickOutputs.putAll(copyFixContents(origin.tickOutputs, modifier, fixMultiplier))
+        return RecipeExtensionCopier.copy(origin, copy)
+    }
 
     fun copyFixContents(
         contents: Map<RecipeCapability<*>, List<Content>>,
@@ -495,20 +524,20 @@ object RecipeCalculationHelper {
         modifier: ContentModifier,
         fixMultiplier: Int
     ): Content {
-        val newContent = if (content.chance != 0) {
+        require(fixMultiplier > 0) { "Chance boost divisor must be positive" }
+        // Native chance logic applies realParallels when rolling. Scaling its one-run quantity
+        // as well would square the requested parallels and overconsume probabilistic inputs.
+        val newContent = if (content.chance >= content.maxChance) {
             capability.copyContent(content.content, modifier)
         } else {
             capability.copyContent(content.content)
         }
 
-        return Content(
-            newContent,
-            content.chance,
-            content.maxChance,
-            content.tierChanceBoost / fixMultiplier,
-            content.slotName,
-            content.uiName
-        )
+        return NativeContentState.copy(content, Content(newContent, content.chance, content.maxChance)).also {
+            NativeContentState.of(it).`gtlcore$setTierChanceBoost`(
+                NativeContentState.of(content).`gtlcore$getTierChanceBoost`() / fixMultiplier
+            )
+        }
     }
 
     // ===================================================
@@ -518,47 +547,21 @@ object RecipeCalculationHelper {
     const val RECIPE_CYCLE_CONTAINER = "recipe_cycle_container"
 
     val RECIPE_CYCLE_CONTAINER_ITEM_IDS: Set<ResourceLocation> = setOf(
-        ResourceLocation("kubejs", "extremely_durable_plasma_cell"),
-        ResourceLocation("kubejs", "time_dilation_containment_unit"),
-        ResourceLocation("kubejs", "plasma_containment_cell")
+        ResourceLocation.fromNamespaceAndPath("kubejs", "extremely_durable_plasma_cell"),
+        ResourceLocation.fromNamespaceAndPath("kubejs", "time_dilation_containment_unit"),
+        ResourceLocation.fromNamespaceAndPath("kubejs", "plasma_containment_cell")
     )
 
     val RECIPE_CYCLE_CONTAINER_ITEMS: Set<Item> by lazy {
         RECIPE_CYCLE_CONTAINER_ITEM_IDS.mapTo(mutableSetOf()) { id -> Registries.getItem(id.toString()) }
     }
 
-    val FORGE_OF_THE_ANTICHRIST_SPECIAL_INPUT_RULES: Map<ResourceLocation, Content> by lazy {
-        mapOf(
-            ResourceLocation("kubejs", "stellar_forge/contained_exotic_matter") to Content(
-                LongIngredient.create(Ingredient.of(Registries.getItemStack("kubejs:time_dilation_containment_unit"))),
-                ChanceLogic.getMaxChancedValue(),
-                ChanceLogic.getMaxChancedValue(),
-                0,
-                null,
-                null
-            ),
-            ResourceLocation("kubejs", "stellar_forge/extremely_durable_plasma_cell") to Content(
-                LongIngredient.create(Ingredient.of(Registries.getItemStack("kubejs:extremely_durable_plasma_cell"))),
-                ChanceLogic.getMaxChancedValue(),
-                ChanceLogic.getMaxChancedValue(),
-                0,
-                null,
-                null
-            ),
-            ResourceLocation("kubejs", "stellar_forge/contained_kerr_newmann_singularity") to Content(
-                LongIngredient.create(Ingredient.of(Registries.getItemStack("kubejs:time_dilation_containment_unit"))),
-                ChanceLogic.getMaxChancedValue(),
-                ChanceLogic.getMaxChancedValue(),
-                0,
-                null,
-                null
-            )
-        )
-    }
+    val FORGE_OF_THE_ANTICHRIST_SPECIAL_INPUT_RULES: Map<ResourceLocation, Content>
+        get() = com.gtladd.gtladditions.integration.ae2.ForgePatternRules.specialInputContents()
 
-    fun isRecipeCycleContainerItem(item: Item): Boolean = item in RECIPE_CYCLE_CONTAINER_ITEMS
+    fun isRecipeCycleContainerItem(item: Item): Boolean = CycleContainerHelper.isItem(item)
 
-    fun isRecipeCycleContainerContent(content: Content): Boolean = content.slotName == RECIPE_CYCLE_CONTAINER
+    fun isRecipeCycleContainerContent(content: Content): Boolean = CycleContainerHelper.isContent(content)
 
     fun appendSpecificInput(copyList: MutableList<Content>, id: ResourceLocation, modifier: ContentModifier) {
         FORGE_OF_THE_ANTICHRIST_SPECIAL_INPUT_RULES[id]?.let {

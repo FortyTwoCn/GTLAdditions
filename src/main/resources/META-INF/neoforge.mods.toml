@@ -1,0 +1,70 @@
+modLoader = "javafml"
+loaderVersion = "[${loader_version},)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}"
+version = "${version}"
+displayName = "${mod_name}"
+displayURL = "${mod_url}"
+authors = "${mod_author}"
+description = "GregTech Leisure"
+
+[[mixins]]
+config = "${mod_id}.mixin.json"
+
+[[dependencies.${mod_id}]]
+modId = "neoforge"
+type = "required"
+versionRange = "[${neo_version},)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "gtceu"
+type = "required"
+versionRange = "[${gtceu_version},8.1)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "ae2"
+type = "required"
+versionRange = "[${ae2_version},20)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "gtmthings"
+type = "required"
+versionRange = "[1.6.0,1.7)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "ad_astra"
+type = "required"
+versionRange = "[1.16.26,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "gtlcore"
+type = "required"
+versionRange = "[1.2.3.2-fix3,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "sgjourney"
+type = "required"
+versionRange = "[0.6.49,)"
+ordering = "AFTER"
+side = "BOTH"

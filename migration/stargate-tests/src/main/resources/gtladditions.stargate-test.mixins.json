@@ -1,0 +1,34 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.gtladd.gtladditions.mixin.stargatejourney",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BiomeModifiersMixin",
+    "FluidInitMixin",
+    "ForgeEventsMixin",
+    "HeavyNaquadahLiquidizerEntityMixin",
+    "RecipeTypeInitMixin",
+    "TabInitMixin",
+    "VillagerInitMixin",
+    "WormholeMixin",
+    "dhd.AbstractDHDBlockMixin",
+    "dhd.AbstractDHDEntityMixin",
+    "dhd.ClassicDHDBlockMixin",
+    "dhd.MilkyWayDHDBlockMixin",
+    "dhd.PegasusDHDBlockMixin",
+    "stargate.AbstractStargateBaseBlockMixin",
+    "stargate.AbstractStargateEntityMixin",
+    "stargate.ClassicStargateBaseBlockMixin",
+    "stargate.StargateConnectionMixin",
+    "stargate.StargateNetworkMixin",
+    "stargate.StargateStructureMixin"
+  ],
+  "client": [
+    "InterfaceScreenMixin",
+    "ClassicStargateTooltipMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
