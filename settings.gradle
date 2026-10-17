@@ -40,20 +40,7 @@ includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().res
     }
 }
 
-includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().resolve('migration/dependencies/ae2wtlib').toFile()) {
-    name = 'ae2wtlib-native'
-    dependencySubstitution {
-        substitute module('maven.modrinth:applied-energistics-2-wireless-terminals') using project(':')
-        substitute module('de.mari_023:ae2wtlib_api') using project(':ae2wtlib_api')
-    }
-}
 
-includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().resolve('migration/dependencies/ftbultimine').toFile()) {
-    name = 'ftbultimine-native'
-    dependencySubstitution {
-        substitute module('dev.ftb.mods:ftb-ultimine-neoforge') using project(':')
-    }
-}
 
 includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().resolve('migration/dependencies/ae2jei').toFile()) {
     name = 'ae2jei-native'
@@ -62,12 +49,6 @@ includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().res
     }
 }
 
-includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().resolve('migration/dependencies/travelanchors').toFile()) {
-    name = 'travelanchors-native'
-    dependencySubstitution {
-        substitute module('org.gtlcore.dependencies:travelanchors-neoforge') using project(':')
-    }
-}
 
 includeBuild(file(providers.gradleProperty('gtlcore_source').get()).toPath().resolve('migration/dependencies/mae2').toFile()) {
     name = 'mae2-native'

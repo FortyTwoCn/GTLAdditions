@@ -60,9 +60,8 @@ neoForge {
 dependencies {
     implementation('com.gregtechceu.gtceu:gtceu-1.21.1:8.0.0')
     implementation('com.hepdd.gtmthings:gtmthings:1.6.0')
-    implementation('org.gtlcore.gtlcore:gtlcore-1.21.1:1.2.3.2-fix3')
-    implementation('dev.ftb.mods:ftb-ultimine-neoforge:2101.1.1')
-    implementation('org.gtlcore.dependencies:travelanchors-neoforge:6.0.0-gtl.1')
+    implementation('org.gtlcore.gtlcore:gtlcore-1.21.1:1.2.3.2-fix4')
+    implementation('curse.maven:ftb-ultimine-forge-386134:6846404')
     implementation(forge.ae2)
     implementation(forge.registrate)
     implementation(forge.configuration)
@@ -75,9 +74,9 @@ dependencies {
     implementation('maven.modrinth:resourceful-config:lSbyRD6v')
     implementation('maven.modrinth:common-storage-lib:SCkdlli6')
     implementation('maven.modrinth:extended-ae:bC302UUP')
-    implementation('maven.modrinth:applied-energistics-2-wireless-terminals:6feJ9h09')
+    implementation('maven.modrinth:applied-energistics-2-wireless-terminals:CxSEpEnO')
     // The implementation bundles this API for runtime; expose its published artifact to javac.
-    compileOnly('de.mari_023:ae2wtlib_api:19.2.0') { transitive = false }
+    compileOnly('de.mari_023:ae2wtlib_api:19.5.1') { transitive = false }
     implementation('maven.modrinth:glodium:pfbmdJ3b')
     implementation('maven.modrinth:guideme:hFpGwC6q')
     implementation('maven.modrinth:merequester:E46AplqZ')

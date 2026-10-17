@@ -1,7 +1,11 @@
 # GTLAdditions
 
+Current 1.21.1 build: **3.2.8Custom-fix3**, paired with GTLCore **1.2.3.2-fix4**.
+Download the [dependency update prerelease](https://github.com/FortyTwoCn/GTLAdditions/releases/tag/neoforge-1.21.1-3.2.8Custom-fix3-deps.20261017).
+Use AE2 ≥ 19.2.17, AE2WTLib 19.5.1 and FTB Ultimine ≥ 2101.1.7. Travel Anchors is no longer required; Ender IO integration is optional.
+See the [dependency and upgrade guide](https://github.com/FortyTwoCn/GTLCore/blob/1.21.1/migration/dependency-update-20261017.md) before using the historical preview bundle below.
 
-## Native 1.21.1 preview
+## Historical native 1.21.1 preview
 
 Download [this prerelease](https://github.com/FortyTwoCn/GTLAdditions/releases/tag/neoforge-1.21.1-3.2.8Custom-fix2-preview.1) for the native mod JAR,
 or install both mods with the fixed dependency closure from

@@ -58,7 +58,7 @@ side = "BOTH"
 [[dependencies.${mod_id}]]
 modId = "gtlcore"
 type = "required"
-versionRange = "[1.2.3.2-fix3,)"
+versionRange = "[1.2.3.2-fix4,)"
 ordering = "AFTER"
 side = "BOTH"
 
